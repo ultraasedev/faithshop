@@ -65,9 +65,10 @@ function SuccessContent() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center mb-8"
       >
-        <CheckCircle2 className="h-12 w-12 text-green-600" />
+        <div className="h-24 w-24 rounded-full bg-green-100 flex items-center justify-center mb-8">
+          <CheckCircle2 className="h-12 w-12 text-green-600" />
+        </div>
       </motion.div>
       
       <motion.div
