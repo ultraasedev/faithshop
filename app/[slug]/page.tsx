@@ -3,9 +3,10 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 
 // Generate Metadata for SEO
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
   const page = await prisma.pageContent.findUnique({
-    where: { slug: params.slug }
+    where: { slug }
   })
 
   if (!page) return {}
@@ -16,9 +17,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function DynamicPage({ params }: { params: { slug: string } }) {
+export default async function DynamicPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   const page = await prisma.pageContent.findUnique({
-    where: { slug: params.slug }
+    where: { slug }
   })
 
   if (!page || !page.isPublished) {
