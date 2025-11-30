@@ -47,10 +47,19 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [activeTheme, integrations] = await Promise.all([
-    getActiveTheme(),
-    getIntegrations()
-  ])
+  let activeTheme = null
+  let integrations: any[] = []
+
+  try {
+    const [theme, ints] = await Promise.all([
+      getActiveTheme(),
+      getIntegrations()
+    ])
+    activeTheme = theme
+    integrations = ints
+  } catch (error) {
+    console.error('Failed to fetch layout data:', error)
+  }
 
   const ga = integrations.find((i: any) => i.provider === 'google_analytics' && i.isEnabled)
   const gads = integrations.find((i: any) => i.provider === 'google_ads' && i.isEnabled)
