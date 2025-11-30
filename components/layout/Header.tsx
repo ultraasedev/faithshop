@@ -62,10 +62,12 @@ export default function Header() {
 
   return (
     <>
-      <header 
+      <header
         className={cn(
           "fixed top-0 z-50 w-full transition-all duration-300 border-b border-transparent",
-          scrolled ? "bg-white/80 backdrop-blur-md border-border py-2" : "bg-transparent py-4"
+          scrolled
+            ? "bg-background/90 backdrop-blur-md border-border py-2"
+            : "bg-background/70 backdrop-blur-sm py-4"
         )}
       >
         <div className="mx-auto max-w-[1920px] px-6 lg:px-12">
@@ -111,7 +113,7 @@ export default function Header() {
                   <img
                     src="/logo.png"
                     alt="Faith Shop Logo"
-                    className="h-full w-full object-contain object-center transition-opacity group-hover:opacity-80"
+                    className="h-full w-full object-contain object-center transition-opacity group-hover:opacity-80 dark:invert"
                   />
                 </div>
               </Link>
