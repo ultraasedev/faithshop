@@ -1,0 +1,35 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function GET() {
+  try {
+    const now = new Date()
+
+    const banners = await prisma.banner.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { startDate: null },
+          { startDate: { lte: now } }
+        ],
+        AND: [
+          {
+            OR: [
+              { endDate: null },
+              { endDate: { gte: now } }
+            ]
+          }
+        ]
+      },
+      orderBy: [
+        { order: 'asc' },
+        { createdAt: 'desc' }
+      ]
+    })
+
+    return NextResponse.json(banners)
+  } catch (error) {
+    console.error('Error fetching banners:', error)
+    return NextResponse.json([])
+  }
+}

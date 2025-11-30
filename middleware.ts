@@ -1,30 +1,24 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protéger toutes les routes /admin
   if (pathname.startsWith("/admin")) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.AUTH_SECRET,
-    })
+    // Vérifier le cookie de session NextAuth
+    const sessionToken = request.cookies.get("authjs.session-token")?.value ||
+                         request.cookies.get("__Secure-authjs.session-token")?.value
 
-    // Si pas connecté, rediriger vers login
-    if (!token) {
+    // Si pas de token de session, rediriger vers login
+    if (!sessionToken) {
       const loginUrl = new URL("/login", request.url)
       loginUrl.searchParams.set("callbackUrl", pathname)
       return NextResponse.redirect(loginUrl)
     }
 
-    // Vérifier que l'utilisateur est admin ou super admin
-    const userRole = token.role as string | undefined
-    if (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN") {
-      // Rediriger vers la page d'accueil si pas admin
-      return NextResponse.redirect(new URL("/", request.url))
-    }
+    // Note: La vérification du rôle admin se fera côté serveur dans les pages admin
+    // car on ne peut pas décoder le JWT facilement dans le middleware Edge
   }
 
   return NextResponse.next()

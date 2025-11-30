@@ -17,7 +17,8 @@ import {
   Gift,
   Palette,
   UserCog,
-  FileText
+  FileText,
+  Megaphone
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,7 @@ const sidebarItems = [
 ]
 
 const settingsItems = [
+  { name: 'Bannières Promo', href: '/admin/banners', icon: Megaphone },
   { name: 'Personnalisation', href: '/admin/settings/appearance', icon: Palette },
   { name: 'Utilisateurs Admin', href: '/admin/settings/users', icon: UserCog },
   { name: 'Pages & Contenu', href: '/admin/settings/pages', icon: FileText },

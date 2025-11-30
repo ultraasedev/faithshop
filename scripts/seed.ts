@@ -14,11 +14,11 @@ async function main() {
   const hashedPassword = await hash('admin123', 12)
 
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@faith-shop.com' },
-    update: {},
+    where: { email: 'contact@faith-shop.fr' },
+    update: { password: hashedPassword },
     create: {
       name: 'Super Admin',
-      email: 'admin@faith-shop.com',
+      email: 'contact@faith-shop.fr',
       password: hashedPassword,
       role: 'SUPER_ADMIN',
       canManageProducts: true,
@@ -30,6 +30,134 @@ async function main() {
     },
   })
   console.log('✅ Super admin créé:', superAdmin.email)
+
+  // Créer un client de test avec une commande
+  const clientPassword = await hash('client123', 12)
+  const testClient = await prisma.user.upsert({
+    where: { email: 'client@test.com' },
+    update: {},
+    create: {
+      name: 'Jean Dupont',
+      email: 'client@test.com',
+      password: clientPassword,
+      role: 'USER',
+      phone: '+33 6 12 34 56 78',
+      address: '42 Avenue des Champs-Élysées',
+      city: 'Paris',
+      zipCode: '75008',
+      country: 'France',
+    },
+  })
+  console.log('✅ Client test créé:', testClient.email)
+
+  // Récupérer un produit existant pour la commande test
+  const products = await prisma.product.findMany({ take: 2 })
+
+  if (products.length > 0) {
+    // Créer une commande de test pour le client
+    const existingOrder = await prisma.order.findFirst({
+      where: { userId: testClient.id }
+    })
+
+    if (!existingOrder) {
+      const testOrder = await prisma.order.create({
+        data: {
+          orderNumber: 'FS-2024-001',
+          userId: testClient.id,
+          shippingAddress: '42 Avenue des Champs-Élysées',
+          shippingCity: 'Paris',
+          shippingZip: '75008',
+          shippingCountry: 'France',
+          shippingPhone: '+33 6 12 34 56 78',
+          billingAddress: '42 Avenue des Champs-Élysées',
+          billingCity: 'Paris',
+          billingZip: '75008',
+          billingCountry: 'France',
+          status: 'DELIVERED',
+          subtotal: products[0] ? Number(products[0].price) * 2 : 90,
+          shippingCost: 4.99,
+          total: products[0] ? Number(products[0].price) * 2 + 4.99 : 94.99,
+          paymentMethod: 'STRIPE',
+          paymentStatus: 'COMPLETED',
+          items: {
+            create: products.slice(0, 1).map(product => ({
+              productId: product.id,
+              quantity: 2,
+              price: Number(product.price) * 2,
+              productName: product.name,
+              productImage: product.images[0] || null,
+              color: product.colors[0] || 'Noir',
+              size: product.sizes[0] || 'M',
+            })),
+          },
+          shipping: {
+            create: {
+              carrier: 'Colissimo',
+              trackingNumber: 'FR123456789',
+              trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois?code=FR123456789',
+              status: 'DELIVERED',
+              deliveredAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // Livré il y a 5 jours
+              shippedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
+          },
+        },
+      })
+      console.log('✅ Commande test créée:', testOrder.orderNumber)
+
+      // Créer une deuxième commande en cours
+      const testOrder2 = await prisma.order.create({
+        data: {
+          orderNumber: 'FS-2024-002',
+          userId: testClient.id,
+          shippingAddress: '42 Avenue des Champs-Élysées',
+          shippingCity: 'Paris',
+          shippingZip: '75008',
+          shippingCountry: 'France',
+          shippingPhone: '+33 6 12 34 56 78',
+          status: 'SHIPPED',
+          subtotal: products[1] ? Number(products[1].price) : 45,
+          shippingCost: 0,
+          total: products[1] ? Number(products[1].price) : 45,
+          paymentMethod: 'STRIPE',
+          paymentStatus: 'COMPLETED',
+          items: {
+            create: products.length > 1 ? [{
+              productId: products[1].id,
+              quantity: 1,
+              price: Number(products[1].price),
+              productName: products[1].name,
+              productImage: products[1].images[0] || null,
+              color: products[1].colors[0] || 'Blanc',
+              size: 'L',
+            }] : [{
+              productId: products[0].id,
+              quantity: 1,
+              price: Number(products[0].price),
+              productName: products[0].name,
+              productImage: products[0].images[0] || null,
+              color: 'Blanc',
+              size: 'L',
+            }],
+          },
+          shipping: {
+            create: {
+              carrier: 'Chronopost',
+              trackingNumber: 'FR987654321',
+              trackingUrl: 'https://www.chronopost.fr/tracking?code=FR987654321',
+              status: 'IN_TRANSIT',
+              shippedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+              estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            },
+          },
+        },
+      })
+      console.log('✅ Commande test 2 créée:', testOrder2.orderNumber)
+    } else {
+      console.log('✅ Commandes test déjà existantes')
+    }
+  } else {
+    console.log('⚠️ Aucun produit trouvé, commandes test non créées')
+  }
 
   // Configurations du site par défaut
   const defaultConfigs = [
@@ -223,6 +351,25 @@ async function main() {
     })
   }
   console.log('✅ Pages par défaut créées')
+
+  // Bannière promotionnelle de test
+  const existingBanner = await prisma.banner.findFirst()
+  if (!existingBanner) {
+    await prisma.banner.create({
+      data: {
+        text: '🎉 Livraison OFFERTE dès 50€ d\'achat avec le code WELCOME10 !',
+        link: '/shop',
+        backgroundColor: '#000000',
+        textColor: '#ffffff',
+        isActive: true,
+        position: 'top',
+        order: 0,
+      },
+    })
+    console.log('✅ Bannière promotionnelle créée')
+  } else {
+    console.log('✅ Bannière déjà existante')
+  }
 
   console.log('🎉 Seed terminé avec succès!')
 }

@@ -12,11 +12,11 @@ export async function GET() {
     const hashedPassword = await hash('admin123', 12)
 
     const superAdmin = await prisma.user.upsert({
-      where: { email: 'admin@faith-shop.com' },
-      update: {},
+      where: { email: 'contact@faith-shop.fr' },
+      update: { password: hashedPassword },
       create: {
         name: 'Super Admin',
-        email: 'admin@faith-shop.com',
+        email: 'contact@faith-shop.fr',
         password: hashedPassword,
         role: 'SUPER_ADMIN',
         canManageProducts: true,
@@ -28,6 +28,25 @@ export async function GET() {
       },
     })
     console.log('✅ Super admin créé:', superAdmin.email)
+
+    // Créer un client de test avec une commande
+    const clientPassword = await hash('client123', 12)
+    const testClient = await prisma.user.upsert({
+      where: { email: 'client@test.com' },
+      update: {},
+      create: {
+        name: 'Jean Dupont',
+        email: 'client@test.com',
+        password: clientPassword,
+        role: 'USER',
+        phone: '+33 6 12 34 56 78',
+        address: '42 Avenue des Champs-Élysées',
+        city: 'Paris',
+        zipCode: '75008',
+        country: 'France',
+      },
+    })
+    console.log('✅ Client test créé:', testClient.email)
 
     // Configurations du site par défaut
     const defaultConfigs = [
@@ -312,6 +331,123 @@ export async function GET() {
       console.log('✅ Produits déjà existants:', existingProducts)
     }
 
+    // Créer des commandes test pour le client
+    const products = await prisma.product.findMany({ take: 2 })
+    if (products.length > 0) {
+      const existingOrder = await prisma.order.findFirst({
+        where: { userId: testClient.id }
+      })
+
+      if (!existingOrder) {
+        // Commande livrée (éligible au retour)
+        await prisma.order.create({
+          data: {
+            orderNumber: 'FS-2024-001',
+            userId: testClient.id,
+            shippingAddress: '42 Avenue des Champs-Élysées',
+            shippingCity: 'Paris',
+            shippingZip: '75008',
+            shippingCountry: 'France',
+            shippingPhone: '+33 6 12 34 56 78',
+            billingAddress: '42 Avenue des Champs-Élysées',
+            billingCity: 'Paris',
+            billingZip: '75008',
+            billingCountry: 'France',
+            status: 'DELIVERED',
+            subtotal: Number(products[0].price) * 2,
+            shippingCost: 4.99,
+            total: Number(products[0].price) * 2 + 4.99,
+            paymentMethod: 'STRIPE',
+            paymentStatus: 'COMPLETED',
+            items: {
+              create: [{
+                productId: products[0].id,
+                quantity: 2,
+                price: Number(products[0].price) * 2,
+                productName: products[0].name,
+                productImage: products[0].images[0] || null,
+                color: products[0].colors[0] || 'Noir',
+                size: products[0].sizes[0] || 'M',
+              }],
+            },
+            shipping: {
+              create: {
+                carrier: 'Colissimo',
+                trackingNumber: 'FR123456789',
+                trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois?code=FR123456789',
+                status: 'DELIVERED',
+                deliveredAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+                shippedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+              },
+            },
+          },
+        })
+        console.log('✅ Commande test 1 créée: FS-2024-001')
+
+        // Commande en transit
+        if (products.length > 1) {
+          await prisma.order.create({
+            data: {
+              orderNumber: 'FS-2024-002',
+              userId: testClient.id,
+              shippingAddress: '42 Avenue des Champs-Élysées',
+              shippingCity: 'Paris',
+              shippingZip: '75008',
+              shippingCountry: 'France',
+              shippingPhone: '+33 6 12 34 56 78',
+              status: 'SHIPPED',
+              subtotal: Number(products[1].price),
+              shippingCost: 0,
+              total: Number(products[1].price),
+              paymentMethod: 'STRIPE',
+              paymentStatus: 'COMPLETED',
+              items: {
+                create: [{
+                  productId: products[1].id,
+                  quantity: 1,
+                  price: Number(products[1].price),
+                  productName: products[1].name,
+                  productImage: products[1].images[0] || null,
+                  color: products[1].colors[0] || 'Blanc',
+                  size: 'L',
+                }],
+              },
+              shipping: {
+                create: {
+                  carrier: 'Chronopost',
+                  trackingNumber: 'FR987654321',
+                  trackingUrl: 'https://www.chronopost.fr/tracking?code=FR987654321',
+                  status: 'IN_TRANSIT',
+                  shippedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+                  estimatedDelivery: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+                },
+              },
+            },
+          })
+          console.log('✅ Commande test 2 créée: FS-2024-002')
+        }
+      } else {
+        console.log('✅ Commandes test déjà existantes')
+      }
+    }
+
+    // Bannière promotionnelle
+    const existingBanner = await prisma.banner.findFirst()
+    if (!existingBanner) {
+      await prisma.banner.create({
+        data: {
+          text: '🎉 Livraison OFFERTE dès 50€ d\'achat avec le code WELCOME10 !',
+          link: '/shop',
+          backgroundColor: '#000000',
+          textColor: '#ffffff',
+          isActive: true,
+          position: 'top',
+          order: 0,
+        },
+      })
+      console.log('✅ Bannière promotionnelle créée')
+    }
+
     console.log('🎉 Seed terminé avec succès!')
 
     return NextResponse.json({
@@ -319,6 +455,7 @@ export async function GET() {
       message: 'Database seeded successfully',
       data: {
         superAdmin: superAdmin.email,
+        testClient: testClient.email,
         configs: defaultConfigs.length,
         themes: 2,
         welcomeCode: welcomeCode.code,

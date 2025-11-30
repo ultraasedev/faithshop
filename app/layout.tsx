@@ -35,6 +35,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/ThemeProvider'
+import SessionProvider from '@/components/SessionProvider'
 
 export default function RootLayout({
   children,
@@ -44,10 +45,12 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        <ThemeProvider>
-          {children}
-          <Toaster position="top-center" richColors />
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider>
+            {children}
+            <Toaster position="top-center" richColors />
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

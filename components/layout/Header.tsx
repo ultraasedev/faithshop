@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
+import PromoBanner, { useBannerVisibility } from '@/components/PromoBanner'
 
 const navigation = [
   { name: 'Nouveautés', href: '/new' },
@@ -27,6 +28,7 @@ const navigation = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const hasBanner = useBannerVisibility()
   
   // Cart Store
   const items = useCart((state) => state.items)
@@ -62,9 +64,15 @@ export default function Header() {
 
   return (
     <>
+      {/* Promo Banner */}
+      <div className="fixed top-0 left-0 right-0 z-60">
+        <PromoBanner position="top" />
+      </div>
+
       <header
         className={cn(
-          "fixed top-0 z-50 w-full transition-all duration-300 border-b border-transparent",
+          "fixed z-50 w-full transition-all duration-300 border-b border-transparent",
+          hasBanner ? "top-10" : "top-0",
           scrolled
             ? "bg-background/90 backdrop-blur-md border-border py-2"
             : "bg-background/70 backdrop-blur-sm py-4"
