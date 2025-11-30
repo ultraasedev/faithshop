@@ -42,6 +42,10 @@ import { getActiveTheme } from '@/app/actions/admin/settings'
 import { getIntegrations } from '@/app/actions/admin/cms'
 import Script from 'next/script'
 
+// Force le layout à être dynamique pour éviter les problèmes de connexion DB au build
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function RootLayout({
   children,
 }: {
