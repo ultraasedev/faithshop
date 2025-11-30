@@ -15,6 +15,11 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Faith Shop | Mode Chrétienne Premium & Éthique",
   description: "Découvrez Faith Shop, la boutique de vêtements chrétiens haut de gamme. T-shirts, hoodies et accessoires inspirés par la foi. Livraison offerte dès 100€.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "Faith Shop | Mode Chrétienne Premium",
     description: "L'élégance de la foi. Collection intemporelle de vêtements unisexe.",
@@ -29,6 +34,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from 'sonner'
+import { ThemeProvider } from '@/components/ThemeProvider'
 
 export default function RootLayout({
   children,
@@ -36,10 +42,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased bg-background text-foreground">
-        {children}
-        <Toaster position="top-center" richColors />
+        <ThemeProvider>
+          {children}
+          <Toaster position="top-center" richColors />
+        </ThemeProvider>
       </body>
     </html>
   )

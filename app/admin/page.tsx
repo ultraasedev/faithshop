@@ -1,153 +1,143 @@
-import { prisma } from '@/lib/prisma'
-import { formatPrice } from '@/lib/utils'
-import { Package, ShoppingCart, Users, TrendingUp } from 'lucide-react'
+'use client'
 
-export default async function AdminDashboard() {
-  // Récupérer les statistiques
-  const [productsCount, ordersCount, usersCount, recentOrders] = await Promise.all([
-    prisma.product.count(),
-    prisma.order.count(),
-    prisma.user.count(),
-    prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: true,
-      },
-    }),
-  ])
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ArrowUpRight, DollarSign, ShoppingBag, Users, Activity } from 'lucide-react'
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts'
 
-  // Calculer le revenu total
-  const totalRevenue = await prisma.order.aggregate({
-    _sum: {
-      total: true,
-    },
-    where: {
-      paymentStatus: 'PAID',
-    },
-  })
+const data = [
+  { name: 'Jan', total: 1200 },
+  { name: 'Fev', total: 2100 },
+  { name: 'Mar', total: 1800 },
+  { name: 'Avr', total: 2400 },
+  { name: 'Mai', total: 3200 },
+  { name: 'Juin', total: 4500 },
+  { name: 'Juil', total: 4100 },
+]
 
-  const stats = [
-    {
-      title: 'Revenus Totaux',
-      value: formatPrice(totalRevenue._sum.total || 0),
-      icon: TrendingUp,
-      color: 'bg-gradient-primary',
-    },
-    {
-      title: 'Commandes',
-      value: ordersCount.toString(),
-      icon: ShoppingCart,
-      color: 'bg-gradient-gold',
-    },
-    {
-      title: 'Produits',
-      value: productsCount.toString(),
-      icon: Package,
-      color: 'bg-gradient-primary',
-    },
-    {
-      title: 'Clients',
-      value: usersCount.toString(),
-      icon: Users,
-      color: 'bg-gradient-gold',
-    },
-  ]
-
+export default function AdminDashboard() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold gradient-text">Dashboard</h1>
-        <p className="text-foreground/70 mt-2">
-          Vue d'ensemble de votre boutique Faith Shop
-        </p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div key={stat.title} className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-foreground/70 mb-1">{stat.title}</p>
-                <p className="text-2xl font-bold">{stat.value}</p>
-              </div>
-              <div className={`p-3 rounded-full ${stat.color}`}>
-                <stat.icon className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Recent Orders */}
-      <div className="card">
-        <h2 className="text-xl font-bold mb-4">Commandes Récentes</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4">N° Commande</th>
-                <th className="text-left py-3 px-4">Client</th>
-                <th className="text-left py-3 px-4">Statut</th>
-                <th className="text-left py-3 px-4">Total</th>
-                <th className="text-left py-3 px-4">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentOrders.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-8 text-foreground/70">
-                    Aucune commande pour le moment
-                  </td>
-                </tr>
-              ) : (
-                recentOrders.map((order) => (
-                  <tr key={order.id} className="border-b border-border hover:bg-muted/50">
-                    <td className="py-3 px-4 font-medium">{order.orderNumber}</td>
-                    <td className="py-3 px-4">{order.user.name || order.user.email}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                        order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'PROCESSING' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 font-medium">{formatPrice(order.total)}</td>
-                    <td className="py-3 px-4 text-foreground/70">
-                      {new Date(order.createdAt).toLocaleDateString('fr-FR')}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Dernière mise à jour : Aujourd'hui à 10:42</span>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <a href="/admin/products/new" className="card hover:shadow-xl transition-shadow">
-          <h3 className="font-semibold mb-2">➕ Ajouter un Produit</h3>
-          <p className="text-sm text-foreground/70">
-            Créer un nouveau produit dans votre catalogue
-          </p>
-        </a>
-        <a href="/admin/orders" className="card hover:shadow-xl transition-shadow">
-          <h3 className="font-semibold mb-2">📦 Gérer les Commandes</h3>
-          <p className="text-sm text-foreground/70">
-            Voir et traiter les commandes en attente
-          </p>
-        </a>
-        <a href="/admin/settings" className="card hover:shadow-xl transition-shadow">
-          <h3 className="font-semibold mb-2">⚙️ Paramètres du Site</h3>
-          <p className="text-sm text-foreground/70">
-            Personnaliser l'apparence et les options
-          </p>
-        </a>
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">45,231.89 €</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
+              <ArrowUpRight className="h-3 w-3 mr-1" /> +20.1% par rapport au mois dernier
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Commandes</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+2350</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
+              <ArrowUpRight className="h-3 w-3 mr-1" /> +180.1% par rapport au mois dernier
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Clients Actifs</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+12,234</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
+              <ArrowUpRight className="h-3 w-3 mr-1" /> +19% par rapport au mois dernier
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Activité</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">+573</div>
+            <p className="text-xs text-muted-foreground flex items-center mt-1 text-green-600">
+              <ArrowUpRight className="h-3 w-3 mr-1" /> +201 depuis la dernière heure
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts & Recent Sales */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Aperçu des Ventes</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data}>
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="#888888" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                  />
+                  <YAxis 
+                    stroke="#888888" 
+                    fontSize={12} 
+                    tickLine={false} 
+                    axisLine={false} 
+                    tickFormatter={(value) => `${value}€`} 
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'transparent' }}
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  />
+                  <Bar dataKey="total" fill="#000000" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Ventes Récentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-8">
+              {[
+                { name: 'Olivia Martin', email: 'olivia.martin@email.com', amount: '+1,999.00€' },
+                { name: 'Jackson Lee', email: 'jackson.lee@email.com', amount: '+39.00€' },
+                { name: 'Isabella Nguyen', email: 'isabella.nguyen@email.com', amount: '+299.00€' },
+                { name: 'William Kim', email: 'will@email.com', amount: '+99.00€' },
+                { name: 'Sofia Davis', email: 'sofia.davis@email.com', amount: '+39.00€' },
+              ].map((sale, i) => (
+                <div key={i} className="flex items-center">
+                  <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center font-bold text-xs">
+                    {sale.name.charAt(0)}
+                  </div>
+                  <div className="ml-4 space-y-1">
+                    <p className="text-sm font-medium leading-none">{sale.name}</p>
+                    <p className="text-xs text-muted-foreground">{sale.email}</p>
+                  </div>
+                  <div className="ml-auto font-medium">{sale.amount}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

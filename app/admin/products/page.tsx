@@ -1,107 +1,81 @@
-import { prisma } from '@/lib/prisma'
+import { Button } from '@/components/ui/button'
+import { Plus, MoreHorizontal, Search } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { Plus, Edit, Trash2 } from 'lucide-react'
-import { formatPrice } from '@/lib/utils'
+import { prisma } from '@/lib/prisma'
 
-export default async function ProductsPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function AdminProductsPage() {
   const products = await prisma.product.findMany({
-    include: {
-      category: true,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
+    orderBy: { createdAt: 'desc' }
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold gradient-text">Produits</h1>
-          <p className="text-foreground/70 mt-2">
-            Gérez votre catalogue de produits
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Produits</h1>
+          <p className="text-muted-foreground mt-2">Gérez votre catalogue, vos stocks et vos prix.</p>
         </div>
-        <Link href="/admin/products/new" className="btn btn-primary">
-          <Plus className="h-5 w-5 mr-2" />
-          Nouveau Produit
-        </Link>
+        <Button asChild>
+          <Link href="/admin/products/new">
+            <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+          </Link>
+        </Button>
       </div>
 
-      <div className="card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4">Image</th>
-                <th className="text-left py-3 px-4">Nom</th>
-                <th className="text-left py-3 px-4">Catégorie</th>
-                <th className="text-left py-3 px-4">Prix</th>
-                <th className="text-left py-3 px-4">Stock</th>
-                <th className="text-left py-3 px-4">Statut</th>
-                <th className="text-right py-3 px-4">Actions</th>
+      <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+        {/* ... Search bar (Client Component idealement, mais on garde simple ici) ... */}
+        
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+            <tr>
+              <th className="px-6 py-4 w-[80px]">Image</th>
+              <th className="px-6 py-4">Nom</th>
+              <th className="px-6 py-4">Statut</th>
+              <th className="px-6 py-4">Prix</th>
+              <th className="px-6 py-4">Stock</th>
+              <th className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">Aucun produit trouvé.</td>
               </tr>
-            </thead>
-            <tbody>
-              {products.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12">
-                    <div className="text-foreground/70">
-                      <p className="text-lg mb-2">Aucun produit</p>
-                      <p className="text-sm">Commencez par créer votre premier produit</p>
+            ) : (
+              products.map((product: any) => (
+                <tr key={product.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="relative h-10 w-10 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
+                      {product.images[0] && (
+                        <Image src={product.images[0]} alt={product.name} fill className="object-cover" />
+                      )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{product.name}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      product.stock > 10 ? 'bg-green-100 text-green-800' :
+                      product.stock > 0 ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {product.stock > 10 ? 'En stock' : product.stock > 0 ? 'Faible' : 'Rupture'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-500">{Number(product.price).toFixed(2)} €</td>
+                  <td className="px-6 py-4 text-gray-500">{product.stock}</td>
+                  <td className="px-6 py-4 text-right">
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </td>
                 </tr>
-              ) : (
-                products.map((product) => (
-                  <tr key={product.id} className="border-b border-border hover:bg-muted/50">
-                    <td className="py-3 px-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-lg flex items-center justify-center">
-                        {product.images[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover rounded-lg" />
-                        ) : (
-                          <span className="text-2xl">✝</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-medium">{product.name}</td>
-                    <td className="py-3 px-4">{product.category.name}</td>
-                    <td className="py-3 px-4 font-medium">{formatPrice(product.price)}</td>
-                    <td className="py-3 px-4">
-                      <span className={`${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-yellow-600' : 'text-red-600'}`}>
-                        {product.stock}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {product.featured ? (
-                        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                          Vedette
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
-                          Normal
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end space-x-2">
-                        <Link
-                          href={`/admin/products/${product.id}/edit`}
-                          className="p-2 hover:bg-muted rounded-lg transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                        <button className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

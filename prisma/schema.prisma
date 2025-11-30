@@ -1,245 +1,424 @@
-// Faith Shop - E-commerce Schema
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// Enums
+// ==================== ENUMS ====================
+
 enum Role {
   USER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum OrderStatus {
   PENDING
+  PAID
   PROCESSING
   SHIPPED
   DELIVERED
   CANCELLED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  STRIPE
+  STRIPE_INSTALLMENTS  // Paiement en plusieurs fois
+  PAYPAL
 }
 
 enum PaymentStatus {
   PENDING
-  PAID
+  COMPLETED
   FAILED
   REFUNDED
+  PARTIALLY_REFUNDED
 }
 
-// User & Authentication
+enum ShippingStatus {
+  PENDING
+  LABEL_CREATED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RETURNED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+enum GiftCardStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  DISABLED
+}
+
+// ==================== USER ====================
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
+  password      String?
   emailVerified DateTime?
   image         String?
-  password      String?
   role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  orders        Order[]
 
-  accounts         Account[]
-  sessions         Session[]
-  orders           Order[]
-  cart             Cart?
-  shippingAddresses ShippingAddress[]
+  // Champs pour adresse/facturation
+  address       String?
+  city          String?
+  zipCode       String?
+  country       String?
+  phone         String?
+  companyName   String?
+  vatNumber     String?
 
-  @@map("users")
+  // Permissions admin granulaires
+  canManageProducts    Boolean @default(false)
+  canManageOrders      Boolean @default(false)
+  canManageUsers       Boolean @default(false)
+  canManageSettings    Boolean @default(false)
+  canManageDiscounts   Boolean @default(false)
+  canManageShipping    Boolean @default(false)
+
+  // Relations
+  createdDiscountCodes DiscountCode[] @relation("CreatedByAdmin")
+  createdGiftCards     GiftCard[]     @relation("CreatedByAdmin")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("sessions")
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
-  @@map("verification_tokens")
-}
-
-// Products & Categories
-model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  image       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  products Product[]
-
-  @@map("categories")
-}
+// ==================== PRODUCT ====================
 
 model Product {
   id          String   @id @default(cuid())
   name        String
-  slug        String   @unique
-  description String?
-  price       Float
-  compareAtPrice Float?
-  images      String[] // Array of image URLs
-  sizes       String[] // Array of sizes (S, M, L, XL, etc.)
-  colors      String[] // Array of colors
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  images      String[] // URLs des images
   stock       Int      @default(0)
-  featured    Boolean  @default(false)
-  categoryId  String
+
+  // Variantes
+  colors      String[]
+  sizes       String[]
+
+  // Stripe Sync
+  stripeProductId String?
+  stripePriceId   String?
+
+  // SEO & affichage
+  slug        String?  @unique
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category   Category     @relation(fields: [categoryId], references: [id])
-  cartItems  CartItem[]
-  orderItems OrderItem[]
-
-  @@map("products")
+  orderItems  OrderItem[]
 }
 
-// Cart
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+// ==================== ORDER ====================
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CartItem[]
-
-  @@map("carts")
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int      @default(1)
-  size      String?
-  color     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@unique([cartId, productId, size, color])
-  @@map("cart_items")
-}
-
-// Orders
 model Order {
-  id              String        @id @default(cuid())
-  orderNumber     String        @unique
-  userId          String
-  status          OrderStatus   @default(PENDING)
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique @default(cuid()) // Numéro de commande lisible
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+
+  // Infos Guest (si pas connecté)
+  guestName       String?
+  guestEmail      String?
+  guestPhone      String?
+
+  // Adresse de livraison snapshot
+  shippingAddress String
+  shippingCity    String
+  shippingZip     String
+  shippingCountry String
+  shippingPhone   String?
+
+  // Adresse de facturation
+  billingAddress  String?
+  billingCity     String?
+  billingZip      String?
+  billingCountry  String?
+
+  status          OrderStatus @default(PENDING)
+
+  // Montants
+  subtotal        Decimal     @db.Decimal(10, 2)
+  shippingCost    Decimal     @db.Decimal(10, 2) @default(0)
+  discountAmount  Decimal     @db.Decimal(10, 2) @default(0)
+  taxAmount       Decimal     @db.Decimal(10, 2) @default(0)
+  total           Decimal     @db.Decimal(10, 2)
+
+  // Paiement
+  paymentMethod   PaymentMethod @default(STRIPE)
   paymentStatus   PaymentStatus @default(PENDING)
-  subtotal        Float
-  shippingCost    Float         @default(0)
-  tax             Float         @default(0)
-  total           Float
-  stripePaymentId String?
-  trackingNumber  String?
-  notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  stripePaymentIntentId String?
+  stripeInstallmentPlanId String? // Pour paiement en plusieurs fois
+  paypalOrderId   String?
 
-  user            User             @relation(fields: [userId], references: [id])
+  // Code promo / Carte cadeau
+  discountCodeId  String?
+  discountCode    DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  giftCardId      String?
+  giftCard        GiftCard?     @relation(fields: [giftCardId], references: [id])
+  giftCardAmountUsed Decimal?   @db.Decimal(10, 2)
+
+  // Notes
+  customerNote    String?
+  adminNote       String?
+
   items           OrderItem[]
-  shippingAddress ShippingAddress?
+  shipping        Shipping?
 
-  @@map("orders")
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
   productId String
+  product   Product @relation(fields: [productId], references: [id])
+
   quantity  Int
-  price     Float
-  size      String?
+  price     Decimal @db.Decimal(10, 2) // Prix au moment de l'achat
   color     String?
-  createdAt DateTime @default(now())
+  size      String?
 
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@map("order_items")
+  // Snapshot du produit au moment de l'achat
+  productName  String
+  productImage String?
 }
 
-model ShippingAddress {
-  id         String   @id @default(cuid())
-  userId     String
-  orderId    String?  @unique
-  firstName  String
-  lastName   String
-  address    String
-  city       String
-  state      String
-  postalCode String
-  country    String
-  phone      String
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+// ==================== SHIPPING ====================
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order Order? @relation(fields: [orderId], references: [id])
+model Shipping {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@map("shipping_addresses")
+  carrier         String         // Colissimo, Chronopost, UPS, etc.
+  trackingNumber  String?
+  trackingUrl     String?
+
+  status          ShippingStatus @default(PENDING)
+
+  // Étiquette d'expédition
+  labelUrl        String?        // URL du PDF de l'étiquette
+  labelCreatedAt  DateTime?
+
+  // Poids et dimensions
+  weightKg        Decimal?       @db.Decimal(5, 2)
+  lengthCm        Int?
+  widthCm         Int?
+  heightCm        Int?
+
+  // Dates
+  estimatedDelivery DateTime?
+  shippedAt         DateTime?
+  deliveredAt       DateTime?
+
+  // Historique
+  events          ShippingEvent[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
-// Site Settings
-model SiteSettings {
-  id                String   @id @default(cuid())
-  siteName          String   @default("Faith Shop")
-  siteDescription   String?
-  logo              String?
-  favicon           String?
-  primaryColor      String   @default("#000000")
-  secondaryColor    String   @default("#ffffff")
-  heroTitle         String?
-  heroSubtitle      String?
-  heroImage         String?
-  aboutText         String?
-  contactEmail      String?
-  contactPhone      String?
-  socialFacebook    String?
-  socialInstagram   String?
-  socialTwitter     String?
-  shippingFlatRate  Float    @default(0)
-  taxRate           Float    @default(0)
-  currency          String   @default("EUR")
-  updatedAt         DateTime @updatedAt
+model ShippingEvent {
+  id          String   @id @default(cuid())
+  shippingId  String
+  shipping    Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
 
-  @@map("site_settings")
+  status      ShippingStatus
+  location    String?
+  description String
+  timestamp   DateTime @default(now())
+}
+
+// Tarifs de livraison configurables
+model ShippingRate {
+  id          String   @id @default(cuid())
+  name        String   // "Standard", "Express", etc.
+  carrier     String
+  minWeight   Decimal  @db.Decimal(5, 2) @default(0)
+  maxWeight   Decimal  @db.Decimal(5, 2)
+  price       Decimal  @db.Decimal(10, 2)
+
+  // Zone géographique
+  countries   String[] // Codes pays: FR, BE, CH, etc.
+
+  // Délai estimé
+  minDays     Int
+  maxDays     Int
+
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== DISCOUNT CODES ====================
+
+model DiscountCode {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  description     String?
+
+  type            DiscountType
+  value           Decimal      @db.Decimal(10, 2) // Pourcentage ou montant fixe
+
+  // Limites
+  minPurchase     Decimal?     @db.Decimal(10, 2) // Montant minimum d'achat
+  maxDiscount     Decimal?     @db.Decimal(10, 2) // Réduction max (pour les %)
+  usageLimit      Int?         // Nombre total d'utilisations
+  usageLimitPerUser Int?       // Par utilisateur
+  currentUsage    Int          @default(0)
+
+  // Validité
+  startsAt        DateTime     @default(now())
+  expiresAt       DateTime?
+  isActive        Boolean      @default(true)
+
+  // Restrictions produits/catégories (optionnel)
+  applicableProducts String[]  // IDs de produits spécifiques
+
+  // Créé par
+  createdById     String?
+  createdBy       User?        @relation("CreatedByAdmin", fields: [createdById], references: [id])
+
+  orders          Order[]
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
+
+// ==================== GIFT CARDS ====================
+
+model GiftCard {
+  id              String         @id @default(cuid())
+  code            String         @unique
+
+  initialAmount   Decimal        @db.Decimal(10, 2)
+  currentBalance  Decimal        @db.Decimal(10, 2)
+
+  status          GiftCardStatus @default(ACTIVE)
+
+  // Acheteur
+  purchaserEmail  String?
+  purchaserName   String?
+
+  // Destinataire
+  recipientEmail  String?
+  recipientName   String?
+  message         String?        // Message personnalisé
+
+  // Validité
+  expiresAt       DateTime?
+
+  // Créé par admin
+  createdById     String?
+  createdBy       User?          @relation("CreatedByAdmin", fields: [createdById], references: [id])
+
+  orders          Order[]
+  transactions    GiftCardTransaction[]
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model GiftCardTransaction {
+  id          String   @id @default(cuid())
+  giftCardId  String
+  giftCard    GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+
+  amount      Decimal  @db.Decimal(10, 2) // Négatif = utilisation, Positif = rechargement
+  balanceAfter Decimal @db.Decimal(10, 2)
+  description String
+
+  createdAt   DateTime @default(now())
+}
+
+// ==================== SITE CONFIGURATION ====================
+
+model SiteConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique // ex: 'home_hero_title', 'primary_color'
+  value       String   // Le contenu
+  type        String   // 'text', 'image', 'json', 'color', 'boolean'
+  category    String   // 'general', 'homepage', 'colors', 'footer', etc.
+  label       String?  // Label lisible pour l'admin
+  description String?  // Description pour l'admin
+  updatedAt   DateTime @updatedAt
+}
+
+// Configuration des thèmes
+model ThemeConfig {
+  id          String   @id @default(cuid())
+  name        String   @unique // 'light', 'dark'
+  isDefault   Boolean  @default(false)
+
+  // Couleurs principales
+  primaryColor       String
+  secondaryColor     String
+  accentColor        String
+  backgroundColor    String
+  textColor          String
+  mutedColor         String
+  borderColor        String
+
+  // Couleurs supplémentaires
+  successColor       String?
+  warningColor       String?
+  errorColor         String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Pages personnalisables
+model PageContent {
+  id          String   @id @default(cuid())
+  slug        String   @unique // 'home', 'about', 'contact'
+  title       String
+  metaTitle   String?
+  metaDescription String?
+
+  // Contenu structuré en JSON
+  content     String   @db.Text // JSON avec les sections de la page
+
+  isPublished Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Médias/Images uploadées
+model Media {
+  id          String   @id @default(cuid())
+  filename    String
+  url         String   // URL Vercel Blob
+  mimeType    String
+  size        Int      // Taille en bytes
+  alt         String?
+
+  // Catégorisation
+  folder      String?  // 'products', 'banners', 'logos', etc.
+
+  createdAt   DateTime @default(now())
 }

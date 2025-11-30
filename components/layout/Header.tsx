@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Menu, Search, ShoppingBag, User, X, Trash2, Plus, Minus } from 'lucide-react'
 import { useCart } from '@/lib/store/cart'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import {
   Sheet,
   SheetContent,
@@ -117,17 +118,19 @@ export default function Header() {
             </div>
 
             {/* Right: Actions */}
-            <div className="flex flex-1 items-center justify-end gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+            <div className="flex flex-1 items-center justify-end gap-1">
+              <ThemeToggle />
+
+              <Button
+                variant="ghost"
+                size="icon"
                 className="text-foreground hover:text-primary hover:bg-transparent"
                 onClick={() => setIsSearchOpen(true)}
               >
                 <Search className="h-5 w-5" />
                 <span className="sr-only">Rechercher</span>
               </Button>
-              
+
               <Button variant="ghost" size="icon" className="text-foreground hover:text-primary hover:bg-transparent" asChild>
                 <Link href="/account">
                   <User className="h-5 w-5" />

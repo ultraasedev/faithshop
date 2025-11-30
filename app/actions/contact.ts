@@ -10,14 +10,13 @@ export async function sendContactEmail(formData: FormData) {
   const message = formData.get('message') as string
 
   // Configuration du transporteur SMTP
-  // Vous devrez configurer ces variables dans votre fichier .env
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com", // Exemple par défaut
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false, // true pour 465, false pour les autres ports
+    host: process.env.SMTP_HOST || "mail.faith-shop.fr",
+    port: parseInt(process.env.SMTP_PORT || "465"),
+    secure: true, // true pour port 465 (SSL)
     auth: {
-      user: process.env.SMTP_USER, // Votre adresse email
-      pass: process.env.SMTP_PASSWORD, // Votre mot de passe d'application
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   })
 
