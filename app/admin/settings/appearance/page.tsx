@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,9 @@ import {
   Eye,
   RefreshCw
 } from 'lucide-react'
+import { upsertTheme, upsertSiteConfig, getSiteConfigs, getThemes, setDefaultTheme } from '@/app/actions/admin/settings'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 interface ThemeColors {
   primaryColor: string
@@ -29,11 +32,16 @@ interface SiteConfig {
   siteDescription: string
   logo: string
   favicon: string
+  heroTitle: string
+  heroSubtitle: string
+  heroCtaText: string
 }
 
 export default function AppearancePage() {
+  const router = useRouter()
   const [activeTheme, setActiveTheme] = useState<'light' | 'dark'>('light')
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const [lightTheme, setLightTheme] = useState<ThemeColors>({
     primaryColor: '#000000',
@@ -56,11 +64,77 @@ export default function AppearancePage() {
   })
 
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
-    siteName: 'FAITH SHOP',
-    siteDescription: 'Boutique de mode premium',
-    logo: '/logo.png',
-    favicon: '/favicon.ico',
+    siteName: '',
+    siteDescription: '',
+    logo: '',
+    favicon: '',
+    heroTitle: '',
+    heroSubtitle: '',
+    heroCtaText: '',
   })
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [configs, themes] = await Promise.all([
+          getSiteConfigs(),
+          getThemes()
+        ])
+
+        // Map configs
+        const configMap = configs.reduce((acc, c) => {
+          acc[c.key] = c.value
+          return acc
+        }, {} as Record<string, string>)
+
+        setSiteConfig({
+          siteName: configMap['site_name'] || '',
+          siteDescription: configMap['site_description'] || '',
+          logo: configMap['site_logo'] || '',
+          favicon: configMap['site_favicon'] || '',
+          heroTitle: configMap['home_hero_title'] || '',
+          heroSubtitle: configMap['home_hero_subtitle'] || '',
+          heroCtaText: configMap['home_hero_cta_text'] || '',
+        })
+
+        // Map themes
+        const light = themes.find(t => t.name === 'light')
+        if (light) {
+          setLightTheme({
+            primaryColor: light.primaryColor,
+            secondaryColor: light.secondaryColor,
+            accentColor: light.accentColor,
+            backgroundColor: light.backgroundColor,
+            textColor: light.textColor,
+            mutedColor: light.mutedColor,
+            borderColor: light.borderColor,
+          })
+          if (light.isDefault) setActiveTheme('light')
+        }
+
+        const dark = themes.find(t => t.name === 'dark')
+        if (dark) {
+          setDarkTheme({
+            primaryColor: dark.primaryColor,
+            secondaryColor: dark.secondaryColor,
+            accentColor: dark.accentColor,
+            backgroundColor: dark.backgroundColor,
+            textColor: dark.textColor,
+            mutedColor: dark.mutedColor,
+            borderColor: dark.borderColor,
+          })
+          if (dark.isDefault) setActiveTheme('dark')
+        }
+
+      } catch (error) {
+        console.error('Failed to load settings', error)
+        toast.error('Erreur lors du chargement des paramètres')
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   const currentTheme = activeTheme === 'light' ? lightTheme : darkTheme
   const setCurrentTheme = activeTheme === 'light' ? setLightTheme : setDarkTheme
@@ -71,9 +145,33 @@ export default function AppearancePage() {
 
   const handleSave = async () => {
     setSaving(true)
-    // Appel API pour sauvegarder
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setSaving(false)
+    try {
+      // Save Site Configs
+      const configUpdates = [
+        { key: 'site_name', value: siteConfig.siteName, type: 'text', category: 'general' },
+        { key: 'site_description', value: siteConfig.siteDescription, type: 'text', category: 'general' },
+        { key: 'home_hero_title', value: siteConfig.heroTitle, type: 'text', category: 'homepage' },
+        { key: 'home_hero_subtitle', value: siteConfig.heroSubtitle, type: 'text', category: 'homepage' },
+        { key: 'home_hero_cta_text', value: siteConfig.heroCtaText, type: 'text', category: 'homepage' },
+      ]
+
+      await Promise.all(configUpdates.map(c => upsertSiteConfig(c)))
+
+      // Save Theme
+      await upsertTheme({
+        name: activeTheme,
+        isDefault: true, // Set current editing theme as default for now
+        ...currentTheme
+      })
+
+      toast.success('Paramètres enregistrés avec succès')
+      router.refresh()
+    } catch (error) {
+      console.error(error)
+      toast.error('Erreur lors de la sauvegarde')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const colorFields: Array<{ key: keyof ThemeColors; label: string }> = [
@@ -86,18 +184,24 @@ export default function AppearancePage() {
     { key: 'borderColor', label: 'Bordures' },
   ]
 
+  if (loading) {
+    return <div className="p-8 text-center">Chargement...</div>
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Personnalisation</h1>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Eye className="h-4 w-4 mr-2" />
-            Prévisualiser
+          <Button variant="outline" asChild>
+            <a href="/" target="_blank">
+              <Eye className="h-4 w-4 mr-2" />
+              Voir le site
+            </a>
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-            Enregistrer
+            Enregistrer les modifications
           </Button>
         </div>
       </div>
@@ -126,108 +230,38 @@ export default function AppearancePage() {
                 rows={3}
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Logo</label>
-              <div className="mt-1 flex items-center gap-4">
-                <div className="h-16 w-16 bg-gray-100 rounded-lg flex items-center justify-center border">
-                  {siteConfig.logo ? (
-                    <span className="text-xs text-gray-400">Logo</span>
-                  ) : (
-                    <Upload className="h-6 w-6 text-gray-400" />
-                  )}
-                </div>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Changer
-                </Button>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Favicon</label>
-              <div className="mt-1 flex items-center gap-4">
-                <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center border">
-                  <span className="text-xs text-gray-400">ICO</span>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Changer
-                </Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Prévisualisation */}
+        {/* Homepage Hero */}
         <Card>
           <CardHeader>
-            <CardTitle>Prévisualisation</CardTitle>
+            <CardTitle>Page d'accueil (Hero)</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div
-              className="rounded-lg p-6 border"
-              style={{
-                backgroundColor: currentTheme.backgroundColor,
-                color: currentTheme.textColor,
-                borderColor: currentTheme.borderColor,
-              }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3
-                  className="font-bold text-lg"
-                  style={{ color: currentTheme.textColor }}
-                >
-                  {siteConfig.siteName}
-                </h3>
-                <div className="flex gap-2">
-                  <div
-                    className="px-3 py-1 rounded text-sm"
-                    style={{
-                      backgroundColor: currentTheme.primaryColor,
-                      color: currentTheme.secondaryColor,
-                    }}
-                  >
-                    Boutique
-                  </div>
-                </div>
-              </div>
-              <p
-                className="text-sm mb-4"
-                style={{ color: currentTheme.mutedColor }}
-              >
-                {siteConfig.siteDescription}
-              </p>
-              <div
-                className="p-4 rounded border"
-                style={{ borderColor: currentTheme.borderColor }}
-              >
-                <p className="font-medium mb-2">Exemple de produit</p>
-                <p
-                  className="text-sm"
-                  style={{ color: currentTheme.mutedColor }}
-                >
-                  Description du produit avec du texte secondaire.
-                </p>
-                <div className="flex gap-2 mt-3">
-                  <button
-                    className="px-4 py-2 rounded text-sm"
-                    style={{
-                      backgroundColor: currentTheme.primaryColor,
-                      color: currentTheme.secondaryColor,
-                    }}
-                  >
-                    Acheter
-                  </button>
-                  <button
-                    className="px-4 py-2 rounded text-sm border"
-                    style={{
-                      borderColor: currentTheme.borderColor,
-                      color: currentTheme.textColor,
-                    }}
-                  >
-                    Détails
-                  </button>
-                </div>
-              </div>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Titre principal</label>
+              <Input
+                value={siteConfig.heroTitle}
+                onChange={(e) => setSiteConfig({ ...siteConfig, heroTitle: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Sous-titre</label>
+              <Input
+                value={siteConfig.heroSubtitle}
+                onChange={(e) => setSiteConfig({ ...siteConfig, heroSubtitle: e.target.value })}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Texte du bouton</label>
+              <Input
+                value={siteConfig.heroCtaText}
+                onChange={(e) => setSiteConfig({ ...siteConfig, heroCtaText: e.target.value })}
+                className="mt-1"
+              />
             </div>
           </CardContent>
         </Card>
@@ -282,142 +316,6 @@ export default function AppearancePage() {
               </div>
             ))}
           </div>
-
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-sm font-medium mb-3">Préréglages</p>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (activeTheme === 'light') {
-                    setLightTheme({
-                      primaryColor: '#000000',
-                      secondaryColor: '#ffffff',
-                      accentColor: '#666666',
-                      backgroundColor: '#ffffff',
-                      textColor: '#000000',
-                      mutedColor: '#6b7280',
-                      borderColor: '#e5e7eb',
-                    })
-                  } else {
-                    setDarkTheme({
-                      primaryColor: '#ffffff',
-                      secondaryColor: '#000000',
-                      accentColor: '#a3a3a3',
-                      backgroundColor: '#0a0a0a',
-                      textColor: '#ffffff',
-                      mutedColor: '#a3a3a3',
-                      borderColor: '#262626',
-                    })
-                  }
-                }}
-              >
-                Minimaliste
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (activeTheme === 'light') {
-                    setLightTheme({
-                      primaryColor: '#1e40af',
-                      secondaryColor: '#ffffff',
-                      accentColor: '#3b82f6',
-                      backgroundColor: '#f8fafc',
-                      textColor: '#0f172a',
-                      mutedColor: '#64748b',
-                      borderColor: '#e2e8f0',
-                    })
-                  }
-                }}
-              >
-                Professionnel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (activeTheme === 'light') {
-                    setLightTheme({
-                      primaryColor: '#be185d',
-                      secondaryColor: '#ffffff',
-                      accentColor: '#ec4899',
-                      backgroundColor: '#fdf2f8',
-                      textColor: '#831843',
-                      mutedColor: '#9d174d',
-                      borderColor: '#fbcfe8',
-                    })
-                  }
-                }}
-              >
-                Élégant
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (activeTheme === 'light') {
-                    setLightTheme({
-                      primaryColor: '#059669',
-                      secondaryColor: '#ffffff',
-                      accentColor: '#10b981',
-                      backgroundColor: '#f0fdf4',
-                      textColor: '#064e3b',
-                      mutedColor: '#047857',
-                      borderColor: '#bbf7d0',
-                    })
-                  }
-                }}
-              >
-                Nature
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Thème par défaut */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Thème par défaut</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="defaultTheme"
-                value="light"
-                defaultChecked
-                className="w-4 h-4"
-              />
-              <Sun className="h-4 w-4" />
-              <span>Mode clair</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="defaultTheme"
-                value="dark"
-                className="w-4 h-4"
-              />
-              <Moon className="h-4 w-4" />
-              <span>Mode sombre</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="defaultTheme"
-                value="system"
-                className="w-4 h-4"
-              />
-              <span>Préférence système</span>
-            </label>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Les visiteurs peuvent toujours changer le thème manuellement.
-          </p>
         </CardContent>
       </Card>
     </div>

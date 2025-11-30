@@ -42,8 +42,21 @@ export default function Header() {
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
+  const [menuItems, setMenuItems] = useState(navigation)
+
   useEffect(() => {
     setMounted(true)
+    // Fetch dynamic menu
+    import('@/app/actions/admin/cms').then(async ({ getMenu }) => {
+      try {
+        const menu = await getMenu('main-menu')
+        if (menu && menu.items.length > 0) {
+          setMenuItems(menu.items.map((i: any) => ({ name: i.title, href: i.url })))
+        }
+      } catch (e) {
+        console.error('Failed to load menu', e)
+      }
+    })
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {
@@ -94,23 +107,30 @@ export default function Header() {
                   <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
                   <nav className="flex flex-col gap-4 mt-8">
                     <Link href="/" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Accueil</Link>
-                    <Link href="/shop" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Boutique</Link>
-                    <Link href="/new" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Nouveautés</Link>
-                    <Link href="/about" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Notre Histoire</Link>
+                    {menuItems.map((item) => (
+                      <Link 
+                        key={item.href} 
+                        href={item.href} 
+                        className="text-lg font-medium hover:text-primary" 
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
                   </nav>
                 </SheetContent>
               </Sheet>
 
               <nav className="hidden lg:flex items-center gap-8">
-                <Link href="/shop" className="text-sm font-bold uppercase tracking-[0.15em] hover:text-primary transition-colors">
-                  Boutique
-                </Link>
-                <Link href="/new" className="text-sm font-bold uppercase tracking-[0.15em] hover:text-primary transition-colors">
-                  Nouveautés
-                </Link>
-                <Link href="/about" className="text-sm font-bold uppercase tracking-[0.15em] hover:text-primary transition-colors">
-                  Maison
-                </Link>
+                {menuItems.map((item) => (
+                  <Link 
+                    key={item.href} 
+                    href={item.href} 
+                    className="text-sm font-bold uppercase tracking-[0.15em] hover:text-primary transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                ))}
               </nav>
             </div>
 

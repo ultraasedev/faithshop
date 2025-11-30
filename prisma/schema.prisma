@@ -75,6 +75,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   orders        Order[]
+  reviews       Review[]
 
   // Champs pour adresse/facturation
   address       String?
@@ -125,6 +126,7 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   orderItems  OrderItem[]
+  reviews     Review[]
 }
 
 // ==================== ORDER ====================
@@ -440,4 +442,69 @@ model Banner {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+}
+
+// ==================== NAVIGATION ====================
+
+model Menu {
+  id        String     @id @default(cuid())
+  handle    String     @unique // ex: 'main-menu', 'footer-menu'
+  title     String
+  items     MenuItem[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model MenuItem {
+  id        String   @id @default(cuid())
+  menuId    String
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  
+  title     String
+  url       String
+  order     Int      @default(0)
+  
+  // Pour les sous-menus (optionnel pour l'instant)
+  parentId  String?
+  parent    MenuItem? @relation("SubItems", fields: [parentId], references: [id])
+  items     MenuItem[] @relation("SubItems")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== INTEGRATIONS ====================
+
+model Integration {
+  id          String   @id @default(cuid())
+  provider    String   @unique // 'google_analytics', 'facebook_pixel', 'google_ads'
+  name        String
+  isEnabled   Boolean  @default(false)
+  config      String   // JSON string pour stocker les IDs, clés API, etc.
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== REVIEWS ====================
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  
+  authorName  String   // Nom affiché (peut être différent du user)
+  rating      Int      // 1-5
+  title       String?
+  content     String   @db.Text
+  
+  isVerified  Boolean  @default(false) // Achat vérifié
+  isPublished Boolean  @default(true)  // Modération
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

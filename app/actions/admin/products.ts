@@ -4,9 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createStripeProduct, stripe } from '@/lib/stripe'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { auth } from '@/lib/auth' // Assurez-vous que auth est bien configuré
 
-// Type pour le formulaire
 export type ProductState = {
   errors?: {
     name?: string[]
@@ -18,21 +16,12 @@ export type ProductState = {
 }
 
 export async function createProduct(prevState: ProductState, formData: FormData): Promise<ProductState> {
-  // 1. Vérification Auth & Role
-  // Note: Pour l'instant on simule ou on utilise la session si dispo.
-  // const session = await auth()
-  // if (session?.user?.role !== 'ADMIN') {
-  //   return { message: 'Non autorisé' }
-  // }
-
   const name = formData.get('name') as string
   const description = formData.get('description') as string
   const price = parseFloat(formData.get('price') as string)
   const stock = parseInt(formData.get('stock') as string)
   const colors = (formData.get('colors') as string).split(',').map(c => c.trim())
   const sizes = (formData.get('sizes') as string).split(',').map(s => s.trim())
-  // Images: Dans un vrai cas, on récupère les URLs après upload Blob
-  // Ici on attend une string séparée par des virgules pour simplifier la démo
   const images = (formData.get('images') as string).split(',').map(i => i.trim())
 
   if (!name || !price) {
@@ -40,10 +29,8 @@ export async function createProduct(prevState: ProductState, formData: FormData)
   }
 
   try {
-    // 2. Créer dans Stripe d'abord (Best practice: si Stripe fail, on ne pollue pas la DB)
     const { stripeProductId, stripePriceId } = await createStripeProduct(name, description, price, images)
 
-    // 3. Créer dans la DB locale
     await prisma.product.create({
       data: {
         name,
@@ -66,4 +53,71 @@ export async function createProduct(prevState: ProductState, formData: FormData)
   }
 
   redirect('/admin/products')
+}
+
+export async function updateProduct(id: string, prevState: ProductState, formData: FormData): Promise<ProductState> {
+  const name = formData.get('name') as string
+  const description = formData.get('description') as string
+  const price = parseFloat(formData.get('price') as string)
+  const stock = parseInt(formData.get('stock') as string)
+  const colors = (formData.get('colors') as string).split(',').map(c => c.trim())
+  const sizes = (formData.get('sizes') as string).split(',').map(s => s.trim())
+  const images = (formData.get('images') as string).split(',').map(i => i.trim())
+
+  try {
+    // 1. Update local DB
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name,
+        description,
+        price,
+        stock,
+        colors,
+        sizes,
+        images,
+      }
+    })
+
+    // 2. Sync with Stripe
+    if (product.stripeProductId) {
+      await stripe.products.update(product.stripeProductId, {
+        name,
+        description,
+        images: images.slice(0, 8),
+      })
+
+      // Price update is tricky in Stripe (cannot update amount directly, need to create new price)
+      // For simplicity here, we assume price doesn't change often or we handle it by creating new price
+      // and updating the default_price of the product.
+      if (product.stripePriceId) {
+         const oldPrice = await stripe.prices.retrieve(product.stripePriceId);
+         if (oldPrice.unit_amount !== Math.round(price * 100)) {
+             const newPrice = await stripe.prices.create({
+                 product: product.stripeProductId,
+                 unit_amount: Math.round(price * 100),
+                 currency: 'eur',
+             });
+             await prisma.product.update({
+                 where: { id },
+                 data: { stripePriceId: newPrice.id }
+             });
+         }
+      }
+    } else {
+        // If for some reason it doesn't have stripe ID, create it
+        const { stripeProductId, stripePriceId } = await createStripeProduct(name, description, price, images)
+        await prisma.product.update({
+            where: { id },
+            data: { stripeProductId, stripePriceId }
+        })
+    }
+
+    revalidatePath('/admin/products')
+    revalidatePath('/shop')
+    return { message: 'Produit mis à jour' }
+  } catch (error) {
+    console.error('Erreur mise à jour produit:', error)
+    return { message: 'Erreur lors de la mise à jour' }
+  }
 }

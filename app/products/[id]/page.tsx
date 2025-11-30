@@ -92,14 +92,25 @@ export default function ProductPage() {
             {/* Gallery */}
             <div className="flex flex-col gap-4">
               <div className="relative aspect-3/4 overflow-hidden bg-secondary w-full group">
-                <Image
-                  src={currentImage}
-                  alt={`${product.name} - ${selectedColor}`}
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  priority
-                  key={selectedColor}
-                />
+                {(currentImage.endsWith('.mp4') || currentImage.endsWith('.webm')) ? (
+                  <video
+                    src={currentImage}
+                    className="w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                  />
+                ) : (
+                  <Image
+                    src={currentImage}
+                    alt={`${product.name} - ${selectedColor}`}
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    priority
+                    key={selectedColor}
+                  />
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                  <div className="relative aspect-square bg-secondary/30"></div>

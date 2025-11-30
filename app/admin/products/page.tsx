@@ -3,6 +3,7 @@ import { Plus, MoreHorizontal, Search } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { SyncStripeButton } from '@/components/admin/SyncStripeButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +19,14 @@ export default async function AdminProductsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Produits</h1>
           <p className="text-muted-foreground mt-2">Gérez votre catalogue, vos stocks et vos prix.</p>
         </div>
-        <Button asChild>
-          <Link href="/admin/products/new">
-            <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <SyncStripeButton />
+          <Button asChild>
+            <Link href="/admin/products/new">
+              <Plus className="mr-2 h-4 w-4" /> Ajouter un produit
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
