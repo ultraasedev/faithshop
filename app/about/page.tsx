@@ -2,6 +2,8 @@ import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 
+export const dynamic = 'force-dynamic'
+
 export default function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
