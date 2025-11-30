@@ -10,6 +10,7 @@ import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { toast } from 'sonner'
 
 // Mock Data
 const getProduct = (id: string) => {
@@ -48,7 +49,6 @@ export default function ProductPage() {
   
   const reviewsRef = useRef<HTMLDivElement>(null)
 
-  // Image courante basée sur la couleur sélectionnée
   const currentImage = product.colorImages[selectedColor as keyof typeof product.colorImages] || product.images[0]
 
   const handleAddToCart = () => {
@@ -62,9 +62,20 @@ export default function ProductPage() {
       size: selectedSize,
       color: selectedColor
     })
-    // Ouvrir le panier (optionnel, nécessite un state global ou un event)
-    const trigger = document.querySelector('button[aria-haspopup="dialog"]') as HTMLElement
-    trigger?.click() 
+    
+    toast.success(`${product.name} ajouté au panier`, {
+      description: `${selectedColor} - Taille ${selectedSize}`,
+      action: {
+        label: 'Voir le panier',
+        onClick: () => document.querySelector<HTMLElement>('[data-cart-trigger]')?.click()
+      }
+    })
+
+    // Ouvrir le panier automatiquement
+    setTimeout(() => {
+       const trigger = document.querySelector('[data-cart-trigger="true"]') as HTMLElement
+       trigger?.click()
+    }, 100)
   }
 
   const scrollToReviews = () => {

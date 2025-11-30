@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Menu, Search, ShoppingBag, User, X } from 'lucide-react'
+import { Menu, Search, ShoppingBag, User, X, Trash2, Plus, Minus } from 'lucide-react'
 import { useCart } from '@/lib/store/cart'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,8 +12,10 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose
 } from '@/components/ui/sheet'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 const navigation = [
   { name: 'Nouveautés', href: '/new' },
@@ -24,7 +26,13 @@ const navigation = [
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  
+  // Cart Store
+  const items = useCart((state) => state.items)
   const totalItems = useCart((state) => state.getTotalItems())
+  const totalPrice = useCart((state) => state.getTotalPrice())
+  const updateQuantity = useCart((state) => state.updateQuantity)
+  const removeItem = useCart((state) => state.removeItem)
 
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -39,11 +47,10 @@ export default function Header() {
     e.preventDefault()
     if (searchQuery.trim()) {
       setIsSearchOpen(false)
-      router.push(`/shop?search=${encodeURIComponent(searchQuery)}`) // Redirige vers shop avec filtre (à implémenter plus tard) ou page search dédiée
+      router.push(`/shop?search=${encodeURIComponent(searchQuery)}`)
     }
   }
 
-  // Effet de scroll pour le glassmorphism
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20)
@@ -73,6 +80,7 @@ export default function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                  <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
                   <nav className="flex flex-col gap-4 mt-8">
                     <Link href="/" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Accueil</Link>
                     <Link href="/shop" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Boutique</Link>
@@ -98,7 +106,6 @@ export default function Header() {
             {/* Center: Logo */}
             <div className="flex flex-1 items-center justify-center">
               <Link href="/" className="flex items-center group">
-                {/* Assurez-vous d'avoir logo.png dans le dossier public */}
                 <div className="relative h-16 w-40 md:h-20 md:w-48">
                   <img
                     src="/logo.png"
@@ -130,7 +137,12 @@ export default function Header() {
 
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative text-foreground hover:text-primary hover:bg-transparent">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="relative text-foreground hover:text-primary hover:bg-transparent"
+                    data-cart-trigger="true"
+                  >
                     <ShoppingBag className="h-5 w-5" />
                     {mounted && totalItems > 0 && (
                       <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
@@ -141,56 +153,100 @@ export default function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent className="w-full sm:max-w-md border-l border-border bg-background p-0 flex flex-col h-full">
-                  <SheetHeader className="p-6 border-b border-border">
-                    <SheetTitle className="font-serif text-2xl text-center">Votre Panier</SheetTitle>
+                  <SheetHeader className="p-6 border-b border-border flex flex-row items-center justify-between">
+                    <SheetTitle className="font-serif text-2xl">Votre Panier ({totalItems})</SheetTitle>
+                    {/* Close button is automatically added by SheetContent usually, but we can customize header */}
                   </SheetHeader>
                   
                   <div className="flex-1 overflow-y-auto p-6">
                     {totalItems === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                        <ShoppingBag className="h-12 w-12 text-muted-foreground opacity-20" />
-                        <p className="text-muted-foreground">Votre panier est vide.</p>
-                        <Button variant="outline" className="mt-4" onClick={() => document.getElementById('close-cart')?.click()}>
-                          Continuer vos achats
-                        </Button>
+                        <ShoppingBag className="h-16 w-16 text-muted-foreground/20" />
+                        <p className="text-muted-foreground text-lg">Votre panier est vide.</p>
+                        <SheetClose asChild>
+                          <Button variant="outline" className="mt-4 uppercase tracking-widest text-xs font-bold">
+                            Continuer vos achats
+                          </Button>
+                        </SheetClose>
                       </div>
                     ) : (
-                      <div className="space-y-6">
-                        {/* Mock Items for Demo if cart is empty but user wants to see structure, 
-                            otherwise map real items from store */}
-                        <div className="flex gap-4">
-                          <div className="h-24 w-20 bg-secondary relative overflow-hidden">
-                             {/* Image placeholder */}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-serif text-sm font-bold">T-Shirt Signature</h4>
-                            <p className="text-xs text-muted-foreground mt-1">Taille: M / Blanc</p>
-                            <div className="flex justify-between items-end mt-4">
-                              <span className="text-sm font-medium">45.00 €</span>
-                              <div className="flex items-center border border-border">
-                                <button className="px-2 py-1 text-xs hover:bg-secondary">-</button>
-                                <span className="px-2 text-xs">1</span>
-                                <button className="px-2 py-1 text-xs hover:bg-secondary">+</button>
+                      <div className="space-y-8">
+                        {items.map((item) => (
+                          <div key={item.id} className="flex gap-4 group">
+                            <div className="relative h-28 w-24 bg-secondary overflow-hidden flex-shrink-0 border border-border/50">
+                               <Image 
+                                 src={item.image} 
+                                 alt={item.name} 
+                                 fill 
+                                 className="object-cover"
+                               />
+                            </div>
+                            <div className="flex-1 flex flex-col justify-between py-1">
+                              <div>
+                                <div className="flex justify-between items-start">
+                                  <h4 className="font-serif text-base font-medium leading-tight pr-4">{item.name}</h4>
+                                  <button 
+                                    onClick={() => removeItem(item.id)}
+                                    className="text-muted-foreground hover:text-red-500 transition-colors p-1 -mr-1"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Supprimer</span>
+                                  </button>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wide">
+                                  {item.color} / {item.size}
+                                </p>
+                              </div>
+                              
+                              <div className="flex justify-between items-end">
+                                <div className="flex items-center border border-border rounded-sm">
+                                  <button 
+                                    onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                    className="p-1.5 hover:bg-secondary transition-colors"
+                                    disabled={item.quantity <= 1}
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <span className="w-8 text-center text-xs font-medium">{item.quantity}</span>
+                                  <button 
+                                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                    className="p-1.5 hover:bg-secondary transition-colors"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <span className="font-medium text-sm">{(item.price * item.quantity).toFixed(2)} €</span>
                               </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
                     )}
                   </div>
 
-                  <div className="border-t border-border p-6 space-y-4 bg-secondary/10">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Sous-total</span>
-                      <span className="font-medium">0.00 €</span>
+                  {totalItems > 0 && (
+                    <div className="border-t border-border p-6 space-y-4 bg-secondary/5">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Sous-total</span>
+                          <span className="font-medium">{totalPrice.toFixed(2)} €</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Livraison</span>
+                          <span className="text-muted-foreground text-xs italic">Calculé à l'étape suivante</span>
+                        </div>
+                      </div>
+                      <div className="pt-4 border-t border-border/50">
+                        <div className="flex justify-between text-base font-bold mb-6">
+                          <span>Total</span>
+                          <span>{totalPrice.toFixed(2)} €</span>
+                        </div>
+                        <Button className="w-full h-14 rounded-none text-sm font-bold uppercase tracking-[0.2em] shadow-lg hover:shadow-xl transition-all" asChild>
+                          <Link href="/checkout">Paiement sécurisé</Link>
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Taxes et frais de port calculés au paiement.
-                    </p>
-                    <Button className="w-full h-12 rounded-none text-xs font-bold uppercase tracking-widest" asChild>
-                      <Link href="/checkout">Procéder au paiement</Link>
-                    </Button>
-                  </div>
+                  )}
                 </SheetContent>
               </Sheet>
             </div>

@@ -28,18 +28,19 @@ export const metadata: Metadata = {
   },
 };
 
+import { Toaster } from 'sonner'
+
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="fr" className="h-full">
-      <body
-        className={`${inter.variable} ${playfair.variable} font-sans antialiased min-h-full flex flex-col bg-white text-neutral-900`}
-      >
+    <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
+      <body className="font-sans antialiased bg-background text-foreground">
         {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
-  );
+  )
 }
