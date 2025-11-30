@@ -16,9 +16,6 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set("callbackUrl", pathname)
       return NextResponse.redirect(loginUrl)
     }
-
-    // Note: La vérification du rôle admin se fera côté serveur dans les pages admin
-    // car on ne peut pas décoder le JWT facilement dans le middleware Edge
   }
 
   return NextResponse.next()
