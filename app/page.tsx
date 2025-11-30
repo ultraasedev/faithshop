@@ -5,24 +5,32 @@ import HomeClient from '@/components/home/HomeClient'
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  // Fetch site configuration
-  const configs = await getSiteConfigs('homepage')
-  const configMap = configs.reduce((acc, config) => {
-    acc[config.key] = config.value
-    return acc
-  }, {} as Record<string, string>)
+  let configMap: Record<string, string> = {}
+  let productsToShow: any[] = []
 
-  // Fetch featured products
-  const featuredProducts = await prisma.product.findMany({
-    where: { isFeatured: true },
-    take: 3,
-    orderBy: { createdAt: 'desc' }
-  })
+  try {
+    // Fetch site configuration
+    const configs = await getSiteConfigs('homepage')
+    configMap = configs.reduce((acc, config) => {
+      acc[config.key] = config.value
+      return acc
+    }, {} as Record<string, string>)
 
-  // If no featured products, fallback to recent ones
-  const productsToShow = featuredProducts.length > 0 
-    ? featuredProducts 
-    : await prisma.product.findMany({ take: 3, orderBy: { createdAt: 'desc' } })
+    // Fetch featured products
+    const featuredProducts = await prisma.product.findMany({
+      where: { isFeatured: true },
+      take: 3,
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // If no featured products, fallback to recent ones
+    productsToShow = featuredProducts.length > 0 
+      ? featuredProducts 
+      : await prisma.product.findMany({ take: 3, orderBy: { createdAt: 'desc' } })
+  } catch (error) {
+    console.error('Failed to fetch homepage data:', error)
+    // Fallback data could be defined here if needed
+  }
 
   return (
     <HomeClient
