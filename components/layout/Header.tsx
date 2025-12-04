@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import PromoBanner, { useBannerVisibility } from '@/components/PromoBanner'
+import { useSession } from 'next-auth/react'
 
 const navigation = [
   { name: 'Nouveautés', href: '/new' },
@@ -29,7 +30,12 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const hasBanner = useBannerVisibility()
-  
+  const { data: session } = useSession()
+
+  // Determine account link based on user role
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'SUPER_ADMIN'
+  const accountLink = isAdmin ? '/admin' : '/account'
+
   // Cart Store
   const items = useCart((state) => state.items)
   const totalItems = useCart((state) => state.getTotalItems())
@@ -162,7 +168,7 @@ export default function Header() {
               </Button>
 
               <Button variant="ghost" size="icon" className="text-foreground hover:text-primary hover:bg-transparent" asChild>
-                <Link href="/account">
+                <Link href={accountLink}>
                   <User className="h-5 w-5" />
                   <span className="sr-only">Compte</span>
                 </Link>

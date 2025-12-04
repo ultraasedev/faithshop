@@ -7,6 +7,7 @@ export async function getDashboardStats() {
     totalRevenue,
     totalOrders,
     totalCustomers,
+    totalProducts,
     recentOrders,
     salesData
   ] = await Promise.all([
@@ -15,13 +16,16 @@ export async function getDashboardStats() {
       _sum: { total: true },
       where: { paymentStatus: 'COMPLETED' }
     }),
-    
+
     // Total Orders
     prisma.order.count(),
-    
+
     // Total Customers
     prisma.user.count({ where: { role: 'USER' } }),
-    
+
+    // Total Products
+    prisma.product.count({ where: { isActive: true } }),
+
     // Recent Orders
     prisma.order.findMany({
       take: 5,
@@ -60,6 +64,7 @@ export async function getDashboardStats() {
     revenue: totalRevenue._sum.total || 0,
     orders: totalOrders,
     customers: totalCustomers,
+    products: totalProducts,
     recentOrders,
     chartData
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import {
   Plus,
   Gift,
-  Mail,
   Copy,
   Check,
   RefreshCw,
@@ -16,6 +15,11 @@ import {
   Eye,
   DollarSign
 } from 'lucide-react'
+import {
+  getGiftCards,
+  createGiftCard,
+  disableGiftCard
+} from '@/app/actions/admin/discounts'
 
 type GiftCardStatus = 'ACTIVE' | 'USED' | 'EXPIRED' | 'DISABLED'
 
@@ -29,64 +33,51 @@ interface GiftCard {
   recipientName: string | null
   purchaserName: string | null
   message: string | null
-  expiresAt: string | null
-  createdAt: string
+  expiresAt: Date | null
+  createdAt: Date
 }
 
 const statusConfig: Record<GiftCardStatus, { label: string; color: string }> = {
-  ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-800' },
-  USED: { label: 'Épuisée', color: 'bg-gray-100 text-gray-800' },
-  EXPIRED: { label: 'Expirée', color: 'bg-red-100 text-red-800' },
-  DISABLED: { label: 'Désactivée', color: 'bg-orange-100 text-orange-800' },
+  ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' },
+  USED: { label: 'Épuisée', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200' },
+  EXPIRED: { label: 'Expirée', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' },
+  DISABLED: { label: 'Désactivée', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' },
 }
 
 export default function GiftCardsPage() {
   const [showModal, setShowModal] = useState(false)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<GiftCard | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([])
 
-  // Simulation de données
-  const giftCards: GiftCard[] = [
-    {
-      id: '1',
-      code: 'GIFT-ABCD-1234-EFGH',
-      initialAmount: 100,
-      currentBalance: 75.50,
-      status: 'ACTIVE',
-      recipientEmail: 'marie@example.com',
-      recipientName: 'Marie Dupont',
-      purchaserName: 'Jean Martin',
-      message: 'Joyeux anniversaire !',
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '2',
-      code: 'GIFT-IJKL-5678-MNOP',
-      initialAmount: 50,
-      currentBalance: 0,
-      status: 'USED',
-      recipientEmail: 'pierre@example.com',
-      recipientName: 'Pierre Bernard',
-      purchaserName: null,
-      message: null,
-      expiresAt: null,
-      createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: '3',
-      code: 'GIFT-QRST-9012-UVWX',
-      initialAmount: 200,
-      currentBalance: 200,
-      status: 'ACTIVE',
-      recipientEmail: null,
-      recipientName: null,
-      purchaserName: 'Admin',
-      message: 'Carte cadeau de compensation',
-      expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-    },
-  ]
+  const [newCard, setNewCard] = useState({
+    amount: '',
+    recipientName: '',
+    recipientEmail: '',
+    message: '',
+    expiresAt: ''
+  })
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  async function loadData() {
+    setLoading(true)
+    try {
+      const result = await getGiftCards()
+      setGiftCards(result.cards.map(c => ({
+        ...c,
+        initialAmount: Number(c.initialAmount),
+        currentBalance: Number(c.currentBalance)
+      })) as GiftCard[])
+    } catch (error) {
+      console.error('Failed to load gift cards', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code)
@@ -94,9 +85,51 @@ export default function GiftCardsPage() {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
+  const handleCreate = async () => {
+    try {
+      await createGiftCard({
+        amount: parseFloat(newCard.amount),
+        recipientName: newCard.recipientName || undefined,
+        recipientEmail: newCard.recipientEmail || undefined,
+        message: newCard.message || undefined,
+        expiresAt: newCard.expiresAt ? new Date(newCard.expiresAt) : undefined
+      })
+      setShowModal(false)
+      setNewCard({ amount: '', recipientName: '', recipientEmail: '', message: '', expiresAt: '' })
+      await loadData()
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de la création')
+    }
+  }
+
+  const handleDisable = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir désactiver cette carte ?')) return
+    try {
+      await disableGiftCard(id)
+      await loadData()
+      setSelectedCard(null)
+    } catch (error) {
+      console.error('Failed to disable gift card', error)
+    }
+  }
+
   const totalValue = giftCards.reduce((acc, card) => acc + card.initialAmount, 0)
   const totalBalance = giftCards.reduce((acc, card) => acc + card.currentBalance, 0)
   const activeCards = giftCards.filter(c => c.status === 'ACTIVE').length
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+          ))}
+        </div>
+        <div className="h-96 bg-muted animate-pulse rounded-lg" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -162,107 +195,115 @@ export default function GiftCardsPage() {
           <CardTitle>Toutes les cartes cadeaux</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium">Code</th>
-                  <th className="text-left py-3 px-4 font-medium">Montant initial</th>
-                  <th className="text-left py-3 px-4 font-medium">Solde</th>
-                  <th className="text-left py-3 px-4 font-medium">Destinataire</th>
-                  <th className="text-left py-3 px-4 font-medium">Expiration</th>
-                  <th className="text-left py-3 px-4 font-medium">Statut</th>
-                  <th className="text-right py-3 px-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {giftCards.map((card) => {
-                  const config = statusConfig[card.status]
+          {giftCards.length === 0 ? (
+            <div className="text-center py-8">
+              <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">Aucune carte cadeau créée.</p>
+              <Button className="mt-4" onClick={() => setShowModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Créer une carte
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-medium">Code</th>
+                    <th className="text-left py-3 px-4 font-medium">Montant initial</th>
+                    <th className="text-left py-3 px-4 font-medium">Solde</th>
+                    <th className="text-left py-3 px-4 font-medium">Destinataire</th>
+                    <th className="text-left py-3 px-4 font-medium">Expiration</th>
+                    <th className="text-left py-3 px-4 font-medium">Statut</th>
+                    <th className="text-right py-3 px-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {giftCards.map((card) => {
+                    const config = statusConfig[card.status]
 
-                  return (
-                    <tr key={card.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">{card.code}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() => handleCopyCode(card.code)}
-                          >
-                            {copiedCode === card.code ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
+                    return (
+                      <tr key={card.id} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm">{card.code}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyCode(card.code)}
+                            >
+                              {copiedCode === card.code ? (
+                                <Check className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <Copy className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="font-medium">{card.initialAmount.toFixed(2)}€</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`font-medium ${card.currentBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                            {card.currentBalance.toFixed(2)}€
+                          </span>
+                          {card.initialAmount > 0 && (
+                            <div className="w-full h-1 bg-muted rounded mt-1">
+                              <div
+                                className="h-1 rounded bg-green-500"
+                                style={{ width: `${(card.currentBalance / card.initialAmount) * 100}%` }}
+                              />
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {card.recipientName ? (
+                            <div>
+                              <p className="text-sm font-medium">{card.recipientName}</p>
+                              <p className="text-xs text-muted-foreground">{card.recipientEmail}</p>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">Non attribué</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          {card.expiresAt
+                            ? new Date(card.expiresAt).toLocaleDateString('fr-FR')
+                            : 'Jamais'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <Badge className={config.color}>{config.label}</Badge>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => setSelectedCard(card)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            {card.status === 'ACTIVE' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500"
+                                onClick={() => handleDisable(card.id)}
+                              >
+                                <Ban className="h-4 w-4" />
+                              </Button>
                             )}
-                          </Button>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-medium">{card.initialAmount.toFixed(2)}€</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`font-medium ${card.currentBalance > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                          {card.currentBalance.toFixed(2)}€
-                        </span>
-                        {card.initialAmount > 0 && (
-                          <div className="w-full h-1 bg-gray-200 rounded mt-1">
-                            <div
-                              className="h-1 rounded bg-green-500"
-                              style={{ width: `${(card.currentBalance / card.initialAmount) * 100}%` }}
-                            />
                           </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {card.recipientName ? (
-                          <div>
-                            <p className="text-sm font-medium">{card.recipientName}</p>
-                            <p className="text-xs text-muted-foreground">{card.recipientEmail}</p>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">Non attribué</span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        {card.expiresAt
-                          ? new Date(card.expiresAt).toLocaleDateString('fr-FR')
-                          : 'Jamais'}
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge className={config.color}>{config.label}</Badge>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setSelectedCard(card)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          {card.recipientEmail && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {card.status === 'ACTIVE' && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <RefreshCw className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500">
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -276,39 +317,59 @@ export default function GiftCardsPage() {
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Montant (€)</label>
-                <Input type="number" placeholder="50" className="mt-1" />
+                <Input
+                  type="number"
+                  placeholder="50"
+                  className="mt-1"
+                  value={newCard.amount}
+                  onChange={(e) => setNewCard({ ...newCard, amount: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium">Nom du destinataire</label>
-                  <Input placeholder="Marie Dupont" className="mt-1" />
+                  <Input
+                    placeholder="Marie Dupont"
+                    className="mt-1"
+                    value={newCard.recipientName}
+                    onChange={(e) => setNewCard({ ...newCard, recipientName: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium">Email du destinataire</label>
-                  <Input type="email" placeholder="marie@example.com" className="mt-1" />
+                  <Input
+                    type="email"
+                    placeholder="marie@example.com"
+                    className="mt-1"
+                    value={newCard.recipientEmail}
+                    onChange={(e) => setNewCard({ ...newCard, recipientEmail: e.target.value })}
+                  />
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Message personnalisé</label>
                 <textarea
-                  className="w-full mt-1 p-2 border rounded-md"
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
                   rows={3}
                   placeholder="Joyeux anniversaire !"
+                  value={newCard.message}
+                  onChange={(e) => setNewCard({ ...newCard, message: e.target.value })}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Date d'expiration (optionnel)</label>
-                <Input type="date" className="mt-1" />
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="sendEmail" />
-                <label htmlFor="sendEmail" className="text-sm">Envoyer par email au destinataire</label>
+                <Input
+                  type="date"
+                  className="mt-1"
+                  value={newCard.expiresAt}
+                  onChange={(e) => setNewCard({ ...newCard, expiresAt: e.target.value })}
+                />
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Annuler
                 </Button>
-                <Button onClick={() => setShowModal(false)}>
+                <Button onClick={handleCreate}>
                   Créer la carte
                 </Button>
               </div>
@@ -349,7 +410,7 @@ export default function GiftCardsPage() {
                 )}
                 {selectedCard.purchaserName && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Acheté par</span>
+                    <span className="text-muted-foreground">Créé par</span>
                     <span>{selectedCard.purchaserName}</span>
                   </div>
                 )}

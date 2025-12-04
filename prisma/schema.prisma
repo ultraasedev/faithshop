@@ -76,8 +76,10 @@ model User {
   updatedAt     DateTime  @updatedAt
   orders        Order[]
   reviews       Review[]
+  addresses     Address[]
+  wishlist      WishlistItem[]
 
-  // Champs pour adresse/facturation
+  // Champs pour adresse/facturation par défaut
   address       String?
   city          String?
   zipCode       String?
@@ -101,6 +103,44 @@ model User {
   // Relations
   createdDiscountCodes DiscountCode[] @relation("CreatedByAdmin")
   createdGiftCards     GiftCard[]     @relation("CreatedByAdmin")
+}
+
+// ==================== ADDRESS ====================
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label       String?  // "Domicile", "Bureau", etc.
+  firstName   String
+  lastName    String
+  address     String
+  addressLine2 String?
+  city        String
+  zipCode     String
+  country     String
+  phone       String?
+
+  isDefault   Boolean  @default(false)
+  isBilling   Boolean  @default(false) // Adresse de facturation par défaut
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== WISHLIST ====================
+
+model WishlistItem {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId   String
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, productId])
 }
 
 // ==================== PRODUCT ====================
