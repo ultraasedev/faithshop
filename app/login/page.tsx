@@ -17,6 +17,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,6 +28,7 @@ function LoginForm() {
       const result = await signIn('credentials', {
         email,
         password,
+        rememberMe: rememberMe.toString(),
         redirect: false,
       })
 
@@ -38,8 +40,25 @@ function LoginForm() {
 
       toast.success('Connexion réussie !')
 
-      // Rediriger vers la page demandée ou l'accueil
-      router.push(callbackUrl)
+      // Récupérer la session pour obtenir le rôle de l'utilisateur
+      const sessionResponse = await fetch('/api/auth/session')
+      const session = await sessionResponse.json()
+
+      // Redirection intelligente selon le rôle
+      let redirectUrl = callbackUrl
+
+      if (callbackUrl === '/') {
+        // Si pas de callback URL spécifique, rediriger selon le rôle
+        const userRole = session?.user?.role
+
+        if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+          redirectUrl = '/admin'
+        } else {
+          redirectUrl = '/account'
+        }
+      }
+
+      router.push(redirectUrl)
       router.refresh()
     } catch (error) {
       console.error('Login error:', error)
@@ -93,6 +112,8 @@ function LoginForm() {
               id="remember-me"
               name="remember-me"
               type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
               className="h-4 w-4 text-foreground focus:ring-foreground border-border rounded"
             />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-muted-foreground">
@@ -101,9 +122,9 @@ function LoginForm() {
           </div>
 
           <div className="text-sm">
-            <a href="#" className="font-medium text-foreground hover:text-primary">
+            <Link href="/forgot-password" className="font-medium text-foreground hover:text-primary">
               Mot de passe oublié ?
-            </a>
+            </Link>
           </div>
         </div>
 

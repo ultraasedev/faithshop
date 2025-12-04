@@ -71,7 +71,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </header>
-      <main className="pt-32 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="pt-32 pb-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="font-serif text-3xl mb-10 text-center">Paiement Sécurisé</h1>
 
         {/* Test Card Info for Development */}
@@ -175,8 +175,8 @@ export default function CheckoutPage() {
         </div>
       </main>
 
-      {/* Footer simplifié */}
-      <footer className="border-t border-gray-200 py-8 bg-white">
+      {/* Footer fixe en bas */}
+      <footer className="fixed bottom-0 left-0 right-0 border-t border-gray-200 py-4 bg-white z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm text-gray-500">
             © {new Date().getFullYear()} Faith Shop. Paiement sécurisé par Stripe.

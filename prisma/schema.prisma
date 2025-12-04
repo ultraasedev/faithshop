@@ -86,6 +86,10 @@ model User {
   companyName   String?
   vatNumber     String?
 
+  // Reset password
+  resetToken         String?   @unique
+  resetTokenExpiry   DateTime?
+
   // Permissions admin granulaires
   canManageProducts    Boolean @default(false)
   canManageOrders      Boolean @default(false)

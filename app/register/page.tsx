@@ -5,9 +5,77 @@ import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [isPro, setIsPro] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const [formData, setFormData] = useState({
+    firstname: '',
+    lastname: '',
+    email: '',
+    phone: '',
+    address: '',
+    zipCode: '',
+    city: '',
+    country: 'FR',
+    companyName: '',
+    vatNumber: '',
+    password: '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.id]: e.target.value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: `${formData.firstname} ${formData.lastname}`,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          zipCode: formData.zipCode,
+          country: formData.country,
+          isPro,
+          companyName: isPro ? formData.companyName : undefined,
+          vatNumber: isPro ? formData.vatNumber : undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast.error(data.error || 'Une erreur est survenue')
+        setLoading(false)
+        return
+      }
+
+      toast.success('Compte créé avec succès ! Vous pouvez maintenant vous connecter.')
+      router.push('/login')
+    } catch (error) {
+      console.error('Registration error:', error)
+      toast.error('Une erreur est survenue')
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -19,16 +87,30 @@ export default function RegisterPage() {
             <p className="text-muted-foreground">Rejoignez la communauté Faith Shop</p>
           </div>
 
-          <form className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Identité */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="firstname" className="text-xs font-bold uppercase tracking-widest">Prénom *</label>
-                <input type="text" id="firstname" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <input
+                  type="text"
+                  id="firstname"
+                  required
+                  value={formData.firstname}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
               <div className="space-y-2">
                 <label htmlFor="lastname" className="text-xs font-bold uppercase tracking-widest">Nom *</label>
-                <input type="text" id="lastname" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <input
+                  type="text"
+                  id="lastname"
+                  required
+                  value={formData.lastname}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
             </div>
 
@@ -36,34 +118,74 @@ export default function RegisterPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label htmlFor="email" className="text-xs font-bold uppercase tracking-widest">Email *</label>
-                <input type="email" id="email" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <input
+                  type="email"
+                  id="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
               <div className="space-y-2">
                 <label htmlFor="phone" className="text-xs font-bold uppercase tracking-widest">Téléphone *</label>
-                <input type="tel" id="phone" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <input
+                  type="tel"
+                  id="phone"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
             </div>
 
             {/* Adresse */}
             <div className="space-y-2">
               <label htmlFor="address" className="text-xs font-bold uppercase tracking-widest">Adresse *</label>
-              <input type="text" id="address" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+              <input
+                type="text"
+                id="address"
+                required
+                value={formData.address}
+                onChange={handleChange}
+                className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+              />
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label htmlFor="zip" className="text-xs font-bold uppercase tracking-widest">Code Postal *</label>
-                <input type="text" id="zip" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <label htmlFor="zipCode" className="text-xs font-bold uppercase tracking-widest">Code Postal *</label>
+                <input
+                  type="text"
+                  id="zipCode"
+                  required
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <label htmlFor="city" className="text-xs font-bold uppercase tracking-widest">Ville *</label>
-                <input type="text" id="city" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                <input
+                  type="text"
+                  id="city"
+                  required
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <label htmlFor="country" className="text-xs font-bold uppercase tracking-widest">Pays *</label>
-              <select id="country" className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors appearance-none">
+              <select
+                id="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors appearance-none"
+              >
                 <option value="FR">France</option>
                 <option value="BE">Belgique</option>
                 <option value="CH">Suisse</option>
@@ -93,12 +215,25 @@ export default function RegisterPage() {
             {isPro && (
               <div className="grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
-                  <label htmlFor="company" className="text-xs font-bold uppercase tracking-widest">Nom de l'entreprise *</label>
-                  <input type="text" id="company" required={isPro} className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                  <label htmlFor="companyName" className="text-xs font-bold uppercase tracking-widest">Nom de l'entreprise *</label>
+                  <input
+                    type="text"
+                    id="companyName"
+                    required={isPro}
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="vat" className="text-xs font-bold uppercase tracking-widest">Numéro de TVA</label>
-                  <input type="text" id="vat" className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+                  <label htmlFor="vatNumber" className="text-xs font-bold uppercase tracking-widest">Numéro de TVA</label>
+                  <input
+                    type="text"
+                    id="vatNumber"
+                    value={formData.vatNumber}
+                    onChange={handleChange}
+                    className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+                  />
                 </div>
               </div>
             )}
@@ -106,12 +241,31 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="space-y-2 pt-4 border-t border-border">
               <label htmlFor="password" className="text-xs font-bold uppercase tracking-widest">Mot de passe *</label>
-              <input type="password" id="password" required className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors" />
+              <input
+                type="password"
+                id="password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                minLength={8}
+                className="w-full bg-background border border-border p-3 focus:outline-none focus:border-foreground transition-colors"
+              />
               <p className="text-xs text-muted-foreground">Au moins 8 caractères</p>
             </div>
 
-            <Button className="w-full h-12 rounded-none uppercase tracking-widest font-bold text-base mt-6">
-              S'inscrire
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-none uppercase tracking-widest font-bold text-base mt-6"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Création en cours...
+                </>
+              ) : (
+                "S'inscrire"
+              )}
             </Button>
           </form>
 

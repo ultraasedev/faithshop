@@ -1,11 +1,8 @@
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
-import { PrismaNeon } from '@prisma/adapter-neon'
 import { hash } from 'bcryptjs'
 
-const connectionString = "postgresql://neondb_owner:npg_RM7YnUS4gFIV@ep-tiny-cake-adbyc3l9-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
-const adapter = new PrismaNeon({ connectionString })
-const prisma = new PrismaClient({ adapter })
+const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Seeding database...')

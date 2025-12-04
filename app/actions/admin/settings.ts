@@ -183,7 +183,7 @@ export async function updatePageContent(slug: string, data: {
 
 // ==================== MEDIA ====================
 
-// Upload une image vers Vercel Blob
+// Upload une image ou vidéo vers Vercel Blob
 export async function uploadMedia(formData: FormData) {
   const file = formData.get('file') as File
   const folder = formData.get('folder') as string || 'general'
@@ -192,14 +192,24 @@ export async function uploadMedia(formData: FormData) {
     throw new Error('Aucun fichier fourni')
   }
 
-  // Vérifier le type
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Seules les images sont autorisées')
+  // Types autorisés
+  const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  const allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']
+  const isImage = allowedImageTypes.includes(file.type)
+  const isVideo = allowedVideoTypes.includes(file.type)
+
+  if (!isImage && !isVideo) {
+    throw new Error('Seules les images (JPEG, PNG, WebP, GIF) et vidéos (MP4, WebM, MOV) sont autorisées')
   }
 
-  // Vérifier la taille (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error('L\'image ne doit pas dépasser 5MB')
+  // Vérifier la taille
+  const maxImageSize = 10 * 1024 * 1024 // 10MB pour les images
+  const maxVideoSize = 100 * 1024 * 1024 // 100MB pour les vidéos
+  const maxSize = isVideo ? maxVideoSize : maxImageSize
+
+  if (file.size > maxSize) {
+    const maxSizeMB = maxSize / (1024 * 1024)
+    throw new Error(`Le fichier ne doit pas dépasser ${maxSizeMB}MB`)
   }
 
   // Upload vers Vercel Blob

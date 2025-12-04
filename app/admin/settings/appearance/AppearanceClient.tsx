@@ -8,11 +8,11 @@ import {
   Palette,
   Sun,
   Moon,
-  Upload,
   Save,
   Eye,
   RefreshCw
 } from 'lucide-react'
+import MediaUploader from '@/components/admin/MediaUploader'
 import { upsertTheme, upsertSiteConfig, getSiteConfigs, getThemes, setDefaultTheme } from '@/app/actions/admin/settings'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -35,6 +35,7 @@ interface SiteConfig {
   heroTitle: string
   heroSubtitle: string
   heroCtaText: string
+  heroImage: string
 }
 
 export default function AppearancePage() {
@@ -71,6 +72,7 @@ export default function AppearancePage() {
     heroTitle: '',
     heroSubtitle: '',
     heroCtaText: '',
+    heroImage: '',
   })
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function AppearancePage() {
           heroTitle: configMap['home_hero_title'] || '',
           heroSubtitle: configMap['home_hero_subtitle'] || '',
           heroCtaText: configMap['home_hero_cta_text'] || '',
+          heroImage: configMap['home_hero_image'] || '',
         })
 
         // Map themes
@@ -153,6 +156,7 @@ export default function AppearancePage() {
         { key: 'home_hero_title', value: siteConfig.heroTitle, type: 'text', category: 'homepage' },
         { key: 'home_hero_subtitle', value: siteConfig.heroSubtitle, type: 'text', category: 'homepage' },
         { key: 'home_hero_cta_text', value: siteConfig.heroCtaText, type: 'text', category: 'homepage' },
+        { key: 'home_hero_image', value: siteConfig.heroImage, type: 'media', category: 'homepage' },
       ]
 
       await Promise.all(configUpdates.map(c => upsertSiteConfig(c)))
@@ -239,6 +243,14 @@ export default function AppearancePage() {
             <CardTitle>Page d'accueil (Hero)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <MediaUploader
+              value={siteConfig.heroImage}
+              onChange={(url) => setSiteConfig({ ...siteConfig, heroImage: url })}
+              folder="hero"
+              accept="all"
+              label="Image ou Vidéo du Hero"
+              aspectRatio="aspect-video"
+            />
             <div>
               <label className="text-sm font-medium">Titre principal</label>
               <Input
