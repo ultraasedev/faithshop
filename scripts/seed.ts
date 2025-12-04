@@ -12,7 +12,7 @@ async function main() {
 
   const superAdmin = await prisma.user.upsert({
     where: { email: 'contact@faith-shop.fr' },
-    update: { password: hashedPassword },
+    update: {}, // Ne pas écraser le mot de passe existant
     create: {
       name: 'Super Admin',
       email: 'contact@faith-shop.fr',
