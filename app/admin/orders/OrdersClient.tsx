@@ -85,7 +85,7 @@ export default function OrdersPage() {
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status as OrderStatus,
-        total: order.total,
+        total: Number(order.total),
         createdAt: order.createdAt,
         user: order.user,
         guestName: order.guestName,
