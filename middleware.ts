@@ -29,10 +29,6 @@ const intlMiddleware = createMiddleware({
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Routes à exclure de l'internationalisation
-  const excludedPaths = ['/api/', '/admin/', '/_next/', '/favicon.ico', '/robots.txt']
-  const shouldExcludeI18n = excludedPaths.some(path => pathname.startsWith(path))
-
   // Protection admin
   if (pathname.startsWith("/admin")) {
     const sessionToken = request.cookies.get("authjs.session-token")?.value ||
@@ -45,10 +41,15 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // TODO: Réactiver l'i18n une fois les variables d'environnement configurées en prod
+  // Routes à exclure de l'internationalisation
+  // const excludedPaths = ['/api/', '/admin/', '/_next/', '/favicon.ico', '/robots.txt']
+  // const shouldExcludeI18n = excludedPaths.some(path => pathname.startsWith(path))
+
   // Internationalisation pour les routes publiques
-  if (!shouldExcludeI18n) {
-    return intlMiddleware(request)
-  }
+  // if (!shouldExcludeI18n) {
+  //   return intlMiddleware(request)
+  // }
 
   return NextResponse.next()
 }
