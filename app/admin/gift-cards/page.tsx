@@ -46,15 +46,145 @@ const statusConfig: Record<GiftCardStatus, { label: string; color: string }> = {
 }
 
 export default function GiftCardsPage() {
-  // ... (existing state)
+  const [giftCards, setGiftCards] = useState<GiftCard[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [selectedCard, setSelectedCard] = useState<GiftCard | null>(null)
+  const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [newCard, setNewCard] = useState({
+    amount: '',
+    recipientName: '',
+    recipientEmail: '',
+    message: '',
+    expiresAt: ''
+  })
 
-  // ... (existing loadData)
+  // Charger les données
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const cards = await getGiftCards()
+      setGiftCards(cards)
+    } catch (error) {
+      console.error('Error loading gift cards:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  // ... (existing handlers)
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  // Copier le code
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedCode(code)
+    setTimeout(() => setCopiedCode(null), 2000)
+  }
+
+  // Créer une carte
+  const handleCreate = async () => {
+    try {
+      if (!newCard.amount) return
+
+      await createGiftCard({
+        amount: parseFloat(newCard.amount),
+        recipientName: newCard.recipientName || null,
+        recipientEmail: newCard.recipientEmail || null,
+        message: newCard.message || null,
+        expiresAt: newCard.expiresAt ? new Date(newCard.expiresAt) : null
+      })
+
+      setNewCard({
+        amount: '',
+        recipientName: '',
+        recipientEmail: '',
+        message: '',
+        expiresAt: ''
+      })
+      setShowModal(false)
+      await loadData()
+    } catch (error) {
+      console.error('Error creating gift card:', error)
+    }
+  }
+
+  // Désactiver une carte
+  const handleDisable = async (cardId: string) => {
+    try {
+      await disableGiftCard(cardId)
+      await loadData()
+    } catch (error) {
+      console.error('Error disabling gift card:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  // Stats calculées
+  const totalCards = giftCards.length
+  const activeCards = giftCards.filter(card => card.status === 'ACTIVE').length
+  const totalValue = giftCards.reduce((sum, card) => sum + card.currentBalance, 0)
 
   return (
     <div className="space-y-6">
-      {/* ... (existing header and stats) ... */}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Cartes Cadeaux</h1>
+          <p className="text-muted-foreground">Gérez les cartes cadeaux de votre boutique</p>
+        </div>
+        <Button onClick={() => setShowModal(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Nouvelle carte
+        </Button>
+      </div>
+
+      {/* Statistiques */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Gift className="h-4 w-4 text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Total cartes</span>
+            </div>
+            <div className="mt-2">
+              <div className="text-2xl font-bold">{totalCards}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <Check className="h-4 w-4 text-green-600" />
+              <span className="ml-2 text-sm text-muted-foreground">Cartes actives</span>
+            </div>
+            <div className="mt-2">
+              <div className="text-2xl font-bold text-green-600">{activeCards}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">Valeur totale</span>
+            </div>
+            <div className="mt-2">
+              <div className="text-2xl font-bold">{totalValue.toFixed(2)}€</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Liste des cartes */}
       <Card>
