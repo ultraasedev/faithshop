@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       currency: 'eur',
       automatic_payment_methods: {
         enabled: true,
+        allow_redirects: 'always'
       },
       metadata: {
         items: JSON.stringify(validatedItems)
