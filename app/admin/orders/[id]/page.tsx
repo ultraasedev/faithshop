@@ -5,9 +5,10 @@ import OrderDetailClient from './OrderDetailClient'
 export default async function OrderDetailPage({
   params,
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  const order = await getOrderById(params.id)
+  const { id } = await params
+  const order = await getOrderById(id)
 
   if (!order) {
     notFound()

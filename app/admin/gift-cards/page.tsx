@@ -63,8 +63,8 @@ export default function GiftCardsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const cards = await getGiftCards()
-      setGiftCards(cards)
+      const result = await getGiftCards()
+      setGiftCards(result.cards)
     } catch (error) {
       console.error('Error loading gift cards:', error)
     } finally {
