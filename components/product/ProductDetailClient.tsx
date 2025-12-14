@@ -132,6 +132,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </p>
               </div>
 
+              {/* Countdown pré-commande */}
+              <PreorderCountdown />
+
               <div className="space-y-10 mb-10">
                 {/* Colors */}
                 {product.colors.length > 0 && (

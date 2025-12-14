@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import PreorderCountdown from '@/components/PreorderCountdown'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,11 @@ export default async function ShopPage() {
           <p className="text-muted-foreground max-w-xl mx-auto">
             Découvrez l'ensemble de notre collection. Des pièces conçues pour durer et inspirer.
           </p>
+        </div>
+
+        {/* Bandeau pré-commande */}
+        <div className="mx-auto max-w-[1600px] px-6 lg:px-12">
+          <PreorderCountdown />
         </div>
 
         {/* Grille de produits */}
