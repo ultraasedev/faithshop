@@ -20,7 +20,7 @@ export default async function EditProductPage({ params }: Props) {
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
-        categories: true
+        collections: true
       }
     })
 
@@ -33,7 +33,7 @@ export default async function EditProductPage({ params }: Props) {
 
     console.log('=== DEBUG: About to query categories ===')
 
-    const categories = await prisma.category.findMany({
+    const categories = await prisma.collection.findMany({
       orderBy: { name: 'asc' }
     })
 

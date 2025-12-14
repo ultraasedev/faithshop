@@ -44,7 +44,7 @@ interface Product {
   colors: string[]
   isActive: boolean
   stripeProductId: string | null
-  categories: { id: string; name: string }[]
+  collections: { id: string; collectionId: string; collection: { id: string; name: string } }[]
 }
 
 interface Category {
@@ -80,7 +80,7 @@ export default function ProductEditClient({ product, categories }: Props) {
       sizes: product.sizes || [],
       colors: product.colors || [],
       isActive: product.isActive,
-      categoryId: product.categories[0]?.id || ''
+      categoryId: product.collections[0]?.collection?.id || ''
     }
     console.log('=== DEBUG: Form data created ===', formDataState)
   } catch (error) {
@@ -236,10 +236,10 @@ export default function ProductEditClient({ product, categories }: Props) {
             </div>
 
             <div>
-              <Label htmlFor="category">Catégorie</Label>
+              <Label htmlFor="category">Collection</Label>
               <Select value={formData.categoryId} onValueChange={(value) => setFormData({ ...formData, categoryId: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
+                  <SelectValue placeholder="Sélectionner une collection" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((category) => (

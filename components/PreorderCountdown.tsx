@@ -16,7 +16,7 @@ export default function PreorderCountdown() {
   const [mounted, setMounted] = useState(false)
 
   // Date d'expédition : 16 janvier 2025
-  const shippingDate = new Date('2025-01-16T00:00:00')
+  const shippingDate = new Date('2025-01-16T00:00:00+01:00') // Avec timezone Europe/Paris
 
   useEffect(() => {
     setMounted(true)
