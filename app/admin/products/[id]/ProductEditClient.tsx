@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
 import MediaGallery from '@/components/admin/MediaGallery'
+import { Prisma } from '@prisma/client'
 import {
   Select,
   SelectContent,
@@ -36,7 +37,7 @@ interface Product {
   id: string
   name: string
   description: string | null
-  price: any
+  price: Prisma.Decimal
   stock: number
   images: string[]
   sizes: string[]
@@ -63,7 +64,7 @@ export default function ProductEditClient({ product, categories }: Props) {
   const [formData, setFormData] = useState({
     name: product.name,
     description: product.description || '',
-    price: Number(product.price),
+    price: product.price.toNumber(),
     stock: product.stock,
     images: product.images,
     sizes: product.sizes,
