@@ -198,16 +198,25 @@ export default function AppearanceClientNew() {
 
       {/* Tabs */}
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="general" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-3 bg-muted h-auto p-1">
+          <TabsTrigger
+            value="general"
+            className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground py-2.5"
+          >
             <Globe className="h-4 w-4" />
             Général
           </TabsTrigger>
-          <TabsTrigger value="homepage" className="flex items-center gap-2">
+          <TabsTrigger
+            value="homepage"
+            className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground py-2.5"
+          >
             <ImageIcon className="h-4 w-4" />
             Page d'accueil
           </TabsTrigger>
-          <TabsTrigger value="theme" className="flex items-center gap-2">
+          <TabsTrigger
+            value="theme"
+            className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground py-2.5"
+          >
             <Palette className="h-4 w-4" />
             Style & Couleurs
           </TabsTrigger>
