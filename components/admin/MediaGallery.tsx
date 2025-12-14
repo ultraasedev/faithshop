@@ -12,7 +12,6 @@ import {
   Move
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { uploadMedia } from '@/app/actions/admin/settings'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { isVideoUrl } from '@/components/ui/MediaDisplay'
@@ -71,11 +70,28 @@ export default function MediaGallery({
 
     setUploading(true)
     const uploadPromises = filesToUpload.map(async (file) => {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('folder', folder)
-      const media = await uploadMedia(formData)
-      return media.url
+      try {
+        // Upload vers API route au lieu de server action
+        const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&folder=${folder}`, {
+          method: 'POST',
+          body: file,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`)
+        }
+
+        const result = await response.json()
+
+        if (!result.success) {
+          throw new Error(result.error || 'Erreur upload')
+        }
+
+        return result.url
+      } catch (error) {
+        console.error('Erreur upload fichier:', error)
+        throw error
+      }
     })
 
     try {
@@ -83,6 +99,7 @@ export default function MediaGallery({
       onChange([...value, ...newUrls])
       toast.success(`${newUrls.length} média(s) uploadé(s) avec succès`)
     } catch (error: any) {
+      console.error('Erreur lors de l\'upload:', error)
       toast.error(error.message || 'Erreur lors de l\'upload')
     } finally {
       setUploading(false)
