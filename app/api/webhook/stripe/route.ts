@@ -20,9 +20,36 @@ export async function POST(req: Request) {
     return new NextResponse(`Webhook Error: ${error.message}`, { status: 400 })
   }
 
-  const session = event.data.object as Stripe.PaymentIntent
+  try {
+    switch (event.type) {
+      case 'payment_intent.succeeded':
+        await handlePaymentSuccess(event)
+        break
 
-  if (event.type === 'payment_intent.succeeded') {
+      case 'product.updated':
+        await handleProductUpdated(event)
+        break
+
+      case 'product.deleted':
+        await handleProductDeleted(event)
+        break
+
+      case 'price.updated':
+        await handlePriceUpdated(event)
+        break
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`)
+    }
+  } catch (error) {
+    console.error('Error processing webhook:', error)
+    return new NextResponse('Error processing webhook', { status: 500 })
+  }
+
+  return new NextResponse(null, { status: 200 })
+}
+
+async function handlePaymentSuccess(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent
     
     // Récupérer les métadonnées
@@ -139,9 +166,123 @@ export async function POST(req: Request) {
       console.log(`Commande créée avec succès: ${order.id}`)
     } catch (error) {
       console.error('Erreur lors de la création de la commande:', error)
-      return new NextResponse('Error creating order', { status: 500 })
+      throw error
     }
-  }
+}
 
-  return new NextResponse(null, { status: 200 })
+async function handleProductUpdated(event: Stripe.Event) {
+  const stripeProduct = event.data.object as Stripe.Product
+
+  console.log(`Handling product update from Stripe: ${stripeProduct.id}`)
+
+  try {
+    // Trouver le produit local correspondant
+    const localProduct = await prisma.product.findFirst({
+      where: { stripeProductId: stripeProduct.id }
+    })
+
+    if (!localProduct) {
+      console.log(`Product not found locally: ${stripeProduct.id}`)
+      return
+    }
+
+    // Mettre à jour les informations du produit (sauf les vidéos que Stripe ne gère pas)
+    const updateData: any = {
+      name: stripeProduct.name,
+      description: stripeProduct.description || undefined,
+      isActive: stripeProduct.active
+    }
+
+    // Gérer les images (filtrer les vidéos si présentes)
+    if (stripeProduct.images && stripeProduct.images.length > 0) {
+      const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
+      const validImages = stripeProduct.images.filter(url =>
+        imageExtensions.some(ext => url.toLowerCase().includes(ext))
+      )
+
+      // Conserver les vidéos existantes et ajouter les nouvelles images
+      const existingVideos = localProduct.images.filter(url =>
+        !imageExtensions.some(ext => url.toLowerCase().includes(ext))
+      )
+
+      updateData.images = [...validImages, ...existingVideos]
+    }
+
+    await prisma.product.update({
+      where: { id: localProduct.id },
+      data: updateData
+    })
+
+    console.log(`Product updated locally: ${localProduct.id}`)
+  } catch (error) {
+    console.error('Error updating product from Stripe:', error)
+    throw error
+  }
+}
+
+async function handleProductDeleted(event: Stripe.Event) {
+  const stripeProduct = event.data.object as Stripe.Product
+
+  console.log(`Handling product deletion from Stripe: ${stripeProduct.id}`)
+
+  try {
+    // Trouver le produit local correspondant
+    const localProduct = await prisma.product.findFirst({
+      where: { stripeProductId: stripeProduct.id }
+    })
+
+    if (!localProduct) {
+      console.log(`Product not found locally: ${stripeProduct.id}`)
+      return
+    }
+
+    // Au lieu de supprimer, on peut désactiver le produit
+    await prisma.product.update({
+      where: { id: localProduct.id },
+      data: {
+        isActive: false,
+        stripeProductId: null // Dissocier de Stripe
+      }
+    })
+
+    console.log(`Product deactivated locally: ${localProduct.id}`)
+  } catch (error) {
+    console.error('Error handling product deletion from Stripe:', error)
+    throw error
+  }
+}
+
+async function handlePriceUpdated(event: Stripe.Event) {
+  const stripePrice = event.data.object as Stripe.Price
+
+  console.log(`Handling price update from Stripe: ${stripePrice.id}`)
+
+  try {
+    // Trouver le produit local par le product ID de Stripe
+    if (typeof stripePrice.product !== 'string') return
+
+    const localProduct = await prisma.product.findFirst({
+      where: { stripeProductId: stripePrice.product }
+    })
+
+    if (!localProduct) {
+      console.log(`Product not found locally for price: ${stripePrice.product}`)
+      return
+    }
+
+    // Vérifier si c'est le prix par défaut (actif)
+    if (stripePrice.active) {
+      const newPrice = stripePrice.unit_amount ? stripePrice.unit_amount / 100 : 0
+
+      await prisma.product.update({
+        where: { id: localProduct.id },
+        data: { price: newPrice }
+      })
+
+      console.log(`Price updated locally: ${localProduct.id} -> ${newPrice}€`)
+    }
+  } catch (error) {
+    console.error('Error updating price from Stripe:', error)
+    throw error
+  }
 }
