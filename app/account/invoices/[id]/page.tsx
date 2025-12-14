@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import PrintButton from '@/components/PrintButton'
+import { getSiteConfigs } from '@/app/actions/admin/settings'
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -9,6 +10,15 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
   if (!session?.user) {
     redirect('/login')
+  }
+
+  // Récupérer les infos de la société
+  const configs = await getSiteConfigs()
+  const companyInfo = {
+    name: configs.find(c => c.key === 'company_name')?.value || 'Faith Shop SAS',
+    capital: configs.find(c => c.key === 'company_capital')?.value || '10 000€',
+    rcs: configs.find(c => c.key === 'company_rcs')?.value || 'RCS Paris B 123 456 789',
+    thanks: configs.find(c => c.key === 'invoice_thanks_message')?.value || 'Merci pour votre confiance !'
   }
 
   const order = await prisma.order.findFirst({
@@ -135,8 +145,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
         {/* Footer */}
         <div className="mt-12 text-center text-gray-500 text-xs">
-          <p>Faith Shop SAS - Capital social: 10 000€ - RCS Paris B 123 456 789</p>
-          <p className="mt-1">Merci pour votre confiance !</p>
+          <p>{companyInfo.name} - Capital social: {companyInfo.capital} - {companyInfo.rcs}</p>
+          <p className="mt-1">{companyInfo.thanks}</p>
         </div>
 
         {/* Print Button */}

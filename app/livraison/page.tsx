@@ -1,8 +1,10 @@
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Truck, Globe, Clock, ShieldCheck, MapPin, Package } from 'lucide-react'
+import { getShippingSettings } from '@/app/actions/admin/shipping-settings'
 
-export default function ShippingPage() {
+export default async function ShippingPage() {
+  const shippingSettings = await getShippingSettings()
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
@@ -24,10 +26,10 @@ export default function ShippingPage() {
                 <Truck className="w-6 h-6 text-foreground" />
               </div>
               <h3 className="font-serif text-xl mb-3">France Métropolitaine</h3>
-              <p className="text-muted-foreground text-sm mb-4">Livraison standard offerte dès 100€ d'achat.</p>
+              <p className="text-muted-foreground text-sm mb-4">Livraison standard offerte dès {shippingSettings.freeThreshold}€ d'achat.</p>
               <ul className="space-y-2 text-sm">
-                <li className="flex justify-between"><span>Standard (Colissimo)</span> <span className="font-bold">4.90€</span></li>
-                <li className="flex justify-between"><span>Express (Chronopost)</span> <span className="font-bold">9.90€</span></li>
+                <li className="flex justify-between"><span>Standard (Colissimo)</span> <span className="font-bold">{shippingSettings.franceStandard.toFixed(2)}€</span></li>
+                <li className="flex justify-between"><span>Express (Chronopost)</span> <span className="font-bold">{shippingSettings.franceExpress.toFixed(2)}€</span></li>
               </ul>
             </div>
 
@@ -38,8 +40,8 @@ export default function ShippingPage() {
               <h3 className="font-serif text-xl mb-3">International</h3>
               <p className="text-muted-foreground text-sm mb-4">Livraison dans plus de 50 pays.</p>
               <ul className="space-y-2 text-sm">
-                <li className="flex justify-between"><span>Europe</span> <span className="font-bold">12.90€</span></li>
-                <li className="flex justify-between"><span>Monde</span> <span className="font-bold">24.90€</span></li>
+                <li className="flex justify-between"><span>Europe</span> <span className="font-bold">{shippingSettings.europe.toFixed(2)}€</span></li>
+                <li className="flex justify-between"><span>Monde</span> <span className="font-bold">{shippingSettings.world.toFixed(2)}€</span></li>
               </ul>
             </div>
 
@@ -48,7 +50,7 @@ export default function ShippingPage() {
                 <Clock className="w-6 h-6 text-foreground" />
               </div>
               <h3 className="font-serif text-xl mb-3">Délais</h3>
-              <p className="text-muted-foreground text-sm mb-4">Expédition sous 24/48h ouvrées.</p>
+              <p className="text-muted-foreground text-sm mb-4">Expédition sous {shippingSettings.processingTime}.</p>
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between"><span>France</span> <span className="font-bold">2-4 jours</span></li>
                 <li className="flex justify-between"><span>International</span> <span className="font-bold">5-10 jours</span></li>
