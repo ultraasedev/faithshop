@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
-import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
+import { ArrowLeft, Save, Loader2 } from 'lucide-react'
+import { createProductNew } from '@/app/actions/admin/products'
 import MediaGallery from '@/components/admin/MediaGallery'
 import {
   Select,
@@ -20,31 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-
-interface Product {
-  id: string
-  name: string
-  description: string | null
-  price: any
-  stock: number
-  images: string[]
-  sizes: string[]
-  colors: string[]
-  isActive: boolean
-  stripeProductId: string | null
-  categories: { id: string; name: string }[]
-}
 
 interface Category {
   id: string
@@ -52,63 +27,53 @@ interface Category {
 }
 
 interface Props {
-  product: Product
   categories: Category[]
 }
 
-export default function ProductEditClient({ product, categories }: Props) {
+export default function ProductCreateClient({ categories }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: product.name,
-    description: product.description || '',
-    price: Number(product.price),
-    stock: product.stock,
-    images: product.images,
-    sizes: product.sizes,
-    colors: product.colors,
-    isActive: product.isActive,
-    categoryId: product.categories[0]?.id || ''
+    name: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    images: [] as string[],
+    sizes: [] as string[],
+    colors: [] as string[],
+    isActive: true,
+    categoryId: ''
   })
 
   const [newSize, setNewSize] = useState('')
   const [newColor, setNewColor] = useState('')
 
   const handleSave = async () => {
+    if (!formData.name || !formData.price || !formData.categoryId) {
+      toast.error('Veuillez remplir tous les champs obligatoires')
+      return
+    }
+
     setSaving(true)
     try {
-      const result = await updateProduct(product.id, {
+      const result = await createProductNew({
         ...formData,
         sizes: formData.sizes.filter(s => s.trim()),
         colors: formData.colors.filter(c => c.trim())
       })
 
       if (result.success) {
-        toast.success('Produit mis à jour et synchronisé avec Stripe')
-        router.refresh()
+        toast.success('Produit créé avec succès')
+        router.push(`/admin/products/${result.product.id}`)
       } else {
-        toast.error(result.message || 'Erreur lors de la mise à jour')
+        toast.error(result.message || 'Erreur lors de la création')
       }
     } catch (error) {
       console.error(error)
-      toast.error('Erreur lors de la mise à jour')
+      toast.error('Erreur lors de la création')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      const result = await deleteProduct(product.id)
-      if (result.message === 'Produit supprimé') {
-        toast.success('Produit supprimé avec succès')
-        router.push('/admin/products')
-      } else {
-        toast.error(result.message)
-      }
-    } catch (error) {
-      toast.error('Erreur lors de la suppression')
     }
   }
 
@@ -143,42 +108,18 @@ export default function ProductEditClient({ product, categories }: Props) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Modifier le produit</h1>
-            <p className="text-muted-foreground">{product.name}</p>
+            <h1 className="text-3xl font-bold">Créer un produit</h1>
+            <p className="text-muted-foreground">Ajoutez un nouveau produit à votre catalogue</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                  Supprimer définitivement
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
-            Sauvegarder
-          </Button>
-        </div>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          Créer le produit
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 auto-rows-min">
@@ -189,11 +130,12 @@ export default function ProductEditClient({ product, categories }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="name">Nom du produit</Label>
+              <Label htmlFor="name">Nom du produit *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: T-Shirt Faith Collection"
               />
             </div>
 
@@ -204,11 +146,12 @@ export default function ProductEditClient({ product, categories }: Props) {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
+                placeholder="Décrivez votre produit..."
               />
             </div>
 
             <div>
-              <Label htmlFor="category">Catégorie</Label>
+              <Label htmlFor="category">Catégorie *</Label>
               <Select value={formData.categoryId} onValueChange={(value) => setFormData({ ...formData, categoryId: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner une catégorie" />
@@ -241,33 +184,27 @@ export default function ProductEditClient({ product, categories }: Props) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="price">Prix (€)</Label>
+              <Label htmlFor="price">Prix (€) *</Label>
               <Input
                 id="price"
                 type="number"
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                placeholder="45.00"
               />
             </div>
 
             <div>
-              <Label htmlFor="stock">Stock</Label>
+              <Label htmlFor="stock">Stock initial *</Label>
               <Input
                 id="stock"
                 type="number"
                 value={formData.stock}
                 onChange={(e) => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                placeholder="100"
               />
             </div>
-
-            {product.stripeProductId && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-800">
-                  <strong>Stripe ID:</strong> {product.stripeProductId}
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -288,7 +225,7 @@ export default function ProductEditClient({ product, categories }: Props) {
         </Card>
 
         {/* Variantes */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Variantes</CardTitle>
           </CardHeader>
@@ -300,10 +237,10 @@ export default function ProductEditClient({ product, categories }: Props) {
                 <Input
                   value={newSize}
                   onChange={(e) => setNewSize(e.target.value)}
-                  placeholder="Ajouter une taille"
+                  placeholder="Ex: M"
                   onKeyPress={(e) => e.key === 'Enter' && addSize()}
                 />
-                <Button onClick={addSize} size="sm">
+                <Button onClick={addSize} size="sm" type="button">
                   Ajouter
                 </Button>
               </div>
@@ -323,10 +260,10 @@ export default function ProductEditClient({ product, categories }: Props) {
                 <Input
                   value={newColor}
                   onChange={(e) => setNewColor(e.target.value)}
-                  placeholder="Ajouter une couleur"
+                  placeholder="Ex: Blanc"
                   onKeyPress={(e) => e.key === 'Enter' && addColor()}
                 />
-                <Button onClick={addColor} size="sm">
+                <Button onClick={addColor} size="sm" type="button">
                   Ajouter
                 </Button>
               </div>
