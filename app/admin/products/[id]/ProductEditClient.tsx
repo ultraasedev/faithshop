@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, Sync, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
 import MediaUploader from '@/components/admin/MediaUploader'
 import {
@@ -168,9 +168,9 @@ export default function ProductEditClient({ product, categories }: Props) {
               disabled={syncing}
             >
               {syncing ? (
-                <Sync className="h-4 w-4 mr-2 animate-spin" />
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Sync className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-2" />
               )}
               Sync Stripe
             </Button>
@@ -199,7 +199,7 @@ export default function ProductEditClient({ product, categories }: Props) {
           </AlertDialog>
           <Button onClick={handleSave} disabled={saving}>
             {saving ? (
-              <Sync className="h-4 w-4 mr-2 animate-spin" />
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}

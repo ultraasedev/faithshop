@@ -32,6 +32,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Dark theme variables */
+.dark {
+  --color-background: oklch(0.08 0 0); /* Presque noir */
+  --color-foreground: oklch(0.95 0 0); /* Blanc cassé */
+
+  --color-primary: oklch(0.95 0 0); /* Blanc pour les actions principales */
+  --color-primary-foreground: oklch(0.08 0 0); /* Noir */
+
+  --color-secondary: oklch(0.12 0 0); /* Gris très sombre */
+  --color-secondary-foreground: oklch(0.95 0 0);
+
+  --color-muted: oklch(0.12 0 0);
+  --color-muted-foreground: oklch(0.65 0 0);
+
+  --color-accent: oklch(0.12 0 0);
+  --color-accent-foreground: oklch(0.95 0 0);
+
+  --color-border: oklch(0.18 0 0);
+  --color-input: oklch(0.18 0 0);
+  --color-ring: oklch(0.95 0 0);
+}
+
 /* Base Styles & Reset */
 @layer base {
   * {
