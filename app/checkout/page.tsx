@@ -35,31 +35,82 @@ export default function CheckoutPage() {
       .catch((err) => console.error('Payment intent error:', err))
   }, [items, mounted])
 
+  // Detect dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false)
+
+  useEffect(() => {
+    // Check if dark mode is enabled
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark') ||
+                    window.matchMedia('(prefers-color-scheme: dark)').matches
+      setIsDarkMode(isDark)
+    }
+
+    checkDarkMode()
+
+    // Listen for theme changes
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+    return () => observer.disconnect()
+  }, [])
+
   const appearance = {
     theme: 'stripe' as const,
     variables: {
       colorPrimary: '#000000',
       fontFamily: 'system-ui, sans-serif',
       borderRadius: '0.5rem',
-      colorBackground: '#ffffff',
-      colorText: '#000000',
+      colorBackground: isDarkMode ? '#0a0a0a' : '#ffffff',
+      colorText: isDarkMode ? '#ffffff' : '#000000',
+      colorDanger: '#dc2626',
+      spacingUnit: '4px',
     },
     rules: {
       '.Tab': {
-        border: '1px solid #E0E6EB',
-        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
+        border: isDarkMode ? '1px solid #374151' : '1px solid #E0E6EB',
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        color: isDarkMode ? '#ffffff' : '#000000',
+        boxShadow: isDarkMode
+          ? '0px 1px 1px rgba(0, 0, 0, 0.1), 0px 3px 6px rgba(0, 0, 0, 0.05)'
+          : '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
       },
       '.Tab:hover': {
-        color: 'var(--colorText)',
+        color: isDarkMode ? '#f3f4f6' : 'var(--colorText)',
+        backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
       },
       '.Tab--selected': {
         borderColor: '#000000',
-        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02), 0 0 0 2px var(--colorPrimary)',
+        backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+        color: isDarkMode ? '#ffffff' : '#000000',
+        boxShadow: isDarkMode
+          ? '0px 1px 1px rgba(0, 0, 0, 0.1), 0px 3px 6px rgba(0, 0, 0, 0.05), 0 0 0 2px var(--colorPrimary)'
+          : '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02), 0 0 0 2px var(--colorPrimary)',
       },
       '.Input': {
-        border: '1px solid #E0E6EB',
-        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
+        border: isDarkMode ? '1px solid #374151' : '1px solid #E0E6EB',
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        color: isDarkMode ? '#ffffff' : '#000000',
+        boxShadow: isDarkMode
+          ? '0px 1px 1px rgba(0, 0, 0, 0.1), 0px 3px 6px rgba(0, 0, 0, 0.05)'
+          : '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
       },
+      '.Input:focus': {
+        borderColor: '#000000',
+        boxShadow: isDarkMode
+          ? '0px 1px 1px rgba(0, 0, 0, 0.1), 0px 3px 6px rgba(0, 0, 0, 0.05), 0 0 0 2px var(--colorPrimary)'
+          : '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02), 0 0 0 2px var(--colorPrimary)',
+      },
+      '.Input::placeholder': {
+        color: isDarkMode ? '#9ca3af' : '#6b7280',
+      },
+      '.Label': {
+        color: isDarkMode ? '#ffffff' : '#000000',
+        fontWeight: '500',
+      },
+      '.Error': {
+        color: '#dc2626',
+      }
     }
   }
 
