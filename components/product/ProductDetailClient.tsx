@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { toast } from 'sonner'
+import PreorderCountdown from '@/components/PreorderCountdown'
 
 interface Product {
   id: string
@@ -183,6 +184,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Pre-order Countdown */}
+              <div className="mb-8">
+                <PreorderCountdown />
               </div>
 
               {/* Premium Add to Cart Button */}

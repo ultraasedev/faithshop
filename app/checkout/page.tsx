@@ -6,7 +6,7 @@ import { Elements } from '@stripe/react-stripe-js'
 import CheckoutForm from '@/components/checkout/CheckoutForm'
 import { useCart } from '@/lib/store/cart'
 import Link from 'next/link'
-import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock } from 'lucide-react'
+import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -173,6 +173,18 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full font-medium">
                     <ShieldCheck className="h-3 w-3" />
                     100% Sécurisé
+                  </div>
+                </div>
+
+                {/* Pre-order Notice */}
+                <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                    <div className="text-sm">
+                      <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">📦 Pré-commande</h3>
+                      <p className="text-amber-700 dark:text-amber-300 mb-2">Votre commande sera expédiée après le <strong>16 janvier 2025</strong>.</p>
+                      <p className="text-amber-600 dark:text-amber-400 text-xs">Merci de votre patience ! Vous recevrez une notification dès l'expédition.</p>
+                    </div>
                   </div>
                 </div>
 

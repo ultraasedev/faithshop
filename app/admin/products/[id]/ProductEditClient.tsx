@@ -12,8 +12,8 @@ import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
-import MediaGallery from '@/components/admin/MediaGallery'
 import { Prisma } from '@prisma/client'
+// import MediaGallery from '@/components/admin/MediaGallery'
 import {
   Select,
   SelectContent,
@@ -272,19 +272,22 @@ export default function ProductEditClient({ product, categories }: Props) {
           </CardContent>
         </Card>
 
-        {/* Galerie média */}
+        {/* Galerie média - temporairement désactivé pour debug */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Galerie média</CardTitle>
           </CardHeader>
           <CardContent>
-            <MediaGallery
+            <div className="p-4 border border-dashed border-border rounded-lg text-center text-muted-foreground">
+              Galerie média temporairement désactivée pour debug
+            </div>
+            {/* <MediaGallery
               value={formData.images}
               onChange={(urls) => setFormData({ ...formData, images: urls })}
               folder="products"
               maxFiles={8}
               label="Images et vidéos du produit"
-            />
+            /> */}
           </CardContent>
         </Card>
 
