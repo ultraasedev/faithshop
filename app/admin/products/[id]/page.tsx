@@ -20,7 +20,11 @@ export default async function EditProductPage({ params }: Props) {
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
-        collections: true
+        collections: {
+          include: {
+            collection: true
+          }
+        }
       }
     })
 
