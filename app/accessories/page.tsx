@@ -12,7 +12,7 @@ export default function AccessoriesPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pt-32">
         <div className="bg-secondary/30 py-16 text-center">
           <h1 className="font-serif text-4xl md:text-5xl mb-4">Accessoires</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">

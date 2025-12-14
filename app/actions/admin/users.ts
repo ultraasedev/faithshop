@@ -195,6 +195,7 @@ export async function getAdmins() {
       canManageSettings: true,
       canManageDiscounts: true,
       canManageShipping: true,
+      createdAt: true,
     },
     orderBy: { createdAt: 'asc' },
   })

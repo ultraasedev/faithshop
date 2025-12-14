@@ -27,7 +27,7 @@ enum OrderStatus {
 
 enum PaymentMethod {
   STRIPE
-  STRIPE_INSTALLMENTS  // Paiement en plusieurs fois
+  STRIPE_INSTALLMENTS // Paiement en plusieurs fois
   PAYPAL
 }
 
@@ -65,82 +65,125 @@ enum GiftCardStatus {
 // ==================== USER ====================
 
 model User {
-  id            String    @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String         @unique
   password      String?
   emailVerified DateTime?
   image         String?
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   orders        Order[]
   reviews       Review[]
   addresses     Address[]
   wishlist      WishlistItem[]
 
   // Champs pour adresse/facturation par défaut
-  address       String?
-  city          String?
-  zipCode       String?
-  country       String?
-  phone         String?
-  companyName   String?
-  vatNumber     String?
+  address     String?
+  city        String?
+  zipCode     String?
+  country     String?
+  phone       String?
+  companyName String?
+  vatNumber   String?
 
   // Reset password
-  resetToken         String?   @unique
-  resetTokenExpiry   DateTime?
+  resetToken       String?   @unique
+  resetTokenExpiry DateTime?
 
   // Permissions admin granulaires
-  canManageProducts    Boolean @default(false)
-  canManageOrders      Boolean @default(false)
-  canManageUsers       Boolean @default(false)
-  canManageSettings    Boolean @default(false)
-  canManageDiscounts   Boolean @default(false)
-  canManageShipping    Boolean @default(false)
+  canManageProducts  Boolean @default(false)
+  canManageOrders    Boolean @default(false)
+  canManageUsers     Boolean @default(false)
+  canManageSettings  Boolean @default(false)
+  canManageDiscounts Boolean @default(false)
+  canManageShipping  Boolean @default(false)
 
   // Relations
   createdDiscountCodes DiscountCode[] @relation("CreatedByAdmin")
   createdGiftCards     GiftCard[]     @relation("CreatedByAdmin")
+  discountUsages       DiscountUsage[]
+
+  // Marketing
+  abandonedCarts      AbandonedCart[]
+  segmentMemberships  SegmentUser[]
+  createdCampaigns    Campaign[]      @relation("CreatedCampaigns")
 }
 
 // ==================== ADDRESS ====================
 
 model Address {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  label       String?  // "Domicile", "Bureau", etc.
-  firstName   String
-  lastName    String
-  address     String
+  label        String? // "Domicile", "Bureau", etc.
+  firstName    String
+  lastName     String
+  address      String
   addressLine2 String?
-  city        String
-  zipCode     String
-  country     String
-  phone       String?
+  city         String
+  zipCode      String
+  country      String
+  phone        String?
 
-  isDefault   Boolean  @default(false)
-  isBilling   Boolean  @default(false) // Adresse de facturation par défaut
+  isDefault Boolean @default(false)
+  isBilling Boolean @default(false) // Adresse de facturation par défaut
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== WISHLIST ====================
 
 model WishlistItem {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  productId   String
+  productId String
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([userId, productId])
+}
+
+// ==================== COLLECTIONS ====================
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  slug        String   @unique
+  image       String?  // Image de collection
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+
+  // Affichage
+  isActive     Boolean @default(true)
+  isFeatured   Boolean @default(false)
+  sortOrder    Int     @default(0)
+
+  // Relations
+  products     ProductCollection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductCollection {
+  id           String     @id @default(cuid())
+  productId    String
+  collectionId String
+  sortOrder    Int        @default(0)
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, collectionId])
 }
 
 // ==================== PRODUCT ====================
@@ -149,42 +192,105 @@ model Product {
   id          String   @id @default(cuid())
   name        String
   description String
-  price       Decimal  @db.Decimal(10, 2)
-  images      String[] // URLs des images
-  stock       Int      @default(0)
+  price       Decimal  @db.Decimal(10, 2) // Prix de base
+  images      String[] // URLs des images principales
+  stock       Int      @default(0) // Stock total (calculé depuis les variantes)
 
-  // Variantes
-  colors      String[]
-  sizes       String[]
+  // Variantes (legacy - gardé pour compatibilité)
+  colors String[]
+  sizes  String[]
 
   // Stripe Sync
   stripeProductId String?
   stripePriceId   String?
 
   // SEO & affichage
-  slug        String?  @unique
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
+  slug       String? @unique
+  isActive   Boolean @default(true)
+  isFeatured Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Tags & Catégorisation
+  tags       String[] // Tags libres
+  brand      String?
+  sku        String?  @unique // SKU principal
+
+  // Dimensions & poids (pour l'expédition)
+  weight     Decimal? @db.Decimal(8, 3) // en kg
+  dimensions String? // "L x l x H en cm"
+
+  // Stock avancé
+  lowStockThreshold Int @default(5)
+  trackQuantity     Boolean @default(true)
+
+  // Type de variantes
+  hasVariants Boolean @default(false) // Si le produit a des variantes complexes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   orderItems  OrderItem[]
   reviews     Review[]
+  collections ProductCollection[]
+  variants    ProductVariant[]
+
+  // Recommandations
+  recommendations       ProductRecommendation[] @relation("MainProduct")
+  recommendedBy         ProductRecommendation[] @relation("RecommendedProduct")
+}
+
+// Variantes de produits avancées
+model ProductVariant {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Identifiants
+  sku    String  @unique
+  title  String // Ex: "Rouge / Taille M"
+
+  // Attributs de variante
+  color String?
+  size  String?
+  material String?
+  style    String?
+
+  // Prix et stock spécifiques
+  price       Decimal @db.Decimal(10, 2)
+  comparePrice Decimal? @db.Decimal(10, 2) // Prix barré
+  stock       Int     @default(0)
+
+  // Images spécifiques à cette variante
+  images String[]
+
+  // Dimensions & poids spécifiques
+  weight     Decimal? @db.Decimal(8, 3)
+  dimensions String?
+
+  // Stripe sync pour cette variante
+  stripePriceId String?
+
+  // Gestion
+  isActive Boolean @default(true)
+  sortOrder Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
 }
 
 // ==================== ORDER ====================
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique @default(cuid()) // Numéro de commande lisible
-  userId          String?
-  user            User?       @relation(fields: [userId], references: [id])
+  id          String  @id @default(cuid())
+  orderNumber String  @unique @default(cuid()) // Numéro de commande lisible
+  userId      String?
+  user        User?   @relation(fields: [userId], references: [id])
 
   // Infos Guest (si pas connecté)
-  guestName       String?
-  guestEmail      String?
-  guestPhone      String?
+  guestName  String?
+  guestEmail String?
+  guestPhone String?
 
   // Adresse de livraison snapshot
   shippingAddress String
@@ -194,85 +300,92 @@ model Order {
   shippingPhone   String?
 
   // Adresse de facturation
-  billingAddress  String?
-  billingCity     String?
-  billingZip      String?
-  billingCountry  String?
+  billingAddress String?
+  billingCity    String?
+  billingZip     String?
+  billingCountry String?
 
-  status          OrderStatus @default(PENDING)
+  status OrderStatus @default(PENDING)
 
   // Montants
-  subtotal        Decimal     @db.Decimal(10, 2)
-  shippingCost    Decimal     @db.Decimal(10, 2) @default(0)
-  discountAmount  Decimal     @db.Decimal(10, 2) @default(0)
-  taxAmount       Decimal     @db.Decimal(10, 2) @default(0)
-  total           Decimal     @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+  shippingCost   Decimal @default(0) @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal @default(0) @db.Decimal(10, 2)
+  total          Decimal @db.Decimal(10, 2)
 
   // Paiement
-  paymentMethod   PaymentMethod @default(STRIPE)
-  paymentStatus   PaymentStatus @default(PENDING)
-  stripePaymentIntentId String?
+  paymentMethod           PaymentMethod @default(STRIPE)
+  paymentStatus           PaymentStatus @default(PENDING)
+  stripePaymentIntentId   String?
   stripeInstallmentPlanId String? // Pour paiement en plusieurs fois
-  paypalOrderId   String?
+  paypalOrderId           String?
 
   // Code promo / Carte cadeau
-  discountCodeId  String?
-  discountCode    DiscountCode? @relation(fields: [discountCodeId], references: [id])
-  giftCardId      String?
-  giftCard        GiftCard?     @relation(fields: [giftCardId], references: [id])
-  giftCardAmountUsed Decimal?   @db.Decimal(10, 2)
+  discountCodeId     String?
+  discountCode       DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  giftCardId         String?
+  giftCard           GiftCard?     @relation(fields: [giftCardId], references: [id])
+  giftCardAmountUsed Decimal?      @db.Decimal(10, 2)
 
   // Notes
-  customerNote    String?
-  adminNote       String?
+  customerNote String?
+  adminNote    String?
 
-  items           OrderItem[]
-  shipping        Shipping?
+  items    OrderItem[]
+  shipping Shipping?
+  discountUsages DiscountUsage[]
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
-  quantity  Int
-  price     Decimal @db.Decimal(10, 2) // Prix au moment de l'achat
-  color     String?
-  size      String?
+  // Support pour les variantes
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
 
-  // Snapshot du produit au moment de l'achat
+  quantity Int
+  price    Decimal @db.Decimal(10, 2) // Prix au moment de l'achat
+  color    String?
+  size     String?
+
+  // Snapshot du produit/variante au moment de l'achat
   productName  String
   productImage String?
+  variantTitle String? // Titre de la variante
+  variantSku   String? // SKU de la variante
 }
 
 // ==================== SHIPPING ====================
 
 model Shipping {
-  id              String         @id @default(cuid())
-  orderId         String         @unique
-  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  carrier         String         // Colissimo, Chronopost, UPS, etc.
-  trackingNumber  String?
-  trackingUrl     String?
+  carrier        String // Colissimo, Chronopost, UPS, etc.
+  trackingNumber String?
+  trackingUrl    String?
 
-  status          ShippingStatus @default(PENDING)
+  status ShippingStatus @default(PENDING)
 
   // Étiquette d'expédition
-  labelUrl        String?        // URL du PDF de l'étiquette
-  labelCreatedAt  DateTime?
+  labelUrl       String? // URL du PDF de l'étiquette
+  labelCreatedAt DateTime?
 
   // Poids et dimensions
-  weightKg        Decimal?       @db.Decimal(5, 2)
-  lengthCm        Int?
-  widthCm         Int?
-  heightCm        Int?
+  weightKg Decimal? @db.Decimal(5, 2)
+  lengthCm Int?
+  widthCm  Int?
+  heightCm Int?
 
   // Dates
   estimatedDelivery DateTime?
@@ -280,124 +393,166 @@ model Shipping {
   deliveredAt       DateTime?
 
   // Historique
-  events          ShippingEvent[]
+  events ShippingEvent[]
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ShippingEvent {
-  id          String   @id @default(cuid())
-  shippingId  String
-  shipping    Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  shippingId String
+  shipping   Shipping @relation(fields: [shippingId], references: [id], onDelete: Cascade)
 
   status      ShippingStatus
   location    String?
   description String
-  timestamp   DateTime @default(now())
+  timestamp   DateTime       @default(now())
 }
 
 // Tarifs de livraison configurables
 model ShippingRate {
-  id          String   @id @default(cuid())
-  name        String   // "Standard", "Express", etc.
-  carrier     String
-  minWeight   Decimal  @db.Decimal(5, 2) @default(0)
-  maxWeight   Decimal  @db.Decimal(5, 2)
-  price       Decimal  @db.Decimal(10, 2)
+  id        String  @id @default(cuid())
+  name      String // "Standard", "Express", etc.
+  carrier   String
+  minWeight Decimal @default(0) @db.Decimal(5, 2)
+  maxWeight Decimal @db.Decimal(5, 2)
+  price     Decimal @db.Decimal(10, 2)
 
   // Zone géographique
-  countries   String[] // Codes pays: FR, BE, CH, etc.
+  countries String[] // Codes pays: FR, BE, CH, etc.
 
   // Délai estimé
-  minDays     Int
-  maxDays     Int
+  minDays Int
+  maxDays Int
 
-  isActive    Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== DISCOUNT CODES ====================
 
 model DiscountCode {
-  id              String       @id @default(cuid())
-  code            String       @unique
-  description     String?
+  id          String  @id @default(cuid())
+  code        String  @unique
+  description String?
 
-  type            DiscountType
-  value           Decimal      @db.Decimal(10, 2) // Pourcentage ou montant fixe
+  type  DiscountType
+  value Decimal      @db.Decimal(10, 2) // Pourcentage ou montant fixe
 
   // Limites
-  minPurchase     Decimal?     @db.Decimal(10, 2) // Montant minimum d'achat
-  maxDiscount     Decimal?     @db.Decimal(10, 2) // Réduction max (pour les %)
-  usageLimit      Int?         // Nombre total d'utilisations
-  usageLimitPerUser Int?       // Par utilisateur
-  currentUsage    Int          @default(0)
+  minPurchase       Decimal? @db.Decimal(10, 2) // Montant minimum d'achat
+  maxDiscount       Decimal? @db.Decimal(10, 2) // Réduction max (pour les %)
+  usageLimit        Int? // Nombre total d'utilisations
+  usageLimitPerUser Int? // Par utilisateur
+  currentUsage      Int      @default(0)
 
   // Validité
-  startsAt        DateTime     @default(now())
-  expiresAt       DateTime?
-  isActive        Boolean      @default(true)
+  startsAt  DateTime  @default(now())
+  expiresAt DateTime?
+  isActive  Boolean   @default(true)
 
-  // Restrictions produits/catégories (optionnel)
-  applicableProducts String[]  // IDs de produits spécifiques
+  // Conditions avancées
+  firstTimeCustomer Boolean @default(false) // Réservé aux nouveaux clients
+  minQuantity       Int?    // Quantité minimum d'articles
+  dayOfWeek         String[] // Jours spécifiques [monday, tuesday, ...]
+  combinableWithOthers Boolean @default(false) // Cumulable avec d'autres codes
+
+  // Restrictions produits/catégories
+  applicableProducts    String[] // IDs de produits spécifiques
+  applicableCollections String[] // IDs de collections spécifiques
+  excludedProducts      String[] // Produits exclus
+  requiredProducts      String[] // Produits requis dans le panier
+
+  // Auto-application
+  autoApply         Boolean @default(false) // Appliqué automatiquement
+  autoApplyCondition String? // Conditions JSON pour auto-application
+
+  // Stripe Sync
+  stripeCouponId        String?
+  stripePromotionCodeId String?
 
   // Créé par
-  createdById     String?
-  createdBy       User?        @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  createdById String?
+  createdBy   User?   @relation("CreatedByAdmin", fields: [createdById], references: [id])
 
-  orders          Order[]
+  orders Order[]
+  usages DiscountUsage[]
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tracking usage détaillé
+model DiscountUsage {
+  id             String       @id @default(cuid())
+  discountCodeId String
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id])
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  discountAmount Decimal @db.Decimal(10, 2)
+  usedAt         DateTime @default(now())
+
+  // Métadonnées pour analytics
+  userAgent    String?
+  ipAddress    String?
+  referrer     String?
 }
 
 // ==================== GIFT CARDS ====================
 
 model GiftCard {
-  id              String         @id @default(cuid())
-  code            String         @unique
+  id   String @id @default(cuid())
+  code String @unique
 
-  initialAmount   Decimal        @db.Decimal(10, 2)
-  currentBalance  Decimal        @db.Decimal(10, 2)
+  initialAmount  Decimal @db.Decimal(10, 2)
+  currentBalance Decimal @db.Decimal(10, 2)
 
-  status          GiftCardStatus @default(ACTIVE)
+  status GiftCardStatus @default(ACTIVE)
+
+  // Stripe Sync
+  stripeCouponId        String?
+  stripePromotionCodeId String?
 
   // Acheteur
-  purchaserEmail  String?
-  purchaserName   String?
+  purchaserEmail String?
+  purchaserName  String?
 
   // Destinataire
-  recipientEmail  String?
-  recipientName   String?
-  message         String?        // Message personnalisé
+  recipientEmail String?
+  recipientName  String?
+  message        String? // Message personnalisé
 
   // Validité
-  expiresAt       DateTime?
+  expiresAt DateTime?
 
   // Créé par admin
-  createdById     String?
-  createdBy       User?          @relation("CreatedByAdmin", fields: [createdById], references: [id])
+  createdById String?
+  createdBy   User?   @relation("CreatedByAdmin", fields: [createdById], references: [id])
 
-  orders          Order[]
-  transactions    GiftCardTransaction[]
+  orders       Order[]
+  transactions GiftCardTransaction[]
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model GiftCardTransaction {
-  id          String   @id @default(cuid())
-  giftCardId  String
-  giftCard    GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  giftCardId String
+  giftCard   GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
 
-  amount      Decimal  @db.Decimal(10, 2) // Négatif = utilisation, Positif = rechargement
+  amount       Decimal @db.Decimal(10, 2) // Négatif = utilisation, Positif = rechargement
   balanceAfter Decimal @db.Decimal(10, 2)
-  description String
+  description  String
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 // ==================== SITE CONFIGURATION ====================
@@ -405,114 +560,242 @@ model GiftCardTransaction {
 model SiteConfig {
   id          String   @id @default(cuid())
   key         String   @unique // ex: 'home_hero_title', 'primary_color'
-  value       String   // Le contenu
-  type        String   // 'text', 'image', 'json', 'color', 'boolean'
-  category    String   // 'general', 'homepage', 'colors', 'footer', etc.
-  label       String?  // Label lisible pour l'admin
-  description String?  // Description pour l'admin
+  value       String // Le contenu
+  type        String // 'text', 'image', 'json', 'color', 'boolean'
+  category    String // 'general', 'homepage', 'colors', 'footer', etc.
+  label       String? // Label lisible pour l'admin
+  description String? // Description pour l'admin
   updatedAt   DateTime @updatedAt
 }
 
 // Configuration des thèmes
 model ThemeConfig {
-  id          String   @id @default(cuid())
-  name        String   @unique // 'light', 'dark'
-  isDefault   Boolean  @default(false)
+  id        String  @id @default(cuid())
+  name      String  @unique // 'light', 'dark'
+  isDefault Boolean @default(false)
 
   // Couleurs principales
-  primaryColor       String
-  secondaryColor     String
-  accentColor        String
-  backgroundColor    String
-  textColor          String
-  mutedColor         String
-  borderColor        String
+  primaryColor    String
+  secondaryColor  String
+  accentColor     String
+  backgroundColor String
+  textColor       String
+  mutedColor      String
+  borderColor     String
 
   // Couleurs supplémentaires
-  successColor       String?
-  warningColor       String?
-  errorColor         String?
+  successColor String?
+  warningColor String?
+  errorColor   String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Pages personnalisables
 model PageContent {
-  id          String   @id @default(cuid())
-  slug        String   @unique // 'home', 'about', 'contact'
-  title       String
-  metaTitle   String?
+  id              String  @id @default(cuid())
+  slug            String  @unique // 'home', 'about', 'contact'
+  title           String
+  metaTitle       String?
   metaDescription String?
 
   // Contenu structuré en JSON
-  content     String   @db.Text // JSON avec les sections de la page
+  content String @db.Text // JSON avec les sections de la page
 
-  isPublished Boolean  @default(true)
+  isPublished Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Médias/Images uploadées
 model Media {
-  id          String   @id @default(cuid())
-  filename    String
-  url         String   // URL Vercel Blob
-  mimeType    String
-  size        Int      // Taille en bytes
-  alt         String?
+  id       String  @id @default(cuid())
+  filename String
+  url      String // URL Vercel Blob
+  mimeType String
+  size     Int // Taille en bytes
+  alt      String?
 
   // Catégorisation
-  folder      String?  // 'products', 'banners', 'logos', etc.
+  folder String? // 'products', 'banners', 'logos', etc.
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 // Bannières promotionnelles
 model Banner {
-  id              String    @id @default(cuid())
+  id              String  @id @default(cuid())
   text            String
   link            String?
-  backgroundColor String    @default("#000000")
-  textColor       String    @default("#ffffff")
-  isActive        Boolean   @default(true)
-  position        String    @default("top") // 'top' or 'bottom'
-  order           Int       @default(0)
+  backgroundColor String  @default("#000000")
+  textColor       String  @default("#ffffff")
+  isActive        Boolean @default(true)
+  position        String  @default("top") // 'top' or 'bottom'
+  order           Int     @default(0)
 
   // Planification
-  startDate       DateTime?
-  endDate         DateTime?
+  startDate DateTime?
+  endDate   DateTime?
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== NAVIGATION ====================
 
 model Menu {
-  id        String     @id @default(cuid())
-  handle    String     @unique // ex: 'main-menu', 'footer-menu'
-  title     String
-  items     MenuItem[]
+  id     String     @id @default(cuid())
+  handle String     @unique // ex: 'main-menu', 'footer-menu'
+  title  String
+  items  MenuItem[]
 
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model MenuItem {
-  id        String   @id @default(cuid())
-  menuId    String
-  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  
-  title     String
-  url       String
-  order     Int      @default(0)
-  
+  id     String @id @default(cuid())
+  menuId String
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  title String
+  url   String
+  order Int    @default(0)
+
   // Pour les sous-menus (optionnel pour l'instant)
-  parentId  String?
-  parent    MenuItem? @relation("SubItems", fields: [parentId], references: [id])
-  items     MenuItem[] @relation("SubItems")
+  parentId String?
+  parent   MenuItem?  @relation("SubItems", fields: [parentId], references: [id])
+  items    MenuItem[] @relation("SubItems")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==================== MARKETING ====================
+
+// Panier abandonné
+model AbandonedCart {
+  id       String @id @default(cuid())
+  sessionId String @unique // Session anonyme ou user ID
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // Contenu du panier
+  items String @db.Text // JSON des articles
+
+  // Contact info (pour les guests)
+  email String?
+  phone String?
+
+  // Métadonnées
+  userAgent String?
+  referrer  String?
+  utm       String? @db.Text // UTM parameters en JSON
+
+  // Relances
+  emailsSent    Int      @default(0)
+  lastEmailSent DateTime?
+  recovered     Boolean  @default(false)
+  recoveredAt   DateTime?
+
+  // Valeur du panier
+  totalValue Decimal @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Cross-sell / Up-sell recommendations
+model ProductRecommendation {
+  id String @id @default(cuid())
+
+  productId          String
+  product            Product @relation("MainProduct", fields: [productId], references: [id], onDelete: Cascade)
+
+  recommendedProductId String
+  recommendedProduct   Product @relation("RecommendedProduct", fields: [recommendedProductId], references: [id], onDelete: Cascade)
+
+  type       String // 'cross_sell', 'up_sell', 'related'
+  score      Decimal @db.Decimal(3, 2) // Score de recommandation (0.00 - 1.00)
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  // Analytics
+  views   Int @default(0)
+  clicks  Int @default(0)
+  orders  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, recommendedProductId])
+}
+
+// Customer segments pour marketing
+model CustomerSegment {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+
+  // Critères de segmentation (JSON)
+  criteria String @db.Text
+
+  // Utilisateurs dans ce segment
+  users SegmentUser[]
+
+  // Campagnes
+  campaigns Campaign[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SegmentUser {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  segmentId String
+  segment   CustomerSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now())
+
+  @@unique([userId, segmentId])
+}
+
+// Campagnes marketing
+model Campaign {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  type       String // 'email', 'sms', 'push'
+  status     String @default("draft") // draft, active, paused, completed
+
+  // Ciblage
+  segmentId String?
+  segment   CustomerSegment? @relation(fields: [segmentId], references: [id])
+
+  // Contenu
+  subject  String?
+  content  String @db.Text
+  template String?
+
+  // Planification
+  scheduledAt DateTime?
+  sentAt      DateTime?
+
+  // Stats
+  sent     Int @default(0)
+  opened   Int @default(0)
+  clicked  Int @default(0)
+  converted Int @default(0)
+
+  // Créé par
+  createdById String?
+  createdBy   User?   @relation("CreatedCampaigns", fields: [createdById], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -521,34 +804,34 @@ model MenuItem {
 // ==================== INTEGRATIONS ====================
 
 model Integration {
-  id          String   @id @default(cuid())
-  provider    String   @unique // 'google_analytics', 'facebook_pixel', 'google_ads'
-  name        String
-  isEnabled   Boolean  @default(false)
-  config      String   // JSON string pour stocker les IDs, clés API, etc.
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String  @id @default(cuid())
+  provider  String  @unique // 'google_analytics', 'facebook_pixel', 'google_ads'
+  name      String
+  isEnabled Boolean @default(false)
+  config    String // JSON string pour stocker les IDs, clés API, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== REVIEWS ====================
 
 model Review {
-  id          String   @id @default(cuid())
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  
-  authorName  String   // Nom affiché (peut être différent du user)
-  rating      Int      // 1-5
-  title       String?
-  content     String   @db.Text
-  
-  isVerified  Boolean  @default(false) // Achat vérifié
-  isPublished Boolean  @default(true)  // Modération
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  authorName String // Nom affiché (peut être différent du user)
+  rating     Int // 1-5
+  title      String?
+  content    String  @db.Text
+
+  isVerified  Boolean @default(false) // Achat vérifié
+  isPublished Boolean @default(true) // Modération
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

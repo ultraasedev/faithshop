@@ -24,9 +24,14 @@ export default async function Home() {
     })
 
     // If no featured products, fallback to recent ones
-    productsToShow = featuredProducts.length > 0 
+    const rawProducts = featuredProducts.length > 0 
       ? featuredProducts 
       : await prisma.product.findMany({ take: 3, orderBy: { createdAt: 'desc' } })
+
+    productsToShow = rawProducts.map(p => ({
+      ...p,
+      price: p.price.toNumber(),
+    }))
   } catch (error) {
     console.error('Failed to fetch homepage data:', error)
     // Fallback data could be defined here if needed

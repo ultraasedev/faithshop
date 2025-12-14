@@ -84,15 +84,15 @@ export default function Footer() {
             © {new Date().getFullYear()} Faith Shop. Tous droits réservés.
           </p>
           <div className="flex gap-6">
-            <a href="#" className="text-muted-foreground transition-colors hover:text-primary">
+            <a href="https://instagram.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
               <Instagram className="h-5 w-5" />
               <span className="sr-only">Instagram</span>
             </a>
-            <a href="#" className="text-muted-foreground transition-colors hover:text-primary">
+            <a href="https://facebook.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
               <Facebook className="h-5 w-5" />
               <span className="sr-only">Facebook</span>
             </a>
-            <a href="#" className="text-muted-foreground transition-colors hover:text-primary">
+            <a href="https://twitter.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
               <Twitter className="h-5 w-5" />
               <span className="sr-only">Twitter</span>
             </a>

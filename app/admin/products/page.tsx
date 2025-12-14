@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { SyncStripeButton } from '@/components/admin/SyncStripeButton'
+import { ProductActions } from './ProductActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,9 +72,7 @@ export default async function AdminProductsPage() {
                   <td className="px-6 py-4 text-gray-500">{Number(product.price).toFixed(2)} €</td>
                   <td className="px-6 py-4 text-gray-500">{product.stock}</td>
                   <td className="px-6 py-4 text-right">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    <ProductActions productId={product.id} />
                   </td>
                 </tr>
               ))

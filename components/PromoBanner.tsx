@@ -98,7 +98,7 @@ export default function PromoBanner({ position = 'top' }: { position?: 'top' | '
 
   return (
     <div
-      className="py-2.5 px-4 text-sm font-medium flex items-center justify-center relative"
+      className="py-1.5 md:py-2.5 px-4 text-xs md:text-sm font-medium flex items-center justify-center relative"
       style={{
         backgroundColor: currentBanner.backgroundColor,
         color: currentBanner.textColor,

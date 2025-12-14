@@ -2,18 +2,16 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import { prisma } from '@/lib/prisma'
 
-// Mock Data - À remplacer par votre base de données Prisma plus tard
-const products = [
-  { id: 1, name: 'T-Shirt Signature', price: 45.00, image: '/products/tshirt-white.png', category: 'Vêtements' },
-  { id: 2, name: 'Hoodie Grace', price: 85.00, image: '/products/hoodie-black.png', category: 'Vêtements' },
-  { id: 3, name: 'T-Shirt Olive', price: 45.00, image: '/products/tshirt-beige.png', category: 'Vêtements' },
-  { id: 4, name: 'Casquette Faith', price: 30.00, image: '/products/cap-black.png', category: 'Accessoires' },
-  { id: 5, name: 'Tote Bag Hope', price: 25.00, image: '/products/totebag.png', category: 'Accessoires' },
-  { id: 6, name: 'Sweatshirt Mercy', price: 75.00, image: '/products/sweat-grey.png', category: 'Vêtements' },
-]
+export const dynamic = 'force-dynamic'
 
-export default function ShopPage() {
+export default async function ShopPage() {
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    orderBy: { createdAt: 'desc' }
+  })
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
@@ -32,19 +30,21 @@ export default function ShopPage() {
             {products.map((product) => (
               <Link key={product.id} href={`/products/${product.id}`} className="group block">
                 <div className="relative mb-4 aspect-3/4 overflow-hidden bg-secondary">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
+                  {product.images?.[0] && (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      fill
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  )}
                 </div>
                 <div className="flex flex-col space-y-1">
                   <h3 className="font-serif text-lg group-hover:text-primary transition-colors">
                     {product.name}
                   </h3>
                   <span className="text-sm font-medium text-muted-foreground">
-                    {product.price.toFixed(2)} €
+                    {Number(product.price).toFixed(2)} €
                   </span>
                 </div>
               </Link>

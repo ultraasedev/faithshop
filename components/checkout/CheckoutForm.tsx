@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   PaymentElement,
+  AddressElement,
   useStripe,
   useElements
 } from '@stripe/react-stripe-js'
@@ -76,7 +77,15 @@ export default function CheckoutForm() {
 
   return (
     <form id="payment-form" onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement id="payment-element" options={{ layout: 'tabs' }} />
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium">Adresse de livraison</h3>
+        <AddressElement options={{ mode: 'shipping', allowedCountries: ['FR', 'BE', 'CH', 'LU'] }} />
+      </div>
+      
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium">Paiement</h3>
+        <PaymentElement id="payment-element" options={{ layout: 'tabs' }} />
+      </div>
       
       {message && <div id="payment-message" className="text-red-500 text-sm">{message}</div>}
       

@@ -1,13 +1,48 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
     const { items } = await request.json();
 
-    // Dans une vraie app, on recalculerait le prix depuis la DB pour éviter la fraude
-    // Ici on fait confiance au client pour la démo, mais À CHANGER EN PROD
-    const total = items.reduce((acc: number, item: any) => acc + item.price * item.quantity, 0);
+    // SÉCURITÉ: Recalculer le prix depuis la DB pour éviter la fraude
+    let total = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { id: item.id },
+        select: { id: true, name: true, price: true, stock: true, isActive: true }
+      });
+
+      if (!product || !product.isActive) {
+        return NextResponse.json(
+          { error: `Produit ${item.name} non disponible` },
+          { status: 400 }
+        );
+      }
+
+      if (product.stock < item.quantity) {
+        return NextResponse.json(
+          { error: `Stock insuffisant pour ${product.name}. Stock disponible: ${product.stock}` },
+          { status: 400 }
+        );
+      }
+
+      const itemTotal = Number(product.price) * item.quantity;
+      total += itemTotal;
+
+      validatedItems.push({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        quantity: item.quantity,
+        image: item.image,
+        color: item.color,
+        size: item.size
+      });
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(total * 100), // En centimes
@@ -15,6 +50,9 @@ export async function POST(request: Request) {
       automatic_payment_methods: {
         enabled: true,
       },
+      metadata: {
+        items: JSON.stringify(validatedItems)
+      }
     });
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });

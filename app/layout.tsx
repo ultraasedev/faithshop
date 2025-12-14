@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: "Faith Shop | Mode Chrétienne Premium & Éthique",
   description: "Découvrez Faith Shop, la boutique de vêtements chrétiens haut de gamme. T-shirts, hoodies et accessoires inspirés par la foi. Livraison offerte dès 100€.",
   icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    icon: "/favicon.jpeg",
+    shortcut: "/favicon.jpeg",
+    apple: "/favicon.jpeg",
   },
   openGraph: {
     title: "Faith Shop | Mode Chrétienne Premium",
@@ -37,9 +37,10 @@ import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import SessionProvider from '@/components/SessionProvider'
 
-import { getActiveTheme } from '@/app/actions/admin/settings'
+import { getThemes } from '@/app/actions/admin/settings'
 
 import { getIntegrations } from '@/app/actions/admin/cms'
+import { generateStructuredData } from '@/lib/seo'
 import Script from 'next/script'
 
 // Force le layout à être dynamique pour éviter les problèmes de connexion DB au build
@@ -51,16 +52,19 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  let activeTheme = null
+  let allThemes: any[] = []
   let integrations: any[] = []
+  let structuredData: any = null
 
   try {
-    const [theme, ints] = await Promise.all([
-      getActiveTheme(),
-      getIntegrations()
+    const [themes, ints, seoData] = await Promise.all([
+      getThemes(),
+      getIntegrations(),
+      generateStructuredData()
     ])
-    activeTheme = theme
+    allThemes = themes
     integrations = ints
+    structuredData = seoData
   } catch (error) {
     console.error('Failed to fetch layout data:', error)
   }
@@ -76,6 +80,16 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
+        {/* Données structurées pour IA et SEO */}
+        {structuredData && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(structuredData)
+            }}
+          />
+        )}
+
         {/* Google Analytics */}
         {gaId && (
           <>
@@ -123,7 +137,7 @@ export default async function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background text-foreground">
         <SessionProvider>
-          <ThemeProvider defaultThemeConfig={activeTheme}>
+          <ThemeProvider themes={allThemes}>
             {children}
             <Toaster position="top-center" richColors />
           </ThemeProvider>

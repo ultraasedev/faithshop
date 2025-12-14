@@ -111,7 +111,9 @@ export default function HomeClient({
                   src={slide.image}
                   alt={slide.title}
                   fill
-                  className="object-cover object-center brightness-[0.75]"
+                  quality={100}
+                  unoptimized
+                  className="object-cover object-top brightness-[0.85]"
                   priority={index === 0}
                 />
               )}

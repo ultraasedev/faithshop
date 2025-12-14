@@ -48,7 +48,18 @@ export async function getOrders(params: {
   ])
 
   return {
-    orders,
+    orders: orders.map(order => ({
+      ...order,
+      total: Number(order.total),
+      subtotal: Number(order.subtotal),
+      shippingCost: Number(order.shippingCost),
+      discountAmount: Number(order.discountAmount),
+      taxAmount: Number(order.taxAmount),
+      items: order.items.map(item => ({
+        ...item,
+        price: Number(item.price)
+      }))
+    })),
     pagination: {
       page,
       limit,
@@ -77,9 +88,34 @@ export async function updateOrderStatus(id: string, status: OrderStatus) {
   const order = await prisma.order.update({
     where: { id },
     data: { status },
+    include: {
+      user: true,
+      items: { include: { product: true } },
+      shipping: true
+    }
   })
 
-  // Si la commande est annulée ou remboursée, on pourrait ici déclencher le remboursement Stripe
+  // Envoyer un email de mise à jour si applicable
+  if (['SHIPPED', 'DELIVERED'].includes(status)) {
+    try {
+      const { sendShippingEmail } = await import('@/lib/email')
+      const customerEmail = order.user?.email || order.guestEmail
+      const customerName = order.user?.name || order.guestName || 'Client'
+
+      if (customerEmail && order.shipping?.trackingNumber && status === 'SHIPPED') {
+        await sendShippingEmail(
+          customerEmail,
+          customerName,
+          order.orderNumber,
+          order.shipping.trackingNumber,
+          order.shipping.trackingUrl || '',
+          order.shipping.carrier
+        )
+      }
+    } catch (emailError) {
+      console.error('Erreur envoi email mise à jour:', emailError)
+    }
+  }
 
   revalidatePath('/admin/orders')
   revalidatePath(`/admin/orders/${id}`)
@@ -269,7 +305,7 @@ export async function getOrderStats() {
     pendingOrders,
     processingOrders,
     shippedOrders,
-    totalRevenue: totalRevenue._sum.total || 0,
-    thisMonthRevenue: thisMonthRevenue._sum.total || 0,
+    totalRevenue: Number(totalRevenue._sum.total || 0),
+    thisMonthRevenue: Number(thisMonthRevenue._sum.total || 0),
   }
 }

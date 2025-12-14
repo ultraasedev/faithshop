@@ -45,6 +45,8 @@ export async function getDiscountCodes(params?: {
   }
 }
 
+import { stripe } from '@/lib/stripe'
+
 // Créer un code promo
 export async function createDiscountCode(data: {
   code: string
@@ -69,6 +71,48 @@ export async function createDiscountCode(data: {
     throw new Error('Ce code promo existe déjà')
   }
 
+  // Créer le coupon Stripe
+  let stripeCouponId: string | undefined
+  let stripePromotionCodeId: string | undefined
+
+  try {
+    const couponParams: any = {
+      name: data.description || data.code,
+      currency: 'eur',
+      duration: 'once', // Par défaut, une fois par utilisation
+    }
+
+    if (data.type === 'PERCENTAGE') {
+      couponParams.percent_off = data.value
+    } else if (data.type === 'FIXED_AMOUNT') {
+      couponParams.amount_off = Math.round(data.value * 100)
+    } else {
+      // FREE_SHIPPING n'est pas directement supporté comme coupon simple, 
+      // on le gère souvent côté application ou via un coupon 100% sur shipping (complexe)
+      // Pour l'instant on ne crée pas de coupon Stripe pour free shipping
+    }
+
+    if (data.type !== 'FREE_SHIPPING') {
+      const coupon = await stripe.coupons.create(couponParams)
+      stripeCouponId = coupon.id
+
+      // Créer le code promo associé (le code que l'utilisateur tape)
+      const promotionCode = await stripe.promotionCodes.create({
+        coupon: coupon.id,
+        code: data.code,
+        max_redemptions: data.usageLimit,
+        expires_at: data.expiresAt ? Math.floor(data.expiresAt.getTime() / 1000) : undefined,
+        minimum_amount: data.minPurchase ? Math.round(data.minPurchase * 100) : undefined,
+        currency: 'eur',
+      })
+      stripePromotionCodeId = promotionCode.id
+    }
+  } catch (error) {
+    console.error('Erreur Stripe:', error)
+    // On continue quand même pour le créer en local, mais on log l'erreur
+    // Ou on throw si on veut être strict
+  }
+
   const discountCode = await prisma.discountCode.create({
     data: {
       code: data.code.toUpperCase(),
@@ -83,6 +127,8 @@ export async function createDiscountCode(data: {
       expiresAt: data.expiresAt,
       applicableProducts: data.applicableProducts || [],
       createdById: data.createdById,
+      stripeCouponId,
+      stripePromotionCodeId,
     },
   })
 
@@ -259,6 +305,30 @@ export async function createGiftCard(data: {
     code = generateGiftCardCode()
   }
 
+  // Créer le coupon Stripe pour la carte cadeau
+  let stripeCouponId: string | undefined
+  let stripePromotionCodeId: string | undefined
+
+  try {
+    const coupon = await stripe.coupons.create({
+      name: `Carte Cadeau ${code}`,
+      amount_off: Math.round(data.amount * 100),
+      currency: 'eur',
+      duration: 'once',
+    })
+    stripeCouponId = coupon.id
+
+    const promotionCode = await stripe.promotionCodes.create({
+      coupon: coupon.id,
+      code: code,
+      expires_at: data.expiresAt ? Math.floor(data.expiresAt.getTime() / 1000) : undefined,
+      currency: 'eur',
+    })
+    stripePromotionCodeId = promotionCode.id
+  } catch (error) {
+    console.error('Erreur Stripe Gift Card:', error)
+  }
+
   const giftCard = await prisma.giftCard.create({
     data: {
       code,
@@ -271,6 +341,8 @@ export async function createGiftCard(data: {
       message: data.message,
       expiresAt: data.expiresAt,
       createdById: data.createdById,
+      stripeCouponId,
+      stripePromotionCodeId,
     },
   })
 

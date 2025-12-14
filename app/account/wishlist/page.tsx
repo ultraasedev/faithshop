@@ -82,7 +82,7 @@ export default function WishlistPage() {
       productId: item.product.id,
       name: item.product.name,
       price: Number(item.product.price),
-      image: item.product.images[0] || '/placeholder.jpg',
+      image: item.product.images[0] || '/logo2-nobg.png',
       color: item.product.colors[0] || 'Noir',
       size: item.product.sizes[0] || 'M',
       quantity: 1
@@ -149,7 +149,7 @@ export default function WishlistPage() {
                       <Link href={`/product/${item.product.slug || item.product.id}`}>
                         <div className="relative aspect-[3/4] overflow-hidden">
                           <Image
-                            src={item.product.images[0] || '/placeholder.jpg'}
+                            src={item.product.images[0] || '/logo2-nobg.png'}
                             alt={item.product.name}
                             fill
                             className="object-cover transition-transform group-hover:scale-105"

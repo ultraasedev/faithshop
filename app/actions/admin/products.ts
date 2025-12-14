@@ -121,3 +121,29 @@ export async function updateProduct(id: string, prevState: ProductState, formDat
     return { message: 'Erreur lors de la mise à jour' }
   }
 }
+
+export async function deleteProduct(id: string) {
+  try {
+    const product = await prisma.product.findUnique({ where: { id } })
+    if (!product) return { message: 'Produit introuvable' }
+
+    // Archive in Stripe
+    if (product.stripeProductId) {
+      try {
+        await stripe.products.update(product.stripeProductId, { active: false })
+      } catch (e) {
+        console.error('Erreur archivage Stripe:', e)
+      }
+    }
+
+    // Delete from DB
+    await prisma.product.delete({ where: { id } })
+
+    revalidatePath('/admin/products')
+    revalidatePath('/shop')
+    return { message: 'Produit supprimé' }
+  } catch (error) {
+    console.error('Erreur suppression produit:', error)
+    return { message: 'Erreur lors de la suppression' }
+  }
+}

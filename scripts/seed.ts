@@ -160,8 +160,8 @@ async function main() {
   const defaultConfigs = [
     { key: 'site_name', value: 'FAITH SHOP', type: 'text', category: 'general', label: 'Nom du site' },
     { key: 'site_description', value: 'Boutique de mode premium', type: 'text', category: 'general', label: 'Description du site' },
-    { key: 'site_logo', value: '/logo.png', type: 'image', category: 'general', label: 'Logo' },
-    { key: 'site_favicon', value: '/favicon.ico', type: 'image', category: 'general', label: 'Favicon' },
+    { key: 'site_logo', value: '/logo2.png', type: 'image', category: 'general', label: 'Logo' },
+    { key: 'site_favicon', value: '/favicon.jpeg', type: 'image', category: 'general', label: 'Favicon' },
     { key: 'home_hero_title', value: 'Nouvelle Collection', type: 'text', category: 'homepage', label: 'Titre Hero' },
     { key: 'home_hero_subtitle', value: 'Découvrez notre sélection exclusive', type: 'text', category: 'homepage', label: 'Sous-titre Hero' },
     { key: 'home_hero_image', value: '/hero.jpg', type: 'image', category: 'homepage', label: 'Image Hero' },

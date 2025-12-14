@@ -5,6 +5,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 type Theme = 'light' | 'dark' | 'system'
 
 interface ThemeConfig {
+  name: string
+  isDefault: boolean
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -40,10 +42,10 @@ function hexToRgb(hex: string) {
 
 export function ThemeProvider({ 
   children,
-  defaultThemeConfig 
+  themes = []
 }: { 
   children: React.ReactNode
-  defaultThemeConfig?: ThemeConfig | null
+  themes?: ThemeConfig[]
 }) {
   const [theme, setTheme] = useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
@@ -88,49 +90,52 @@ export function ThemeProvider({
 
   // Apply dynamic colors
   useEffect(() => {
-    if (!defaultThemeConfig) return
-
     const root = document.documentElement
     
-    // We assume the theme config passed is the one to use (active theme)
-    // In a real app, we might want to switch config based on light/dark mode if we stored both
-    // But here we just apply what we have.
+    let activeConfig: ThemeConfig | undefined
+
+    if (themes.length > 0) {
+      activeConfig = themes.find(t => t.name === resolvedTheme) || themes.find(t => t.isDefault)
+    } else {
+      // Fallback defaults if no themes provided
+      if (resolvedTheme === 'dark') {
+        activeConfig = {
+          name: 'dark',
+          isDefault: false,
+          primaryColor: '#ffffff',
+          secondaryColor: '#000000',
+          accentColor: '#a3a3a3',
+          backgroundColor: '#0a0a0a',
+          textColor: '#ffffff',
+          mutedColor: '#a3a3a3',
+          borderColor: '#262626'
+        }
+      } else {
+        activeConfig = {
+          name: 'light',
+          isDefault: true,
+          primaryColor: '#000000',
+          secondaryColor: '#ffffff',
+          accentColor: '#666666',
+          backgroundColor: '#ffffff',
+          textColor: '#000000',
+          mutedColor: '#6b7280',
+          borderColor: '#e5e7eb'
+        }
+      }
+    }
     
-    // Note: Tailwind uses HSL or simple values. globals.css uses HSL usually.
-    // If globals.css uses HSL, we need to convert. 
-    // If it uses hex, we can just set it.
-    // Let's assume we overwrite the CSS variables directly.
-    
-    // However, Shadcn UI uses HSL values in variables like --background: 0 0% 100%;
-    // So we need to convert Hex to HSL or RGB if we want to be compatible.
-    // For now, let's try to set the variables directly if they are used as `color: hsl(var(--foreground))`
-    
-    // Actually, checking globals.css is crucial. 
-    // If globals.css has:
-    // --background: 0 0% 100%;
-    // And usage is: background-color: hsl(var(--background));
-    // Then we need to set --background to "0 0% 100%" (HSL).
-    
-    // Since converting Hex to HSL is a bit complex to do perfectly in client without a lib,
-    // and we want to be safe, we can try to use a library or just simple conversion.
-    
-    // For this demo, let's just inject a style tag that overrides the CSS variables with HEX values
-    // BUT Shadcn expects HSL numbers without 'hsl()'.
-    // So we MUST convert.
-    
-    // Let's use a simple Hex to HSL converter.
-    
-    if (defaultThemeConfig) {
-      root.style.setProperty('--background', defaultThemeConfig.backgroundColor)
-      root.style.setProperty('--foreground', defaultThemeConfig.textColor)
-      root.style.setProperty('--primary', defaultThemeConfig.primaryColor)
-      root.style.setProperty('--primary-foreground', defaultThemeConfig.secondaryColor)
-      root.style.setProperty('--muted', defaultThemeConfig.mutedColor)
-      root.style.setProperty('--muted-foreground', defaultThemeConfig.accentColor)
-      root.style.setProperty('--border', defaultThemeConfig.borderColor)
+    if (activeConfig) {
+      root.style.setProperty('--background', activeConfig.backgroundColor)
+      root.style.setProperty('--foreground', activeConfig.textColor)
+      root.style.setProperty('--primary', activeConfig.primaryColor)
+      root.style.setProperty('--primary-foreground', activeConfig.secondaryColor)
+      root.style.setProperty('--muted', activeConfig.mutedColor)
+      root.style.setProperty('--muted-foreground', activeConfig.accentColor)
+      root.style.setProperty('--border', activeConfig.borderColor)
     }
 
-  }, [defaultThemeConfig])
+  }, [themes, resolvedTheme])
 
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme)

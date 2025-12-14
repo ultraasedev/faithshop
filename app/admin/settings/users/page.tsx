@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -12,18 +12,21 @@ import {
   Edit,
   Trash2,
   Mail,
-  Key
+  Key,
+  Loader2
 } from 'lucide-react'
+import { getAdmins, createAdminUser, updateUser, deleteUser } from '@/app/actions/admin/users'
+import { toast } from 'sonner'
 
 type Role = 'USER' | 'ADMIN' | 'SUPER_ADMIN'
 
 interface AdminUser {
   id: string
-  name: string
+  name: string | null
   email: string
   role: Role
   image: string | null
-  createdAt: string
+  createdAt: Date
   permissions: {
     canManageProducts: boolean
     canManageOrders: boolean
@@ -52,58 +55,9 @@ const permissionLabels: Record<string, string> = {
 export default function AdminUsersPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
-
-  // Simulation de données
-  const adminUsers: AdminUser[] = [
-    {
-      id: '1',
-      name: 'Super Admin',
-      email: 'superadmin@faith-shop.com',
-      role: 'SUPER_ADMIN',
-      image: null,
-      createdAt: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
-      permissions: {
-        canManageProducts: true,
-        canManageOrders: true,
-        canManageUsers: true,
-        canManageSettings: true,
-        canManageDiscounts: true,
-        canManageShipping: true,
-      },
-    },
-    {
-      id: '2',
-      name: 'Marie Gestionnaire',
-      email: 'marie@faith-shop.com',
-      role: 'ADMIN',
-      image: null,
-      createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      permissions: {
-        canManageProducts: true,
-        canManageOrders: true,
-        canManageUsers: false,
-        canManageSettings: false,
-        canManageDiscounts: true,
-        canManageShipping: true,
-      },
-    },
-    {
-      id: '3',
-      name: 'Pierre Stock',
-      email: 'pierre@faith-shop.com',
-      role: 'ADMIN',
-      image: null,
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      permissions: {
-        canManageProducts: true,
-        canManageOrders: false,
-        canManageUsers: false,
-        canManageSettings: false,
-        canManageDiscounts: false,
-        canManageShipping: true,
-      },
-    },
-  ]
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -120,11 +74,45 @@ export default function AdminUsersPage() {
     },
   })
 
+  useEffect(() => {
+    loadAdmins()
+  }, [])
+
+  async function loadAdmins() {
+    setLoading(true)
+    try {
+      const users = await getAdmins()
+      // Map Prisma user to AdminUser interface (flatten permissions)
+      const mappedUsers = users.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        image: u.image,
+        createdAt: u.createdAt, // Keep as Date object
+        permissions: {
+          canManageProducts: u.canManageProducts,
+          canManageOrders: u.canManageOrders,
+          canManageUsers: u.canManageUsers,
+          canManageSettings: u.canManageSettings,
+          canManageDiscounts: u.canManageDiscounts,
+          canManageShipping: u.canManageShipping,
+        }
+      }))
+      setAdminUsers(mappedUsers as unknown as AdminUser[])
+    } catch (error) {
+      console.error('Failed to load admins', error)
+      toast.error('Erreur lors du chargement des administrateurs')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleOpenModal = (user?: AdminUser) => {
     if (user) {
       setEditingUser(user)
       setFormData({
-        name: user.name,
+        name: user.name || '',
         email: user.email,
         password: '',
         role: user.role,
@@ -158,6 +146,61 @@ export default function AdminUsersPage() {
         [key]: value,
       },
     }))
+  }
+
+  const handleSubmit = async () => {
+    setSaving(true)
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, {
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          ...formData.permissions
+        })
+        toast.success('Administrateur mis à jour')
+      } else {
+        if (!formData.password) {
+          toast.error('Le mot de passe est requis')
+          setSaving(false)
+          return
+        }
+        await createAdminUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+          permissions: formData.permissions
+        })
+        toast.success('Administrateur créé')
+      }
+      setShowModal(false)
+      await loadAdmins()
+    } catch (error: any) {
+      console.error('Failed to save admin', error)
+      toast.error(error.message || 'Une erreur est survenue')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cet administrateur ?')) return
+    try {
+      await deleteUser(id)
+      toast.success('Administrateur supprimé')
+      await loadAdmins()
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la suppression')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
   }
 
   return (
@@ -227,34 +270,38 @@ export default function AdminUsersPage() {
               return (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center font-bold text-lg">
-                      {user.name.charAt(0)}
+                    <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center font-bold text-lg text-primary">
+                      {(user.name || user.email).charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{user.name}</p>
+                        <p className="font-medium">{user.name || 'Sans nom'}</p>
                         <Badge className={config.color}>{config.label}</Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex-1 mx-8">
+                  <div className="flex-1 mx-8 hidden md:block">
                     <p className="text-xs text-muted-foreground mb-1">Permissions</p>
                     <div className="flex gap-1 flex-wrap">
-                      {activePermissions.map((perm) => (
-                        <Badge key={perm} variant="outline" className="text-xs">
-                          {perm}
-                        </Badge>
-                      ))}
+                      {activePermissions.length > 0 ? (
+                        activePermissions.map((perm) => (
+                          <Badge key={perm} variant="outline" className="text-xs">
+                            {perm}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground italic">Aucune permission</span>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground hidden sm:block">
                       Créé le {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                     </p>
                     <Button
@@ -269,7 +316,8 @@ export default function AdminUsersPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-red-500"
+                        className="h-8 w-8 text-red-500 hover:text-red-700"
+                        onClick={() => handleDelete(user.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -284,8 +332,8 @@ export default function AdminUsersPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-lg mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <CardTitle>
                 {editingUser ? 'Modifier l\'administrateur' : 'Nouvel administrateur'}
@@ -332,7 +380,7 @@ export default function AdminUsersPage() {
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as Role })}
-                  className="w-full mt-1 p-2 border rounded-md"
+                  className="w-full mt-1 p-2 border rounded-md bg-background"
                   disabled={editingUser?.role === 'SUPER_ADMIN'}
                 >
                   <option value="ADMIN">Administrateur</option>
@@ -344,12 +392,12 @@ export default function AdminUsersPage() {
                 <label className="text-sm font-medium mb-2 block">Permissions</label>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(permissionLabels).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <label key={key} className="flex items-center gap-2 cursor-pointer p-2 border rounded hover:bg-muted/50">
                       <input
                         type="checkbox"
                         checked={formData.permissions[key as keyof typeof formData.permissions]}
                         onChange={(e) => handlePermissionChange(key, e.target.checked)}
-                        className="w-4 h-4"
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
                         disabled={formData.role === 'SUPER_ADMIN'}
                       />
                       <span className="text-sm">{label}</span>
@@ -367,7 +415,8 @@ export default function AdminUsersPage() {
                 <Button variant="outline" onClick={() => setShowModal(false)}>
                   Annuler
                 </Button>
-                <Button onClick={() => setShowModal(false)}>
+                <Button onClick={handleSubmit} disabled={saving}>
+                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {editingUser ? 'Enregistrer' : 'Créer'}
                 </Button>
               </div>

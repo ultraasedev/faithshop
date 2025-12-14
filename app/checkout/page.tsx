@@ -6,7 +6,8 @@ import { Elements } from '@stripe/react-stripe-js'
 import CheckoutForm from '@/components/checkout/CheckoutForm'
 import { useCart } from '@/lib/store/cart'
 import Link from 'next/link'
-import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag } from 'lucide-react'
+import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -38,7 +39,26 @@ export default function CheckoutPage() {
     theme: 'stripe' as const,
     variables: {
       colorPrimary: '#000000',
+      fontFamily: 'system-ui, sans-serif',
+      borderRadius: '0.5rem',
     },
+    rules: {
+      '.Tab': {
+        border: '1px solid #E0E6EB',
+        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
+      },
+      '.Tab:hover': {
+        color: 'var(--colorText)',
+      },
+      '.Tab--selected': {
+        borderColor: '#000000',
+        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02), 0 0 0 2px var(--colorPrimary)',
+      },
+      '.Input': {
+        border: '1px solid #E0E6EB',
+        boxShadow: '0px 1px 1px rgba(0, 0, 0, 0.03), 0px 3px 6px rgba(18, 42, 66, 0.02)',
+      },
+    }
   }
 
   const options = {
@@ -51,138 +71,149 @@ export default function CheckoutPage() {
 
   const isDevMode = process.env.NODE_ENV === 'development'
 
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header simplifié pour le checkout */}
-      <header className="fixed top-0 z-50 w-full bg-white border-b border-gray-200 py-4">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <Link href="/shop" className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors">
-              <ArrowLeft className="h-4 w-4" />
-              Continuer mes achats
-            </Link>
-            <Link href="/" className="flex items-center">
-              <img src="/logo.png" alt="Faith Shop" className="h-12 w-auto" />
-            </Link>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <ShoppingBag className="h-4 w-4" />
-              <span>{mounted ? items.length : 0} article(s)</span>
-            </div>
+      <header className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Link href="/shop" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Continuer mes achats</span>
+            <span className="sm:hidden">Retour</span>
+          </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-serif text-xl font-bold tracking-tight text-foreground">Faith-Shop</span>
+            <Lock className="h-3 w-3 text-green-600" />
+          </Link>
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <ShoppingBag className="h-4 w-4" />
+            <span>{items.length} <span className="hidden sm:inline">article(s)</span></span>
           </div>
         </div>
       </header>
-      <main className="pt-32 pb-28 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="font-serif text-3xl mb-10 text-center">Paiement Sécurisé</h1>
 
-        {/* Test Card Info for Development */}
-        {isDevMode && (
-          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-2xl mx-auto">
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
-              <div>
-                <h3 className="font-semibold text-yellow-800 mb-2">Mode Test Stripe</h3>
-                <p className="text-sm text-yellow-700 mb-3">Utilisez ces cartes de test pour simuler des paiements :</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 bg-white p-2 rounded border">
-                    <CreditCard className="h-4 w-4 text-gray-500" />
-                    <code className="font-mono text-green-700">4242 4242 4242 4242</code>
-                    <span className="text-gray-500">- Paiement réussi</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-2 rounded border">
-                    <CreditCard className="h-4 w-4 text-gray-500" />
-                    <code className="font-mono text-red-700">4000 0000 0000 0002</code>
-                    <span className="text-gray-500">- Carte refusée</span>
-                  </div>
-                  <div className="flex items-center gap-2 bg-white p-2 rounded border">
-                    <CreditCard className="h-4 w-4 text-gray-500" />
-                    <code className="font-mono text-blue-700">4000 0025 0000 3155</code>
-                    <span className="text-gray-500">- 3D Secure requis</span>
+      <main className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {items.length === 0 ? (
+          <div className="text-center py-20 max-w-md mx-auto">
+            <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/50 mb-6" />
+            <h1 className="text-2xl font-bold mb-4">Votre panier est vide</h1>
+            <p className="text-muted-foreground mb-8">Ajoutez des articles à votre panier pour procéder au paiement.</p>
+            <Button asChild>
+              <Link href="/shop">Découvrir nos produits</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            {/* Colonne de gauche : Formulaire */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold">Paiement</h2>
+                  <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full font-medium">
+                    <ShieldCheck className="h-3 w-3" />
+                    100% Sécurisé
                   </div>
                 </div>
-                <p className="text-xs text-yellow-600 mt-3">
-                  Date exp: n'importe quelle date future | CVC: 3 chiffres | Code postal: n'importe lequel
-                </p>
+
+                {/* Test Card Info for Development */}
+                {isDevMode && (
+                  <div className="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+                      <div className="text-sm">
+                        <h3 className="font-semibold text-blue-900 mb-1">Mode Test Stripe</h3>
+                        <p className="text-blue-700 mb-2">Carte de test : <code className="font-mono bg-white px-1 py-0.5 rounded border border-blue-200">4242 4242 4242 4242</code></p>
+                        <p className="text-blue-600 text-xs">Exp: Future | CVC: 123 | ZIP: 75001</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {clientSecret ? (
+                  <Elements options={options} stripe={stripePromise}>
+                    <CheckoutForm />
+                  </Elements>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                    <p className="text-sm">Chargement du module de paiement...</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-6 text-muted-foreground grayscale opacity-70">
+                {/* Logos de paiement */}
+                <div className="h-8 w-12 bg-gray-200 rounded flex items-center justify-center text-[10px] font-bold">VISA</div>
+                <div className="h-8 w-12 bg-gray-200 rounded flex items-center justify-center text-[10px] font-bold">MC</div>
+                <div className="h-8 w-12 bg-gray-200 rounded flex items-center justify-center text-[10px] font-bold">AMEX</div>
               </div>
             </div>
-          </div>
-        )}
 
-        <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Récapitulatif Panier */}
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 order-2 lg:order-1">
-            <h2 className="font-bold text-lg mb-6 uppercase tracking-widest">Votre Commande</h2>
+            {/* Colonne de droite : Récapitulatif */}
+            <div className="lg:col-span-5 lg:sticky lg:top-24">
+              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+                <h2 className="text-lg font-bold mb-6">Récapitulatif de la commande</h2>
 
-            {!mounted ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : items.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Votre panier est vide</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-6 mb-6">
+                <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <div className="relative h-16 w-12 bg-gray-100">
-                          <img src={item.image} alt={item.name} className="object-cover w-full h-full" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{item.color} / {item.size} x {item.quantity}</p>
-                        </div>
+                    <div key={item.id} className="flex gap-4 py-2">
+                      <div className="relative h-20 w-16 bg-gray-100 rounded-md overflow-hidden shrink-0">
+                        <img src={item.image} alt={item.name} className="object-cover w-full h-full" />
+                        <span className="absolute top-0 right-0 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-bl-md">
+                          x{item.quantity}
+                        </span>
                       </div>
-                      <span className="font-medium">{(item.price * item.quantity).toFixed(2)} €</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{item.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{item.color} / {item.size}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-medium text-sm">{(item.price * item.quantity).toFixed(2)} €</span>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-gray-100 pt-6 space-y-2">
+
+                <div className="border-t border-gray-100 pt-6 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Sous-total</span>
                     <span>{totalPrice.toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Livraison</span>
-                    <span>Calculé à l'étape suivante</span>
+                    <span className="text-green-600 font-medium">Gratuite</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold pt-4">
-                    <span>Total</span>
-                    <span>{totalPrice.toFixed(2)} €</span>
+                  <div className="flex justify-between items-end pt-4 border-t border-gray-100 mt-4">
+                    <span className="font-bold text-lg">Total</span>
+                    <div className="text-right">
+                      <span className="font-bold text-2xl">{totalPrice.toFixed(2)} €</span>
+                      <p className="text-xs text-muted-foreground mt-1">TVA incluse</p>
+                    </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Formulaire Stripe */}
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 order-1 lg:order-2">
-            {!mounted || items.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>Ajoutez des articles à votre panier pour continuer</p>
               </div>
-            ) : clientSecret ? (
-              <Elements options={options} stripe={stripePromise}>
-                <CheckoutForm />
-              </Elements>
-            ) : (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              
+              <div className="mt-6 bg-secondary/30 p-4 rounded-xl border border-border text-sm text-muted-foreground">
+                <p className="flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-green-600" />
+                  <span>
+                    <strong>Garantie satisfait ou remboursé.</strong> Vous disposez de 30 jours pour changer d'avis.
+                  </span>
+                </p>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
-
-      {/* Footer fixe en bas */}
-      <footer className="fixed bottom-0 left-0 right-0 border-t border-gray-200 py-4 bg-white z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} Faith Shop. Paiement sécurisé par Stripe.
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }
+

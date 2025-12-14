@@ -38,6 +38,7 @@ interface DiscountCode {
   startsAt: Date
   expiresAt: Date | null
   isActive: boolean
+  stripeCouponId?: string | null
 }
 
 const typeConfig: Record<DiscountType, { label: string; icon: React.ElementType }> = {
@@ -280,6 +281,11 @@ export default function DiscountsPage() {
                                 <Copy className="h-3 w-3" />
                               )}
                             </Button>
+                            {discount.stripeCouponId && (
+                              <Badge variant="secondary" className="text-[10px] h-5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 border-indigo-200">
+                                Stripe
+                              </Badge>
+                            )}
                           </div>
                           {discount.description && (
                             <p className="text-xs text-muted-foreground mt-1">{discount.description}</p>

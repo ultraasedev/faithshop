@@ -36,43 +36,64 @@ const settingsCategories = [
     icon: FileText
   },
   {
+    title: 'Textes & Contenus',
+    description: 'Modifiez tous les textes du site vitrine',
+    href: '/admin/settings/content',
+    icon: FileText
+  },
+  {
     title: 'Navigation',
     description: 'Configurez les menus de navigation',
     href: '/admin/settings/navigation',
     icon: Globe
   },
   {
+    title: 'Réseaux Sociaux',
+    description: 'Gérez les liens vers vos réseaux sociaux',
+    href: '/admin/settings/social',
+    icon: Globe
+  },
+  {
+    title: 'SEO & IA',
+    description: 'Optimisation pour moteurs de recherche et IA',
+    href: '/admin/settings/seo',
+    icon: Database
+  },
+  {
     title: 'Intégrations',
     description: 'Google Analytics, Facebook Pixel, etc.',
     href: '/admin/settings/integrations',
     icon: Database
+  },
+  {
+    title: 'Emails',
+    description: 'Modèles d\'emails et notifications',
+    href: '/admin/settings/emails',
+    icon: Mail
+  },
+  {
+    title: 'Langues & i18n',
+    description: 'Gestion multilingue et traductions',
+    href: '/admin/settings/languages',
+    icon: Globe
+  },
+  {
+    title: 'Paiements',
+    description: 'Configuration Stripe et méthodes de paiement',
+    href: '/admin/settings/payments',
+    icon: CreditCard
   }
 ]
 
 const comingSoonSettings = [
   {
-    title: 'Emails',
-    description: 'Modèles d\'emails et notifications',
-    icon: Mail
-  },
-  {
-    title: 'Paiements',
-    description: 'Configuration Stripe et PayPal',
-    icon: CreditCard
-  },
-  {
-    title: 'Livraison',
-    description: 'Zones et tarifs de livraison',
-    icon: Truck
-  },
-  {
-    title: 'Notifications',
-    description: 'Alertes et rappels',
+    title: 'Notifications Push',
+    description: 'Notifications temps réel pour l\'admin',
     icon: Bell
   },
   {
-    title: 'Sécurité',
-    description: 'Authentification et protection',
+    title: 'Authentification 2FA',
+    description: 'Sécurité renforcée avec double authentification',
     icon: Shield
   }
 ]

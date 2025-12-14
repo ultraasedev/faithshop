@@ -34,35 +34,39 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-8 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Tableau de bord</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             Vue d'ensemble de votre boutique et de vos performances.
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button asChild>
-            <Link href="/admin/products/new">Ajouter un produit</Link>
+          <Button asChild className="w-full sm:w-auto">
+            <Link href="/admin/products/new">
+              <Package className="mr-2 h-4 w-4" />
+              Ajouter un produit
+            </Link>
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Number(stats.revenue).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1 flex items-center">
+              <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
               +20.1% par rapport au mois dernier
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Commandes</CardTitle>
             <ShoppingBag className="h-4 w-4 text-muted-foreground" />
@@ -74,7 +78,7 @@ export default function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Clients</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -86,7 +90,7 @@ export default function AdminDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Produits</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
@@ -101,7 +105,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+        <Card className="col-span-4 shadow-sm">
           <CardHeader>
             <CardTitle>Aperçu des Ventes</CardTitle>
             <CardDescription>
@@ -114,33 +118,39 @@ export default function AdminDashboard() {
                 <AreaChart data={stats.chartData}>
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#000000" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#000000" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <XAxis 
                     dataKey="name" 
-                    stroke="#888888" 
+                    stroke="hsl(var(--muted-foreground))" 
                     fontSize={12} 
                     tickLine={false} 
                     axisLine={false} 
                   />
                   <YAxis 
-                    stroke="#888888" 
+                    stroke="hsl(var(--muted-foreground))" 
                     fontSize={12} 
                     tickLine={false} 
                     axisLine={false} 
                     tickFormatter={(value) => `${value}€`} 
                   />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <Tooltip 
-                    cursor={{ stroke: '#000', strokeWidth: 1 }}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    cursor={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1 }}
+                    contentStyle={{ 
+                      borderRadius: '8px', 
+                      border: '1px solid hsl(var(--border))', 
+                      backgroundColor: 'hsl(var(--popover))',
+                      color: 'hsl(var(--popover-foreground))',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)' 
+                    }}
                   />
                   <Area 
                     type="monotone" 
                     dataKey="total" 
-                    stroke="#000000" 
+                    stroke="hsl(var(--primary))" 
                     strokeWidth={2}
                     fillOpacity={1} 
                     fill="url(#colorTotal)" 
@@ -151,7 +161,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         
-        <Card className="col-span-3">
+        <Card className="col-span-3 shadow-sm">
           <CardHeader>
             <CardTitle>Ventes Récentes</CardTitle>
             <CardDescription>
@@ -161,19 +171,26 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-8">
               {stats.recentOrders.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">Aucune commande récente.</p>
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <ShoppingBag className="h-12 w-12 text-muted-foreground/20 mb-3" />
+                  <p className="text-sm text-muted-foreground">Aucune commande récente.</p>
+                </div>
               ) : (
                 stats.recentOrders.map((order: any) => (
-                  <div key={order.id} className="flex items-center">
-                    <Avatar className="h-9 w-9">
+                  <div key={order.id} className="flex items-center group">
+                    <Avatar className="h-9 w-9 border border-border">
                       <AvatarImage src={order.user?.image} alt={order.user?.name || 'Guest'} />
-                      <AvatarFallback>{(order.user?.name || order.guestName || 'G').charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="bg-secondary text-secondary-foreground">
+                        {(order.user?.name || order.guestName || 'G').charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="ml-4 space-y-1">
-                      <p className="text-sm font-medium leading-none">{order.user?.name || order.guestName || 'Invité'}</p>
+                      <p className="text-sm font-medium leading-none group-hover:text-primary transition-colors">
+                        {order.user?.name || order.guestName || 'Invité'}
+                      </p>
                       <p className="text-xs text-muted-foreground">{order.user?.email || order.guestEmail}</p>
                     </div>
-                    <div className="ml-auto font-medium">+{Number(order.total).toFixed(2)}€</div>
+                    <div className="ml-auto font-medium tabular-nums">+{Number(order.total).toFixed(2)}€</div>
                   </div>
                 ))
               )}

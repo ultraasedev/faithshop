@@ -47,13 +47,10 @@ export default function AboutPage() {
                 Chaque vêtement est conçu comme une toile vierge sur laquelle s&apos;expriment la foi, l&apos;espoir et l&apos;amour. Nous ne suivons pas les tendances éphémères, nous construisons un style durable.
               </p>
             </div>
-            <div className="relative aspect-[4/5] overflow-hidden rounded-lg">
-              <Image
-                src="/logo.png"
-                alt="Faith Shop Logo"
-                fill
-                className="object-contain p-8 bg-gray-50"
-              />
+            <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center">
+              <span className="font-serif text-5xl md:text-6xl font-bold tracking-tighter text-gray-900">
+                Faith-Shop
+              </span>
             </div>
           </div>
         </div>

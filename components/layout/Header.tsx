@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Menu, Search, ShoppingBag, User, X, Trash2, Plus, Minus } from 'lucide-react'
 import { useCart } from '@/lib/store/cart'
+import { calculateShippingForOrder } from '@/lib/shipping'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import {
@@ -40,6 +41,11 @@ export default function Header() {
   const items = useCart((state) => state.items)
   const totalItems = useCart((state) => state.getTotalItems())
   const totalPrice = useCart((state) => state.getTotalPrice())
+
+  // Calcul des frais de livraison en temps réel
+  const shippingInfo = useMemo(() => {
+    return calculateShippingForOrder(totalPrice)
+  }, [totalPrice])
   const updateQuantity = useCart((state) => state.updateQuantity)
   const removeItem = useCart((state) => state.removeItem)
 
@@ -111,13 +117,13 @@ export default function Header() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[300px] sm:w-[400px]">
                   <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
-                  <nav className="flex flex-col gap-4 mt-8">
-                    <Link href="/" className="text-lg font-medium hover:text-primary" onClick={() => setMobileMenuOpen(false)}>Accueil</Link>
+                  <nav className="flex flex-col gap-6 mt-12 px-6">
+                    <Link href="/" className="text-2xl font-serif font-medium hover:text-primary transition-colors" onClick={() => setMobileMenuOpen(false)}>Accueil</Link>
                     {menuItems.map((item) => (
                       <Link 
                         key={item.href} 
                         href={item.href} 
-                        className="text-lg font-medium hover:text-primary" 
+                        className="text-2xl font-serif font-medium hover:text-primary transition-colors" 
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         {item.name}
@@ -143,13 +149,9 @@ export default function Header() {
             {/* Center: Logo */}
             <div className="flex flex-1 items-center justify-center">
               <Link href="/" className="flex items-center group">
-                <div className="relative h-16 w-40 md:h-20 md:w-48">
-                  <img
-                    src="/logo.png"
-                    alt="Faith Shop Logo"
-                    className="h-full w-full object-contain object-center transition-opacity group-hover:opacity-80 dark:invert"
-                  />
-                </div>
+                <span className="font-serif text-2xl md:text-3xl font-bold tracking-tighter transition-colors group-hover:text-primary whitespace-nowrap">
+                  Faith-Shop
+                </span>
               </Link>
             </div>
 
@@ -272,13 +274,20 @@ export default function Header() {
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Livraison</span>
-                          <span className="text-muted-foreground text-xs italic">Calculé à l'étape suivante</span>
+                          <div className="text-right">
+                            {shippingInfo.price === 0 ? (
+                              <span className="text-green-600 font-medium text-xs">✓ OFFERTE</span>
+                            ) : (
+                              <span className="font-medium">{shippingInfo.price.toFixed(2)} €</span>
+                            )}
+                            <div className="text-xs text-muted-foreground">{shippingInfo.estimatedDays}</div>
+                          </div>
                         </div>
                       </div>
                       <div className="pt-4 border-t border-border/50">
                         <div className="flex justify-between text-base font-bold mb-6">
                           <span>Total</span>
-                          <span>{totalPrice.toFixed(2)} €</span>
+                          <span>{(totalPrice + shippingInfo.price).toFixed(2)} €</span>
                         </div>
                         <Button className="w-full h-14 rounded-none text-sm font-bold uppercase tracking-[0.2em] shadow-lg hover:shadow-xl transition-all" asChild>
                           <Link href="/checkout">Paiement sécurisé</Link>
