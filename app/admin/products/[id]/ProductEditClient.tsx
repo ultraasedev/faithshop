@@ -14,13 +14,7 @@ import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
 import { Prisma } from '@prisma/client'
 // import MediaGallery from '@/components/admin/MediaGallery'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import CollectionSelect from '@/components/admin/CollectionSelect'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,34 +53,58 @@ interface Props {
 
 export default function ProductEditClient({ product, categories }: Props) {
   console.log('=== DEBUG: ProductEditClient render start ===')
-  console.log('=== DEBUG: Product data ===', product)
+  console.log('=== DEBUG: Product data ===', JSON.stringify(product, null, 2))
   console.log('=== DEBUG: Categories data ===', categories)
 
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [collections, setCollections] = useState(categories)
 
   let formDataState
   try {
-    console.log('=== DEBUG: About to convert price ===', product.price)
-    const priceNumber = product.price.toNumber()
+    console.log('=== DEBUG: About to convert price ===', product.price, typeof product.price)
+
+    // Conversion plus robuste du prix
+    let priceNumber = 0
+    if (product.price) {
+      if (typeof product.price === 'object' && 'toNumber' in product.price) {
+        priceNumber = product.price.toNumber()
+      } else if (typeof product.price === 'number') {
+        priceNumber = product.price
+      } else if (typeof product.price === 'string') {
+        priceNumber = parseFloat(product.price) || 0
+      }
+    }
     console.log('=== DEBUG: Price converted to ===', priceNumber)
 
+    // Récupération plus robuste de la collection
+    let categoryId = ''
+    if (product.collections && product.collections.length > 0) {
+      const firstCollection = product.collections[0]
+      if (firstCollection && firstCollection.collection) {
+        categoryId = firstCollection.collection.id
+      } else if (firstCollection && firstCollection.collectionId) {
+        categoryId = firstCollection.collectionId
+      }
+    }
+    console.log('=== DEBUG: Category ID ===', categoryId)
+
     formDataState = {
-      name: product.name,
+      name: product.name || '',
       description: product.description || '',
       price: priceNumber,
-      stock: product.stock,
-      images: product.images || [],
-      sizes: product.sizes || [],
-      colors: product.colors || [],
-      isActive: product.isActive,
-      categoryId: product.collections[0]?.collection?.id || ''
+      stock: product.stock || 0,
+      images: Array.isArray(product.images) ? product.images : [],
+      sizes: Array.isArray(product.sizes) ? product.sizes : [],
+      colors: Array.isArray(product.colors) ? product.colors : [],
+      isActive: product.isActive ?? true,
+      categoryId: categoryId
     }
     console.log('=== DEBUG: Form data created ===', formDataState)
   } catch (error) {
     console.error('=== DEBUG: Error creating form data ===', error)
     formDataState = {
-      name: 'Error',
+      name: product?.name || 'Erreur de chargement',
       description: '',
       price: 0,
       stock: 0,
@@ -237,18 +255,14 @@ export default function ProductEditClient({ product, categories }: Props) {
 
             <div>
               <Label htmlFor="category">Collection</Label>
-              <Select value={formData.categoryId} onValueChange={(value) => setFormData({ ...formData, categoryId: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une collection" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CollectionSelect
+                value={formData.categoryId}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
+                collections={collections}
+                onCollectionCreated={(newCollection) => {
+                  setCollections([...collections, newCollection])
+                }}
+              />
             </div>
 
             <div className="flex items-center space-x-2">
