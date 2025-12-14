@@ -217,15 +217,16 @@ export default function PagesPage() {
   async function loadPages() {
     setLoading(true)
     try {
-      // @ts-ignore - Types mismatch between Prisma return and PageContentData
       const data = await getPages()
-      setPages(data as unknown as PageContentData[])
+      setPages(data)
       if (data.length > 0 && !selectedPageSlug) {
         setSelectedPageSlug(data[0].slug)
       }
     } catch (error) {
       console.error('Failed to load pages', error)
       toast.error('Erreur lors du chargement des pages')
+      // Set empty array on error to avoid infinite loading
+      setPages([])
     } finally {
       setLoading(false)
     }

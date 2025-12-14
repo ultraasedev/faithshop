@@ -53,7 +53,7 @@ export function ProductActions({ productId }: { productId: string }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="outline" size="icon" className="h-8 w-8 border-border bg-background hover:bg-muted">
             <MoreHorizontal className="h-4 w-4" />
             <span className="sr-only">Ouvrir le menu</span>
           </Button>
