@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { SyncStripeButton } from '@/components/admin/SyncStripeButton'
+import StripeSyncButton from '@/components/admin/StripeSyncButton'
 import { ProductActions } from './ProductActions'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,7 @@ export default async function AdminProductsPage() {
           <p className="text-muted-foreground mt-2">Gérez votre catalogue, vos stocks et vos prix.</p>
         </div>
         <div className="flex items-center gap-2">
+          <StripeSyncButton />
           <SyncStripeButton />
           <Button asChild>
             <Link href="/admin/products/new">
