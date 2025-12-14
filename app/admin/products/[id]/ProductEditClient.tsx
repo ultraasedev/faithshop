@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -10,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Save, RefreshCw, Trash2, Video } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
 import { Prisma } from '@prisma/client'
 import MediaGallery from '@/components/admin/MediaGallery'
@@ -318,15 +319,24 @@ export default function ProductEditClient({ product, categories }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {formData.images.slice(0, 4).map((url, index) => (
                     <div key={index} className="relative w-16 h-16 rounded border overflow-hidden">
-                      {url.includes('.mp4') || url.includes('.webm') ? (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                          <span className="text-xs text-gray-500">VID</span>
+                      {url.includes('.mp4') || url.includes('.webm') || url.includes('.mov') ? (
+                        <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <div className="text-center">
+                            <Video className="h-4 w-4 mx-auto text-gray-500 mb-1" />
+                            <span className="text-xs text-gray-500">VID</span>
+                          </div>
                         </div>
                       ) : (
-                        <img
+                        <Image
                           src={url}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                          onError={(e) => {
+                            console.error('Error loading image:', url)
+                            e.currentTarget.style.display = 'none'
+                          }}
                         />
                       )}
                     </div>

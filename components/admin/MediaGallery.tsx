@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import {
   Upload,
   X,
@@ -43,6 +44,7 @@ export default function MediaGallery({
 }: MediaGalleryProps) {
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -194,11 +196,44 @@ export default function MediaGallery({
                   loop
                   playsInline
                 />
+              ) : failedImages.has(item.url) ? (
+                <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600">
+                  <div className="text-center">
+                    <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                    <p className="text-xs text-gray-500">Erreur de chargement</p>
+                    <button
+                      onClick={() => {
+                        setFailedImages(prev => {
+                          const next = new Set(prev)
+                          next.delete(item.url)
+                          return next
+                        })
+                      }}
+                      className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                    >
+                      Réessayer
+                    </button>
+                  </div>
+                </div>
               ) : (
-                <img
+                <Image
                   src={item.url}
                   alt={`Média ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  onError={(e) => {
+                    console.error('Error loading image:', item.url)
+                    setFailedImages(prev => new Set(prev).add(item.url))
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', item.url)
+                    setFailedImages(prev => {
+                      const next = new Set(prev)
+                      next.delete(item.url)
+                      return next
+                    })
+                  }}
                 />
               )}
 
