@@ -58,20 +58,47 @@ interface Props {
 }
 
 export default function ProductEditClient({ product, categories }: Props) {
+  console.log('=== DEBUG: ProductEditClient render start ===')
+  console.log('=== DEBUG: Product data ===', product)
+  console.log('=== DEBUG: Categories data ===', categories)
+
   const router = useRouter()
   const [saving, setSaving] = useState(false)
 
-  const [formData, setFormData] = useState({
-    name: product.name,
-    description: product.description || '',
-    price: product.price.toNumber(),
-    stock: product.stock,
-    images: product.images,
-    sizes: product.sizes,
-    colors: product.colors,
-    isActive: product.isActive,
-    categoryId: product.categories[0]?.id || ''
-  })
+  let formDataState
+  try {
+    console.log('=== DEBUG: About to convert price ===', product.price)
+    const priceNumber = product.price.toNumber()
+    console.log('=== DEBUG: Price converted to ===', priceNumber)
+
+    formDataState = {
+      name: product.name,
+      description: product.description || '',
+      price: priceNumber,
+      stock: product.stock,
+      images: product.images || [],
+      sizes: product.sizes || [],
+      colors: product.colors || [],
+      isActive: product.isActive,
+      categoryId: product.categories[0]?.id || ''
+    }
+    console.log('=== DEBUG: Form data created ===', formDataState)
+  } catch (error) {
+    console.error('=== DEBUG: Error creating form data ===', error)
+    formDataState = {
+      name: 'Error',
+      description: '',
+      price: 0,
+      stock: 0,
+      images: [],
+      sizes: [],
+      colors: [],
+      isActive: false,
+      categoryId: ''
+    }
+  }
+
+  const [formData, setFormData] = useState(formDataState)
 
   const [newSize, setNewSize] = useState('')
   const [newColor, setNewColor] = useState('')
