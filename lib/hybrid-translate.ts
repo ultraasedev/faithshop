@@ -28,7 +28,10 @@ export async function translateText(
   if (isGoogleLanguageSupported(targetLang)) {
     try {
       const translated = await translateWithGoogle(text, targetLang, sourceLang)
-      return { text: translated, provider: 'google' }
+      // Si Google Translate échoue (pas de clé API), retourner le texte original
+      if (translated !== text) {
+        return { text: translated, provider: 'google' }
+      }
     } catch (error) {
       console.warn(`Google Translate failed for ${targetLang}`)
     }

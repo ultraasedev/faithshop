@@ -41,6 +41,8 @@ export default function CheckoutPage() {
       colorPrimary: '#000000',
       fontFamily: 'system-ui, sans-serif',
       borderRadius: '0.5rem',
+      colorBackground: '#ffffff',
+      colorText: '#000000',
     },
     rules: {
       '.Tab': {
@@ -114,7 +116,7 @@ export default function CheckoutPage() {
           <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             {/* Colonne de gauche : Formulaire */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+              <div className="bg-background p-6 sm:p-8 rounded-2xl shadow-sm border border-border">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Paiement</h2>
                   <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full font-medium">
@@ -159,7 +161,7 @@ export default function CheckoutPage() {
 
             {/* Colonne de droite : Récapitulatif */}
             <div className="lg:col-span-5 lg:sticky lg:top-24">
-              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
+              <div className="bg-background p-6 sm:p-8 rounded-2xl shadow-sm border border-border">
                 <h2 className="text-lg font-bold mb-6">Récapitulatif de la commande</h2>
 
                 <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">

@@ -4,7 +4,17 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    const { items } = await request.json();
+    const body = await request.json();
+    console.log('📦 Payment Intent Request Body:', body);
+
+    const { items } = body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return NextResponse.json(
+        { error: 'Aucun article dans le panier' },
+        { status: 400 }
+      );
+    }
 
     // SÉCURITÉ: Recalculer le prix depuis la DB pour éviter la fraude
     let total = 0;
@@ -12,7 +22,7 @@ export async function POST(request: Request) {
 
     for (const item of items) {
       const product = await prisma.product.findUnique({
-        where: { id: item.id },
+        where: { id: item.productId || item.id },
         select: { id: true, name: true, price: true, stock: true, isActive: true }
       });
 
