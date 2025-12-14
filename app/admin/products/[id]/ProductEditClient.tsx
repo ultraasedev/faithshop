@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Save, RefreshCw, Trash2 } from 'lucide-react'
 import { updateProduct, deleteProduct } from '@/app/actions/admin/products'
 import { Prisma } from '@prisma/client'
-// import MediaGallery from '@/components/admin/MediaGallery'
+import MediaGallery from '@/components/admin/MediaGallery'
 import CollectionSelect from '@/components/admin/CollectionSelect'
 import {
   AlertDialog,
@@ -310,25 +310,54 @@ export default function ProductEditClient({ product, categories }: Props) {
                 </p>
               </div>
             )}
+
+            {/* Aperçu des images existantes */}
+            {formData.images.length > 0 && (
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Aperçu des médias ({formData.images.length})</Label>
+                <div className="flex flex-wrap gap-2">
+                  {formData.images.slice(0, 4).map((url, index) => (
+                    <div key={index} className="relative w-16 h-16 rounded border overflow-hidden">
+                      {url.includes('.mp4') || url.includes('.webm') ? (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <span className="text-xs text-gray-500">VID</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  ))}
+                  {formData.images.length > 4 && (
+                    <div className="w-16 h-16 rounded border bg-gray-50 flex items-center justify-center">
+                      <span className="text-xs text-gray-500">+{formData.images.length - 4}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Voir la section "Galerie média" ci-dessous pour gérer tous les fichiers
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Galerie média - temporairement désactivé pour debug */}
+        {/* Galerie média */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Galerie média</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="p-4 border border-dashed border-border rounded-lg text-center text-muted-foreground">
-              Galerie média temporairement désactivée pour debug
-            </div>
-            {/* <MediaGallery
+            <MediaGallery
               value={formData.images}
               onChange={(urls) => setFormData({ ...formData, images: urls })}
               folder="products"
               maxFiles={8}
               label="Images et vidéos du produit"
-            /> */}
+            />
           </CardContent>
         </Card>
 
