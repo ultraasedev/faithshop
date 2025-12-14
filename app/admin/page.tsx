@@ -52,7 +52,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-primary/10 to-transparent border-primary/20 shadow-sm hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenu Total</CardTitle>
@@ -60,9 +60,8 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{Number(stats.revenue).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })}</div>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center">
-              <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
-              +20.1% par rapport au mois dernier
+            <p className="text-xs text-muted-foreground mt-1">
+              Revenus total des commandes payées
             </p>
           </CardContent>
         </Card>
@@ -104,8 +103,8 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 shadow-sm">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+        <Card className="col-span-1 lg:col-span-4 shadow-sm">
           <CardHeader>
             <CardTitle>Aperçu des Ventes</CardTitle>
             <CardDescription>
@@ -161,7 +160,7 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
         
-        <Card className="col-span-3 shadow-sm">
+        <Card className="col-span-1 lg:col-span-3 shadow-sm">
           <CardHeader>
             <CardTitle>Ventes Récentes</CardTitle>
             <CardDescription>
@@ -211,14 +210,14 @@ function DashboardSkeleton() {
           <Skeleton className="h-4 w-[300px]" />
         </div>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-[120px] rounded-xl" />
         ))}
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Skeleton className="col-span-4 h-[400px] rounded-xl" />
-        <Skeleton className="col-span-3 h-[400px] rounded-xl" />
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+        <Skeleton className="col-span-1 lg:col-span-4 h-[400px] rounded-xl" />
+        <Skeleton className="col-span-1 lg:col-span-3 h-[400px] rounded-xl" />
       </div>
     </div>
   )
