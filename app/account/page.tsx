@@ -6,6 +6,7 @@ import { Package, User, LogOut, Lock, MapPin, Heart, FileText, RotateCcw, Loader
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
+import OrderHistory from '@/components/account/OrderHistory'
 
 export default function AccountPage() {
   const { data: session, status } = useSession()
@@ -99,14 +100,7 @@ export default function AccountPage() {
             <div className="md:col-span-3 bg-background border border-border p-6 md:p-8">
               <h2 className="font-serif text-xl mb-6">Historique des commandes</h2>
 
-              <div className="text-center py-12 text-muted-foreground">
-                <Package className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">Aucune commande pour le moment</p>
-                <p className="text-sm mb-6">Découvrez nos collections et passez votre première commande !</p>
-                <Button asChild>
-                  <Link href="/shop">Découvrir la boutique</Link>
-                </Button>
-              </div>
+              <OrderHistory userId={session.user?.id} />
             </div>
           </div>
         </div>

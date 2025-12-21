@@ -20,7 +20,10 @@ import {
   UserCog,
   FileText,
   Megaphone,
-  Menu
+  Menu,
+  Factory,
+  RefreshCw,
+  Receipt
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -32,10 +35,13 @@ const sidebarItems = [
   { name: 'Tableau de bord', href: '/admin', icon: LayoutDashboard },
   { name: 'Commandes', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Produits', href: '/admin/products', icon: Package },
+  { name: 'Production', href: '/admin/production', icon: Factory },
   { name: 'Clients', href: '/admin/customers', icon: Users },
   { name: 'Livraison', href: '/admin/shipping', icon: Truck },
   { name: 'Codes Promo', href: '/admin/discounts', icon: Tag },
   { name: 'Cartes Cadeaux', href: '/admin/gift-cards', icon: Gift },
+  { name: 'Facturation', href: '/admin/invoices', icon: Receipt },
+  { name: 'Synchronisation', href: '/admin/sync', icon: RefreshCw },
   { name: 'Analyses', href: '/admin/analytics', icon: BarChart3 },
 ]
 
