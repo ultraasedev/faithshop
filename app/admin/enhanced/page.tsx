@@ -23,11 +23,11 @@ export const dynamic = 'force-dynamic'
 
 async function fetchRealData() {
   try {
-    const [products, orders] = await Promise.all([
+    const [products, ordersResult] = await Promise.all([
       getProducts(),
-      getOrders()
+      getOrders({}) // Passer un objet vide comme paramètres par défaut
     ])
-    return { products, orders }
+    return { products, orders: ordersResult.orders || [] }
   } catch (error) {
     console.error('Error fetching real data:', error)
     return { products: [], orders: [] }

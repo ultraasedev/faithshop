@@ -5,6 +5,17 @@ import { createStripeProduct, stripe } from '@/lib/stripe'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
+export async function getProducts() {
+  try {
+    return await prisma.product.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
+  } catch (error) {
+    console.error('Error fetching products:', error)
+    return []
+  }
+}
+
 export type ProductState = {
   errors?: {
     name?: string[]
