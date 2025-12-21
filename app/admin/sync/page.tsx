@@ -1,22 +1,25 @@
 'use client'
 
-import AdvancedSyncManager from '@/components/admin/AdvancedSyncManager'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
 
-export default function SyncPage() {
+export default function SyncRedirectPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/admin/enhanced')
+  }, [router])
+
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Synchronisation</h1>
-        <p className="text-muted-foreground mt-2">Gérez la synchronisation bidirectionnelle avec vos plateformes</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Synchronisation Avancée</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AdvancedSyncManager />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Redirection en cours...</h2>
+          <p className="text-muted-foreground">
+            Vous êtes redirigé vers le nouveau panel d'administration.
+          </p>
         </CardContent>
       </Card>
     </div>

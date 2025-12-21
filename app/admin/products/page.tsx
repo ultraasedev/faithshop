@@ -1,28 +1,27 @@
-import { prisma } from '@/lib/prisma'
-import ProductsPageClient from './ProductsPageClient'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
 
-export default async function AdminProductsPage() {
-  const products = await prisma.product.findMany({
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      price: true,
-      images: true,
-      stock: true,
-      isActive: true,
-      description: true,
-      category: true
-    }
-  })
+export default function ProductsRedirectPage() {
+  const router = useRouter()
 
-  // Transformer les données pour le client
-  const transformedProducts = products.map(product => ({
-    ...product,
-    price: Number(product.price)
-  }))
+  useEffect(() => {
+    router.replace('/admin/enhanced')
+  }, [router])
 
-  return <ProductsPageClient products={transformedProducts} />
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-8 text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Redirection en cours...</h2>
+          <p className="text-muted-foreground">
+            Vous êtes redirigé vers le nouveau panel d'administration.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
