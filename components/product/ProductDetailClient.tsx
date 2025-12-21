@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { toast } from 'sonner'
-import PreorderCountdown from '@/components/PreorderCountdown'
+// PreorderCountdown supprimé - remplacé par ShippingBanner
 
 interface Product {
   id: string
@@ -132,8 +132,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </p>
               </div>
 
-              {/* Countdown pré-commande */}
-              <PreorderCountdown />
+              {/* Countdown pré-commande supprimé - remplacé par ShippingBanner en haut de page */}
 
               <div className="space-y-10 mb-10">
                 {/* Colors */}
@@ -189,10 +188,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 )}
               </div>
 
-              {/* Pre-order Countdown */}
-              <div className="mb-8">
-                <PreorderCountdown />
-              </div>
+              {/* Pre-order Countdown supprimé - remplacé par ShippingBanner en haut de page */}
 
               {/* Premium Add to Cart Button */}
               <Button 

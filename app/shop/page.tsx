@@ -2,7 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import PreorderCountdown from '@/components/PreorderCountdown'
+// PreorderCountdown supprimé - remplacé par ShippingBanner sur les pages produits
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -25,10 +25,7 @@ export default async function ShopPage() {
           </p>
         </div>
 
-        {/* Bandeau pré-commande */}
-        <div className="mx-auto max-w-[1600px] px-6 lg:px-12">
-          <PreorderCountdown />
-        </div>
+        {/* Bandeau pré-commande supprimé - remplacé par ShippingBanner sur les pages produits */}
 
         {/* Grille de produits */}
         <div className="mx-auto max-w-[1600px] px-6 lg:px-12 py-16">
