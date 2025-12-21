@@ -14,6 +14,11 @@ import AccountingExport from '@/components/admin/AccountingExport'
 import ProductionManager from '@/components/admin/ProductionManager'
 import DesignManager from '@/components/admin/DesignManager'
 import AdvancedSyncManager from '@/components/admin/AdvancedSyncManager'
+import PreorderManager from '@/components/admin/PreorderManager'
+import OrderManager from '@/components/admin/OrderManager'
+import ProductImageEditor from '@/components/admin/ProductImageEditor'
+import RefundManager from '@/components/admin/RefundManager'
+import DiscountManager from '@/components/admin/DiscountManager'
 
 import { prisma } from '@/lib/prisma'
 import { getProducts } from '@/app/actions/admin/products'
@@ -52,12 +57,15 @@ export default async function EnhancedAdminPage() {
       </div>
 
       <Tabs defaultValue="products" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="products">Produits</TabsTrigger>
+          <TabsTrigger value="orders">Commandes</TabsTrigger>
+          <TabsTrigger value="refunds">Remboursements</TabsTrigger>
+          <TabsTrigger value="discounts">Codes Promo</TabsTrigger>
+          <TabsTrigger value="preorder">Pré-commandes</TabsTrigger>
           <TabsTrigger value="production">Production</TabsTrigger>
-          <TabsTrigger value="design">Design</TabsTrigger>
-          <TabsTrigger value="sync">Sync</TabsTrigger>
           <TabsTrigger value="theme">Thème</TabsTrigger>
+          <TabsTrigger value="sync">Sync</TabsTrigger>
           <TabsTrigger value="billing">Facturation</TabsTrigger>
         </TabsList>
 
@@ -71,6 +79,8 @@ export default async function EnhancedAdminPage() {
             </CardContent>
           </Card>
 
+          <ProductImageEditor products={products} />
+
           <Card>
             <CardHeader>
               <CardTitle>Aperçu en Temps Réel</CardTitle>
@@ -81,12 +91,24 @@ export default async function EnhancedAdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="production" className="space-y-6">
-          <ProductionManager />
+        <TabsContent value="orders" className="space-y-6">
+          <OrderManager />
         </TabsContent>
 
-        <TabsContent value="design" className="space-y-6">
-          <DesignManager />
+        <TabsContent value="refunds" className="space-y-6">
+          <RefundManager />
+        </TabsContent>
+
+        <TabsContent value="discounts" className="space-y-6">
+          <DiscountManager />
+        </TabsContent>
+
+        <TabsContent value="preorder" className="space-y-6">
+          <PreorderManager />
+        </TabsContent>
+
+        <TabsContent value="production" className="space-y-6">
+          <ProductionManager />
         </TabsContent>
 
         <TabsContent value="sync" className="space-y-6">

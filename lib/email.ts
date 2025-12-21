@@ -67,6 +67,16 @@ const emailLayout = (content: string) => `
 // Fonction d'envoi générique
 async function sendEmail(to: string, subject: string, html: string) {
   try {
+    // Vérifier la configuration SMTP avant d'essayer d'envoyer
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+      console.warn('SMTP configuration incomplete, email not sent in development')
+      return {
+        success: false,
+        error: 'SMTP configuration incomplete',
+        devMode: true
+      }
+    }
+
     const info = await transporter.sendMail({
       from: FROM_EMAIL,
       to,

@@ -1,51 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
+import { stripe } from '@/lib/stripe'
 
-export async function GET(
+export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    console.log('=== API: Starting product fetch ===')
+    const session = await auth()
+    if (!session?.user || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
 
-    const { id } = await params
-    console.log('=== API: Product ID ===', id)
+    const data = await request.json()
 
-    const product = await prisma.product.findUnique({
-      where: { id },
-      include: {
-        collections: true
+    // Mise à jour dans la base de données locale
+    const updatedProduct = await prisma.product.update({
+      where: { id: params.id },
+      data: {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        images: data.images || [],
+        colors: data.colors || [],
+        sizes: data.sizes || [],
+        isActive: data.isActive ?? true,
+        stock: data.stock || 0
       }
     })
 
-    console.log('=== API: Product found ===', product ? 'Yes' : 'No')
+    // Synchronisation avec Stripe
+    if (updatedProduct.stripeProductId) {
+      try {
+        await stripe.products.update(updatedProduct.stripeProductId, {
+          name: data.name,
+          description: data.description,
+          images: data.images?.slice(0, 8) || [], // Stripe limite à 8 images
+          active: data.isActive ?? true
+        })
 
-    if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      )
+        // Gestion du prix si changé
+        if (updatedProduct.stripePriceId) {
+          const oldPrice = await stripe.prices.retrieve(updatedProduct.stripePriceId)
+          if (oldPrice.unit_amount !== Math.round(data.price * 100)) {
+            const newPrice = await stripe.prices.create({
+              product: updatedProduct.stripeProductId,
+              unit_amount: Math.round(data.price * 100),
+              currency: 'eur',
+            })
+
+            await prisma.product.update({
+              where: { id: params.id },
+              data: { stripePriceId: newPrice.id }
+            })
+          }
+        }
+      } catch (stripeError) {
+        console.error('Erreur synchronisation Stripe:', stripeError)
+        // On continue même si Stripe échoue
+      }
     }
 
-    // Convert Decimal to number for JSON serialization
-    const productJson = {
-      ...product,
-      price: product.price.toNumber()
-    }
-
-    console.log('=== API: Returning product ===', productJson.name)
-
-    return NextResponse.json(productJson)
+    return NextResponse.json({
+      success: true,
+      product: updatedProduct,
+      message: 'Produit mis à jour et synchronisé avec Stripe'
+    })
 
   } catch (error) {
-    console.error('=== API: Error fetching product ===', error)
-
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch product',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    )
+    console.error('Erreur lors de la mise à jour du produit:', error)
+    return NextResponse.json({
+      error: 'Erreur serveur lors de la mise à jour'
+    }, { status: 500 })
   }
 }

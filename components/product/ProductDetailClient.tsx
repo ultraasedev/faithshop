@@ -6,11 +6,11 @@ import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import PreorderBanner from '@/components/banners/PreorderBanner'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { toast } from 'sonner'
-// PreorderCountdown supprimé - remplacé par ShippingBanner
 
 interface Product {
   id: string
@@ -75,6 +75,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
+      <PreorderBanner currentPage="product" />
       <main className="flex-1 pt-32">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">

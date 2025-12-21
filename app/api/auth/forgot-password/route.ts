@@ -47,15 +47,22 @@ export async function POST(request: Request) {
     const resetUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`
 
     // Envoyer l'email de réinitialisation
-    const emailResult = await sendPasswordResetEmail(
-      user.email,
-      user.name || 'Client',
-      resetUrl
-    )
+    let emailResult = { success: true, error: null }
 
-    if (!emailResult.success) {
-      console.error('Failed to send password reset email:', emailResult.error)
-      // On ne retourne pas d'erreur à l'utilisateur pour des raisons de sécurité
+    try {
+      emailResult = await sendPasswordResetEmail(
+        user.email,
+        user.name || 'Client',
+        resetUrl
+      )
+
+      if (!emailResult.success) {
+        console.error('Email sending failed:', emailResult.error)
+      }
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError)
+      // En développement, on continue même si l'email échoue
+      emailResult = { success: false, error: emailError }
     }
 
     // Log en développement

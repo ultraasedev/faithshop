@@ -62,6 +62,19 @@ enum GiftCardStatus {
   DISABLED
 }
 
+enum RefundType {
+  FULL
+  PARTIAL
+  STORE_CREDIT
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
 // ==================== USER ====================
 
 model User {
@@ -103,6 +116,7 @@ model User {
   // Relations
   createdDiscountCodes DiscountCode[] @relation("CreatedByAdmin")
   createdGiftCards     GiftCard[]     @relation("CreatedByAdmin")
+  processedRefunds     Refund[]       @relation("RefundsByAdmin")
   discountUsages       DiscountUsage[]
 
   // Marketing
@@ -335,6 +349,7 @@ model Order {
   items    OrderItem[]
   shipping Shipping?
   discountUsages DiscountUsage[]
+  refunds  Refund[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,6 +377,38 @@ model OrderItem {
   productImage String?
   variantTitle String? // Titre de la variante
   variantSku   String? // SKU de la variante
+}
+
+// ==================== REFUNDS ====================
+
+model Refund {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // Montant et devise
+  amount   Decimal @db.Decimal(10, 2)
+  currency String  @default("EUR")
+
+  // Type de remboursement
+  type   RefundType   @default(PARTIAL)
+  status RefundStatus @default(PENDING)
+  reason String
+
+  // Stripe
+  stripeRefundId String? @unique
+  failureReason  String? // En cas d'échec Stripe
+
+  // Avoir boutique (si type = STORE_CREDIT)
+  giftCardId String?
+  giftCard   GiftCard? @relation(fields: [giftCardId], references: [id])
+
+  // Admin qui a traité le remboursement
+  adminUserId String?
+  adminUser   User?   @relation("RefundsByAdmin", fields: [adminUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ==================== SHIPPING ====================
@@ -511,10 +558,15 @@ model GiftCard {
   id   String @id @default(cuid())
   code String @unique
 
-  initialAmount  Decimal @db.Decimal(10, 2)
-  currentBalance Decimal @db.Decimal(10, 2)
+  amount   Decimal @db.Decimal(10, 2) // Montant initial
+  balance  Decimal @db.Decimal(10, 2) // Solde actuel
+  currency String  @default("EUR")
 
-  status GiftCardStatus @default(ACTIVE)
+  status    GiftCardStatus @default(ACTIVE)
+  isActive  Boolean        @default(true)
+
+  // Commande d'origine (si créé depuis un remboursement)
+  orderId String?
 
   // Stripe Sync
   stripeCouponId        String?
@@ -538,6 +590,7 @@ model GiftCard {
 
   orders       Order[]
   transactions GiftCardTransaction[]
+  refunds      Refund[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
