@@ -185,6 +185,25 @@ export default function AccountingExport({ onExport, data }: AccountingExportPro
     }
   }
 
+  const handleQuickExport = async (type: string) => {
+    try {
+      const quickSettings = {
+        ...settings,
+        format: type === 'excel' ? 'xlsx' as const : type === 'fec' ? 'fec' as const : 'pdf' as const,
+        dateRange: type === 'monthly'
+          ? { from: presetRanges[2].from, to: presetRanges[2].to }
+          : type === 'quarterly'
+          ? { from: presetRanges[4].from, to: presetRanges[4].to }
+          : settings.dateRange
+      }
+
+      await onExport(quickSettings)
+      toast.success(`Export ${type} généré avec succès`)
+    } catch (error) {
+      toast.error('Erreur lors de l\'export rapide')
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -513,15 +532,30 @@ export default function AccountingExport({ onExport, data }: AccountingExportPro
               <CardTitle className="text-base">Exports rapides</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => handleQuickExport('monthly')}
+              >
                 <FileSpreadsheet className="h-3 w-3 mr-2" />
                 Ventes du mois (Excel)
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => handleQuickExport('fec')}
+              >
                 <FileText className="h-3 w-3 mr-2" />
                 TVA collectée (FEC)
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => handleQuickExport('quarterly')}
+              >
                 <BarChart3 className="h-3 w-3 mr-2" />
                 Rapport trimestriel
               </Button>

@@ -147,7 +147,7 @@ const sampleInvoiceData = {
       quantity: 2,
       unitPrice: 29.99,
       total: 59.98,
-      image: '/api/placeholder/60/60'
+      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center'
     },
     {
       id: '2',
@@ -156,7 +156,7 @@ const sampleInvoiceData = {
       quantity: 1,
       unitPrice: 49.99,
       total: 49.99,
-      image: '/api/placeholder/60/60'
+      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=60&h=60&fit=crop&crop=center'
     }
   ],
   subtotal: 109.97,

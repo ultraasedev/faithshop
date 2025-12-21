@@ -117,28 +117,32 @@ export default function AdminDashboard({ products, orders }: AdminDashboardProps
       value: `€${stats.monthlyRevenue || 0}`,
       change: `+${stats.revenueGrowth || 0}%`,
       icon: DollarSign,
-      color: 'green'
+      bgClass: 'bg-green-100 dark:bg-green-900',
+      iconClass: 'text-green-600 dark:text-green-400'
     },
     {
       title: 'Commandes',
       value: stats.totalOrders || 0,
       change: `${stats.pendingOrders || 0} en attente`,
       icon: ShoppingCart,
-      color: 'blue'
+      bgClass: 'bg-blue-100 dark:bg-blue-900',
+      iconClass: 'text-blue-600 dark:text-blue-400'
     },
     {
       title: 'Clients',
       value: stats.totalCustomers || 0,
       change: `+${stats.newCustomers || 0} ce mois`,
       icon: Users,
-      color: 'purple'
+      bgClass: 'bg-purple-100 dark:bg-purple-900',
+      iconClass: 'text-purple-600 dark:text-purple-400'
     },
     {
       title: 'Taux de conversion',
       value: `${stats.conversionRate || 0}%`,
       change: `+${stats.conversionGrowth || 0}%`,
       icon: TrendingUp,
-      color: 'orange'
+      bgClass: 'bg-orange-100 dark:bg-orange-900',
+      iconClass: 'text-orange-600 dark:text-orange-400'
     }
   ]
 
@@ -219,8 +223,8 @@ export default function AdminDashboard({ products, orders }: AdminDashboardProps
                               {stat.change}
                             </p>
                           </div>
-                          <div className={`h-12 w-12 rounded-lg bg-${stat.color}-100 dark:bg-${stat.color}-900 flex items-center justify-center`}>
-                            <Icon className={`h-6 w-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+                          <div className={`h-12 w-12 rounded-lg ${stat.bgClass} flex items-center justify-center`}>
+                            <Icon className={`h-6 w-6 ${stat.iconClass}`} />
                           </div>
                         </div>
                       </CardContent>

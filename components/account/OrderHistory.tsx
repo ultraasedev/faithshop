@@ -243,7 +243,7 @@ export default function OrderHistory({ userId }: OrderHistoryProps) {
                           alt={item.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/api/placeholder/48/48'
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=48&h=48&fit=crop&crop=center'
                           }}
                         />
                       </div>
