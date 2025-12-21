@@ -1,357 +1,340 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
-  BarChart3,
-  Package,
-  ShoppingCart,
-  CreditCard,
-  Settings,
-  Users,
-  Palette,
   TrendingUp,
+  TrendingDown,
   DollarSign,
+  ShoppingCart,
+  Package,
+  Users,
+  ArrowUpRight,
+  ArrowDownRight,
   Eye,
-  Zap,
-  FileText,
-  Gift,
-  Truck,
-  RefreshCw,
-  Bell
+  Calendar,
+  Filter
 } from 'lucide-react'
 
-// Composants avancés
-import AdvancedProductManager from '@/components/admin/AdvancedProductManager'
-import AdvancedOrderManager from '@/components/admin/AdvancedOrderManager'
-import AdvancedDiscountManager from '@/components/admin/AdvancedDiscountManager'
-import SiteCustomizer from '@/components/admin/SiteCustomizer'
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
-import CustomerManager from '@/components/admin/CustomerManager'
-
-type AdminSection = 'dashboard' | 'orders' | 'products' | 'customers' | 'discounts' | 'analytics' | 'customize' | 'settings'
-
 interface AdminDashboardProps {
-  products: any[]
-  orders: any[]
+  data: {
+    products: any[]
+    orders: any[]
+    users: any[]
+  }
 }
 
-export default function AdminDashboard({ products, orders }: AdminDashboardProps) {
-  const [activeSection, setActiveSection] = useState<AdminSection>('dashboard')
+export default function AdminDashboard({ data }: AdminDashboardProps) {
   const [stats, setStats] = useState<any>({})
+  const [timeRange, setTimeRange] = useState('7d')
 
   useEffect(() => {
-    fetchStats()
-  }, [])
+    calculateStats()
+  }, [data, timeRange])
 
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/admin/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setStats(data)
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error)
-    }
+  const calculateStats = () => {
+    const now = new Date()
+    const daysAgo = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 1
+
+    // Calculs pour la période actuelle
+    const currentPeriodStart = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
+    const currentOrders = data.orders.filter(order =>
+      new Date(order.createdAt) >= currentPeriodStart
+    )
+
+    // Calculs pour la période précédente (pour comparaison)
+    const previousPeriodStart = new Date(currentPeriodStart.getTime() - daysAgo * 24 * 60 * 60 * 1000)
+    const previousOrders = data.orders.filter(order =>
+      new Date(order.createdAt) >= previousPeriodStart &&
+      new Date(order.createdAt) < currentPeriodStart
+    )
+
+    const currentRevenue = currentOrders.reduce((sum, order) => sum + Number(order.total || 0), 0)
+    const previousRevenue = previousOrders.reduce((sum, order) => sum + Number(order.total || 0), 0)
+
+    const revenueGrowth = previousRevenue > 0
+      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
+      : 0
+
+    const ordersGrowth = previousOrders.length > 0
+      ? ((currentOrders.length - previousOrders.length) / previousOrders.length) * 100
+      : 0
+
+    setStats({
+      revenue: currentRevenue,
+      revenueGrowth: Math.round(revenueGrowth * 100) / 100,
+      orders: currentOrders.length,
+      ordersGrowth: Math.round(ordersGrowth * 100) / 100,
+      totalProducts: data.products.length,
+      totalCustomers: data.users.length,
+      averageOrderValue: currentOrders.length > 0 ? currentRevenue / currentOrders.length : 0,
+      pendingOrders: data.orders.filter(o => o.status === 'PENDING').length
+    })
   }
 
-  const navigation = [
+  const metrics = [
     {
-      id: 'dashboard',
-      label: 'Tableau de bord',
-      icon: BarChart3,
-      description: 'Vue d\'ensemble et métriques'
-    },
-    {
-      id: 'orders',
-      label: 'Commandes',
-      icon: ShoppingCart,
-      description: 'Gestion complète des commandes',
-      badge: orders.filter(o => o.status === 'PENDING').length
-    },
-    {
-      id: 'products',
-      label: 'Produits',
-      icon: Package,
-      description: 'Catalogue et inventaire',
-      badge: products.length
-    },
-    {
-      id: 'customers',
-      label: 'Clients',
-      icon: Users,
-      description: 'Base clients et profils'
-    },
-    {
-      id: 'discounts',
-      label: 'Promotions',
-      icon: Gift,
-      description: 'Codes promo et réductions'
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: TrendingUp,
-      description: 'Rapports et analyses'
-    },
-    {
-      id: 'customize',
-      label: 'Personnaliser',
-      icon: Palette,
-      description: 'Design et contenu du site'
-    },
-    {
-      id: 'settings',
-      label: 'Paramètres',
-      icon: Settings,
-      description: 'Configuration générale'
-    }
-  ]
-
-  const quickStats = [
-    {
-      title: 'Revenus du mois',
-      value: `€${stats.monthlyRevenue || 0}`,
-      change: `+${stats.revenueGrowth || 0}%`,
+      title: 'Ventes totales',
+      value: `€${stats.revenue?.toFixed(2) || '0.00'}`,
+      growth: stats.revenueGrowth || 0,
       icon: DollarSign,
-      bgClass: 'bg-green-100 dark:bg-green-900',
-      iconClass: 'text-green-600 dark:text-green-400'
+      color: 'emerald'
     },
     {
       title: 'Commandes',
-      value: stats.totalOrders || 0,
-      change: `${stats.pendingOrders || 0} en attente`,
+      value: stats.orders || 0,
+      growth: stats.ordersGrowth || 0,
       icon: ShoppingCart,
-      bgClass: 'bg-blue-100 dark:bg-blue-900',
-      iconClass: 'text-blue-600 dark:text-blue-400'
+      color: 'blue'
+    },
+    {
+      title: 'Panier moyen',
+      value: `€${stats.averageOrderValue?.toFixed(2) || '0.00'}`,
+      growth: 0,
+      icon: TrendingUp,
+      color: 'violet'
     },
     {
       title: 'Clients',
       value: stats.totalCustomers || 0,
-      change: `+${stats.newCustomers || 0} ce mois`,
+      growth: 0,
       icon: Users,
-      bgClass: 'bg-purple-100 dark:bg-purple-900',
-      iconClass: 'text-purple-600 dark:text-purple-400'
-    },
-    {
-      title: 'Taux de conversion',
-      value: `${stats.conversionRate || 0}%`,
-      change: `+${stats.conversionGrowth || 0}%`,
-      icon: TrendingUp,
-      bgClass: 'bg-orange-100 dark:bg-orange-900',
-      iconClass: 'text-orange-600 dark:text-orange-400'
+      color: 'orange'
     }
   ]
 
+  const timeRanges = [
+    { value: '1d', label: 'Aujourd\'hui' },
+    { value: '7d', label: '7 derniers jours' },
+    { value: '30d', label: '30 derniers jours' }
+  ]
+
+  const formatGrowth = (growth: number) => {
+    const isPositive = growth >= 0
+    return (
+      <div className={`flex items-center text-xs ${
+        isPositive ? 'text-emerald-600' : 'text-red-600'
+      }`}>
+        {isPositive ? (
+          <ArrowUpRight className="h-3 w-3 mr-1" />
+        ) : (
+          <ArrowDownRight className="h-3 w-3 mr-1" />
+        )}
+        {Math.abs(growth).toFixed(1)}%
+      </div>
+    )
+  }
+
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Sidebar - Style Stripe */}
-      <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Faith Shop</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Admin Panel</p>
+    <div className="p-8 space-y-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white">
+            Tableau de bord
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Vue d'ensemble de votre boutique Faith Shop
+          </p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {navigation.map((item) => {
-            const Icon = item.icon
-            return (
-              <button
-                key={item.id}
-                className={`w-full text-left p-3 rounded-lg transition-colors group ${
-                  activeSection === item.id
-                    ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-                onClick={() => setActiveSection(item.id as AdminSection)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Icon className="h-5 w-5 mr-3" />
-                    <div>
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-xs opacity-70">{item.description}</div>
+        {/* Time Range Filter - Style Shopify */}
+        <div className="flex bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          {timeRanges.map((range) => (
+            <button
+              key={range.value}
+              onClick={() => setTimeRange(range.value)}
+              className={`px-4 py-2 text-sm font-medium transition-colors first:rounded-l-lg last:rounded-r-lg ${
+                timeRange === range.value
+                  ? 'bg-gray-900 dark:bg-gray-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Metrics Cards - Style Shopify */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {metrics.map((metric, index) => {
+          const Icon = metric.icon
+          return (
+            <Card key={index} className="border-0 shadow-sm bg-white dark:bg-gray-800 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`h-10 w-10 rounded-lg bg-${metric.color}-100 dark:bg-${metric.color}-900 flex items-center justify-center`}>
+                    <Icon className={`h-5 w-5 text-${metric.color}-600 dark:text-${metric.color}-400`} />
+                  </div>
+                  {metric.growth !== 0 && formatGrowth(metric.growth)}
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+                    {metric.value}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {metric.title}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Orders - Style Shopify */}
+        <Card className="lg:col-span-2 border-0 shadow-sm bg-white dark:bg-gray-800">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold">Commandes récentes</CardTitle>
+              <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
+                <Eye className="h-4 w-4 mr-2" />
+                Voir tout
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {data.orders.slice(0, 5).map((order: any) => (
+                <div key={order.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <Package className="h-5 w-5 text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          #{order.orderNumber}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {order.user?.name || 'Client'} • {new Date(order.createdAt).toLocaleDateString('fr-FR')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        €{Number(order.total).toFixed(2)}
+                      </p>
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                        order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'SHIPPED' ? 'bg-purple-100 text-purple-800' :
+                        order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {order.status === 'PENDING' ? 'En attente' :
+                         order.status === 'PROCESSING' ? 'Traitement' :
+                         order.status === 'SHIPPED' ? 'Expédiée' :
+                         order.status === 'DELIVERED' ? 'Livrée' : order.status}
+                      </span>
                     </div>
                   </div>
-                  {item.badge && (
-                    <Badge variant="secondary" className="ml-2">
-                      {item.badge}
-                    </Badge>
-                  )}
                 </div>
-              </button>
-            )
-          })}
-        </nav>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
-          {/* Dashboard */}
-          {activeSection === 'dashboard' && (
-            <div className="space-y-8">
-              {/* Header */}
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tableau de bord</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Vue d'ensemble de votre boutique Faith Shop
-                </p>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {quickStats.map((stat, index) => {
-                  const Icon = stat.icon
-                  return (
-                    <Card key={index} className="border-0 shadow-sm">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                              {stat.title}
-                            </p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                              {stat.value}
-                            </p>
-                            <p className={`text-xs mt-1 ${
-                              stat.change.includes('+') ? 'text-green-600' : 'text-gray-600'
-                            }`}>
-                              {stat.change}
-                            </p>
-                          </div>
-                          <div className={`h-12 w-12 rounded-lg ${stat.bgClass} flex items-center justify-center`}>
-                            <Icon className={`h-6 w-6 ${stat.iconClass}`} />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setActiveSection('orders')}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center mr-4">
-                        <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">Gérer les commandes</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {orders.filter(o => o.status === 'PENDING').length} commandes en attente
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setActiveSection('products')}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center mr-4">
-                        <Package className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">Ajouter des produits</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {products.length} produits dans le catalogue
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setActiveSection('customize')}>
-                  <CardContent className="p-6">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center mr-4">
-                        <Palette className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">Personnaliser le site</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Modifier l'apparence et le contenu
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recent Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-0 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Commandes récentes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {orders.slice(0, 5).map((order: any) => (
-                      <div key={order.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                        <div>
-                          <p className="font-medium">#{order.orderNumber}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {new Date(order.createdAt).toLocaleDateString('fr-FR')}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">€{Number(order.total).toFixed(2)}</p>
-                          <Badge variant="secondary">{order.status}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Produits populaires</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {products.slice(0, 5).map((product: any) => (
-                      <div key={product.id} className="flex items-center justify-between py-3 border-b last:border-0">
-                        <div className="flex items-center">
-                          {product.images && product.images[0] && (
-                            <img
-                              src={product.images[0].url || product.images[0].src}
-                              alt={product.name}
-                              className="h-10 w-10 rounded object-cover mr-3"
-                            />
-                          )}
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              €{Number(product.price).toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">{product.status}</Badge>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
+              ))}
             </div>
-          )}
+          </CardContent>
+        </Card>
 
-          {/* Other Sections */}
-          {activeSection === 'orders' && <AdvancedOrderManager orders={orders} />}
-          {activeSection === 'products' && <AdvancedProductManager products={products} />}
-          {activeSection === 'customers' && <CustomerManager />}
-          {activeSection === 'discounts' && <AdvancedDiscountManager />}
-          {activeSection === 'analytics' && <AnalyticsDashboard />}
-          {activeSection === 'customize' && <SiteCustomizer />}
-          {activeSection === 'settings' && <div>Paramètres - En développement</div>}
+        {/* Quick Stats - Style Shopify */}
+        <div className="space-y-6">
+          <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
+            <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+              <CardTitle className="text-lg font-semibold">Actions rapides</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <Button
+                className="w-full justify-start bg-gray-900 hover:bg-gray-800 text-white"
+                onClick={() => {}}
+              >
+                <Package className="h-4 w-4 mr-3" />
+                Ajouter un produit
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {}}
+              >
+                <Calendar className="h-4 w-4 mr-3" />
+                Gérer les commandes
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {}}
+              >
+                <Users className="h-4 w-4 mr-3" />
+                Voir les clients
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
+            <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+              <CardTitle className="text-lg font-semibold">Statistiques</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Commandes en attente</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {stats.pendingOrders || 0}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Produits actifs</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {data.products.filter(p => p.isActive).length}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Clients totaux</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {data.users.length}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Top Products */}
+      <Card className="border-0 shadow-sm bg-white dark:bg-gray-800">
+        <CardHeader className="border-b border-gray-100 dark:border-gray-700">
+          <CardTitle className="text-lg font-semibold">Produits populaires</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {data.products.slice(0, 4).map((product: any) => (
+              <div key={product.id} className="group cursor-pointer">
+                <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 overflow-hidden">
+                  {product.images && product.images.length > 0 ? (
+                    <img
+                      src={product.images[0].url || product.images[0].src}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="h-8 w-8 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1 line-clamp-2">
+                  {product.name}
+                </h4>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  €{Number(product.price).toFixed(2)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
