@@ -72,6 +72,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   // Vraies reviews de la DB
   const reviews = product.reviews || []
 
+  // Calculer la vraie moyenne des avis
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+    : 0
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
@@ -117,16 +122,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 <h1 className="font-serif text-4xl md:text-5xl mb-4">{product.name}</h1>
                 <div className="flex items-center gap-6 mb-6">
                   <span className="text-3xl font-light">{product.price.toFixed(2)} €</span>
-                  <button onClick={scrollToReviews} className="flex items-center gap-1 group cursor-pointer">
-                    <div className="flex text-primary">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="fill-current w-4 h-4" />
-                      ))}
-                    </div>
-                    <span className="text-muted-foreground text-sm ml-2 group-hover:underline decoration-primary/50 underline-offset-4 transition-all">
-                      ({reviews.length} avis)
-                    </span>
-                  </button>
+                  {reviews.length > 0 ? (
+                    <button onClick={scrollToReviews} className="flex items-center gap-1 group cursor-pointer">
+                      <div className="flex text-primary">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className={`w-4 h-4 ${i < Math.round(averageRating) ? 'fill-current' : 'text-muted-foreground/30'}`} />
+                        ))}
+                      </div>
+                      <span className="text-muted-foreground text-sm ml-2 group-hover:underline decoration-primary/50 underline-offset-4 transition-all">
+                        ({reviews.length} avis)
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Aucun avis</span>
+                  )}
                 </div>
                 <p className="text-muted-foreground leading-relaxed text-lg font-light whitespace-pre-line">
                   {product.description}
@@ -225,15 +234,19 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
               <div>
                 <h2 className="font-serif text-3xl mb-4">Avis Clients</h2>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1 text-primary">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="fill-current w-5 h-5" />
-                    ))}
+                {reviews.length > 0 ? (
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 text-primary">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-5 h-5 ${i < Math.round(averageRating) ? 'fill-current' : 'text-muted-foreground/30'}`} />
+                      ))}
+                    </div>
+                    <span className="text-lg font-medium">{averageRating.toFixed(1)}/5</span>
+                    <span className="text-muted-foreground">({reviews.length} avis)</span>
                   </div>
-                  <span className="text-lg font-medium">4.8/5</span>
-                  <span className="text-muted-foreground">({reviews.length} avis)</span>
-                </div>
+                ) : (
+                  <p className="text-muted-foreground">Aucun avis pour le moment. Soyez le premier à donner votre avis !</p>
+                )}
               </div>
               <Button variant="outline" className="uppercase tracking-widest font-bold">
                 Écrire un avis
