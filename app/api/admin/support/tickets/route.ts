@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             ticketId,
             senderId: session.user.id,
             content: message,
-            isFromAdmin: true
+            isStaff: true
           }
         })
       }

@@ -13,6 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { DataTable, Column } from '@/components/admin/common/DataTable'
 import { StatusBadge } from '@/components/admin/common/StatusBadge'
 import {
@@ -64,6 +72,9 @@ interface ProductsClientProps {
 export function ProductsClient({ products, stats }: ProductsClientProps) {
   const router = useRouter()
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'low_stock'>('all')
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const filteredProducts = products.filter(product => {
     switch (filter) {
@@ -86,13 +97,17 @@ export function ProductsClient({ products, stats }: ProductsClientProps) {
     return 'in_stock'
   }
 
-  const handleDelete = async (product: Product) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${product.name}" ?`)) {
-      return
-    }
+  const openDeleteDialog = (product: Product) => {
+    setProductToDelete(product)
+    setDeleteDialogOpen(true)
+  }
 
+  const handleDelete = async () => {
+    if (!productToDelete) return
+
+    setIsDeleting(true)
     try {
-      const response = await fetch(`/api/admin/products/${product.id}`, {
+      const response = await fetch(`/api/admin/products/${productToDelete.id}`, {
         method: 'DELETE',
       })
 
@@ -101,9 +116,13 @@ export function ProductsClient({ products, stats }: ProductsClientProps) {
       }
 
       toast.success('Produit supprimé')
+      setDeleteDialogOpen(false)
+      setProductToDelete(null)
       router.refresh()
     } catch (error) {
       toast.error('Erreur lors de la suppression du produit')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -383,7 +402,7 @@ export function ProductsClient({ products, stats }: ProductsClientProps) {
               {
                 label: 'Supprimer',
                 icon: <Trash2 className="h-4 w-4 mr-2" />,
-                onClick: handleDelete,
+                onClick: openDeleteDialog,
                 variant: 'destructive'
               }
             ]}
@@ -403,6 +422,35 @@ export function ProductsClient({ products, stats }: ProductsClientProps) {
           />
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Supprimer le produit</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer &quot;{productToDelete?.name}&quot; ?
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

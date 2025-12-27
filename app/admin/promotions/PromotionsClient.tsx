@@ -122,6 +122,9 @@ export function PromotionsClient({ discountCodes, giftCards, stats }: Promotions
   const [isCreatingDiscount, setIsCreatingDiscount] = useState(false)
   const [isCreatingGiftCard, setIsCreatingGiftCard] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'discount' | 'giftcard'; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [discountForm, setDiscountForm] = useState({
     code: '',
@@ -233,10 +236,29 @@ export function PromotionsClient({ discountCodes, giftCards, stats }: Promotions
     router.refresh()
   }
 
-  const deleteDiscount = async (id: string) => {
-    if (!confirm('Supprimer ce code de réduction ?')) return
-    await fetch(`/api/admin/discount-codes/${id}`, { method: 'DELETE' })
-    router.refresh()
+  const openDeleteDialog = (id: string, type: 'discount' | 'giftcard', name: string) => {
+    setItemToDelete({ id, type, name })
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const endpoint = itemToDelete.type === 'discount'
+        ? `/api/admin/discount-codes/${itemToDelete.id}`
+        : `/api/admin/gift-cards/${itemToDelete.id}`
+
+      await fetch(endpoint, { method: 'DELETE' })
+      setDeleteDialogOpen(false)
+      setItemToDelete(null)
+      router.refresh()
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const copyCode = (code: string) => {
@@ -381,12 +403,18 @@ export function PromotionsClient({ discountCodes, giftCards, stats }: Promotions
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-col sm:flex-row justify-between gap-4">
-          <TabsList>
-            <TabsTrigger value="discounts" className="gap-2">
+          <TabsList className="bg-gray-100 dark:bg-gray-800 border dark:border-gray-700">
+            <TabsTrigger
+              value="discounts"
+              className="gap-2 text-gray-600 dark:text-gray-300 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+            >
               <Ticket className="h-4 w-4" />
               Codes promo
             </TabsTrigger>
-            <TabsTrigger value="giftcards" className="gap-2">
+            <TabsTrigger
+              value="giftcards"
+              className="gap-2 text-gray-600 dark:text-gray-300 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+            >
               <Gift className="h-4 w-4" />
               Cartes cadeaux
             </TabsTrigger>
@@ -767,7 +795,7 @@ export function PromotionsClient({ discountCodes, giftCards, stats }: Promotions
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => deleteDiscount(code.id)}
+                                  onClick={() => openDeleteDialog(code.id, 'discount', code.code)}
                                   className="text-red-600"
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -934,6 +962,37 @@ export function PromotionsClient({ discountCodes, giftCards, stats }: Promotions
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {itemToDelete?.type === 'discount' ? 'Supprimer le code promo' : 'Supprimer la carte cadeau'}
+            </DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer &quot;{itemToDelete?.name}&quot; ?
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Suppression...' : 'Supprimer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

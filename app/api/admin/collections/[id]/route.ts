@@ -24,7 +24,8 @@ export async function PATCH(
       isFeatured,
       sortOrder,
       metaTitle,
-      metaDescription
+      metaDescription,
+      productIds
     } = body
 
     // Check if slug is unique (if changed)
@@ -41,6 +42,25 @@ export async function PATCH(
           { error: 'Ce slug est déjà utilisé par une autre collection' },
           { status: 400 }
         )
+      }
+    }
+
+    // Handle product assignments if provided
+    if (productIds !== undefined) {
+      // Delete existing product associations
+      await prisma.productCollection.deleteMany({
+        where: { collectionId: id }
+      })
+
+      // Create new associations with sort order
+      if (productIds.length > 0) {
+        await prisma.productCollection.createMany({
+          data: productIds.map((p: { id: string; sortOrder: number }) => ({
+            productId: p.id,
+            collectionId: id,
+            sortOrder: p.sortOrder
+          }))
+        })
       }
     }
 

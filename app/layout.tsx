@@ -12,36 +12,56 @@ const playfair = Playfair_Display({
   variable: "--font-playfair",
 });
 
-export const metadata: Metadata = {
-  title: "Faith Shop | Mode Chrétienne Premium & Éthique",
-  description: "Découvrez Faith Shop, la boutique de vêtements chrétiens haut de gamme. T-shirts, hoodies et accessoires inspirés par la foi. Livraison offerte dès 100€.",
-  icons: {
-    icon: "/favicon.jpeg",
-    shortcut: "/favicon.jpeg",
-    apple: "/favicon.jpeg",
-  },
-  openGraph: {
-    title: "Faith Shop | Mode Chrétienne Premium",
-    description: "L'élégance de la foi. Collection intemporelle de vêtements unisexe.",
-    url: "https://faith-shop.fr",
-    siteName: "Faith Shop",
-    locale: "fr_FR",
-    type: "website",
-  },
-  alternates: {
-    canonical: "https://faith-shop.fr",
-  },
-};
-
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import SessionProvider from '@/components/SessionProvider'
 
-import { getThemes } from '@/app/actions/admin/settings'
+import { getThemes, getSeoConfig, getThemeConfig } from '@/app/actions/admin/settings'
 
 import { getIntegrations } from '@/app/actions/admin/cms'
 import { generateStructuredData } from '@/lib/seo'
 import Script from 'next/script'
+
+// Generate dynamic metadata from database settings
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const seoConfig = await getSeoConfig()
+
+    return {
+      title: seoConfig.metaTitle || "Faith Shop | Mode Chrétienne Premium",
+      description: seoConfig.metaDescription || "Découvrez notre collection de vêtements de qualité.",
+      keywords: seoConfig.keywords,
+      icons: {
+        icon: seoConfig.favicon || "/favicon.jpeg",
+        shortcut: seoConfig.favicon || "/favicon.jpeg",
+        apple: seoConfig.favicon || "/favicon.jpeg",
+      },
+      openGraph: {
+        title: seoConfig.metaTitle || "Faith Shop | Mode Chrétienne Premium",
+        description: seoConfig.metaDescription || "Découvrez notre collection de vêtements de qualité.",
+        url: "https://faith-shop.fr",
+        siteName: seoConfig.siteName || "Faith Shop",
+        images: seoConfig.ogImage ? [{ url: seoConfig.ogImage }] : [],
+        locale: "fr_FR",
+        type: "website",
+      },
+      alternates: {
+        canonical: "https://faith-shop.fr",
+      },
+    }
+  } catch (error) {
+    // Fallback metadata if database is not available
+    return {
+      title: "Faith Shop | Mode Chrétienne Premium",
+      description: "Découvrez notre collection de vêtements de qualité.",
+      icons: {
+        icon: "/favicon.jpeg",
+        shortcut: "/favicon.jpeg",
+        apple: "/favicon.jpeg",
+      },
+    }
+  }
+}
 
 // Force le layout à être dynamique pour éviter les problèmes de connexion DB au build
 export const dynamic = 'force-dynamic'
@@ -55,16 +75,19 @@ export default async function RootLayout({
   let allThemes: any[] = []
   let integrations: any[] = []
   let structuredData: any = null
+  let defaultDarkMode = false
 
   try {
-    const [themes, ints, seoData] = await Promise.all([
+    const [themes, ints, seoData, themeConfig] = await Promise.all([
       getThemes(),
       getIntegrations(),
-      generateStructuredData()
+      generateStructuredData(),
+      getThemeConfig()
     ])
     allThemes = themes
     integrations = ints
     structuredData = seoData
+    defaultDarkMode = themeConfig.darkModeDefault
   } catch (error) {
     console.error('Failed to fetch layout data:', error)
   }
@@ -137,11 +160,30 @@ export default async function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background text-foreground">
         <SessionProvider>
-          <ThemeProvider themes={allThemes}>
+          <ThemeProvider themes={allThemes} defaultDarkMode={defaultDarkMode}>
             {children}
             <Toaster position="top-center" richColors />
           </ThemeProvider>
         </SessionProvider>
+
+        {/* Tawk.to Live Chat Widget */}
+        <Script
+          id="tawk-to"
+          strategy="lazyOnload"
+          dangerouslySetInnerHTML={{
+            __html: `
+              var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+              (function(){
+                var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+                s1.async=true;
+                s1.src='https://embed.tawk.to/695054165823b7197c1541f2/1jdgsgubt';
+                s1.charset='UTF-8';
+                s1.setAttribute('crossorigin','*');
+                s0.parentNode.insertBefore(s1,s0);
+              })();
+            `
+          }}
+        />
       </body>
     </html>
   )

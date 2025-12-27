@@ -248,6 +248,74 @@ export async function deleteMedia(id: string) {
   revalidatePath('/admin/media')
 }
 
+// ==================== SEO & CONFIG HELPERS ====================
+
+// Récupérer la configuration SEO complète pour le layout
+export async function getSeoConfig() {
+  const configs = await prisma.siteConfig.findMany()
+
+  const getConfigValue = (key: string, defaultValue: string = '') => {
+    const config = configs.find(c => c.key === key)
+    return config?.value || defaultValue
+  }
+
+  return {
+    siteName: getConfigValue('general.siteName', 'Faith Shop'),
+    tagline: getConfigValue('general.tagline', 'Streetwear avec un message'),
+    metaTitle: getConfigValue('seo.metaTitle', 'Faith Shop - Mode Chrétienne Premium'),
+    metaDescription: getConfigValue('seo.metaDescription', 'Découvrez notre collection de vêtements de qualité.'),
+    keywords: getConfigValue('seo.keywords', 'streetwear, vêtements, mode'),
+    ogImage: getConfigValue('seo.ogImage', ''),
+    logo: getConfigValue('general.logo', ''),
+    favicon: getConfigValue('general.favicon', '/favicon.jpeg'),
+    googleAnalyticsId: getConfigValue('seo.googleAnalyticsId', ''),
+    facebookPixelId: getConfigValue('seo.facebookPixelId', ''),
+  }
+}
+
+// Récupérer la configuration de livraison
+export async function getShippingConfig() {
+  const configs = await prisma.siteConfig.findMany()
+
+  const getConfigValue = (key: string, defaultValue: number | string) => {
+    const config = configs.find(c => c.key === key)
+    if (!config) return defaultValue
+    if (typeof defaultValue === 'number') {
+      return parseFloat(config.value) || defaultValue
+    }
+    return config.value || defaultValue
+  }
+
+  return {
+    freeShippingThreshold: getConfigValue('shipping.freeShippingThreshold', 50) as number,
+    standardShippingPrice: getConfigValue('shipping.standardShippingPrice', 4.95) as number,
+    expressShippingPrice: getConfigValue('shipping.expressShippingPrice', 9.95) as number,
+    processingTime: getConfigValue('shipping.processingTime', '1-2 jours ouvrés') as string,
+  }
+}
+
+// Récupérer la configuration du thème par défaut
+export async function getThemeConfig() {
+  const configs = await prisma.siteConfig.findMany()
+
+  const getConfigValue = (key: string, defaultValue: string | boolean) => {
+    const config = configs.find(c => c.key === key)
+    if (!config) return defaultValue
+    if (typeof defaultValue === 'boolean') {
+      return config.value === 'true'
+    }
+    return config.value || defaultValue
+  }
+
+  return {
+    primaryColor: getConfigValue('theme.primaryColor', '#000000') as string,
+    secondaryColor: getConfigValue('theme.secondaryColor', '#666666') as string,
+    accentColor: getConfigValue('theme.accentColor', '#3b82f6') as string,
+    backgroundColor: getConfigValue('theme.backgroundColor', '#ffffff') as string,
+    darkModeDefault: getConfigValue('theme.darkMode', false) as boolean,
+  }
+}
+
 // ==================== INIT DEFAULT CONFIG ====================
 
 // Initialiser les configurations par défaut

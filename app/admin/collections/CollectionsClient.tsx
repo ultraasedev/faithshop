@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { ImageUpload } from '@/components/admin/common'
 import {
   Dialog,
   DialogContent,
@@ -305,9 +307,11 @@ export function CollectionsClient({ collections, products }: CollectionsClientPr
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => openEditModal(collection)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Modifier
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/collections/${collection.id}/edit`}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Modifier
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => toggleActive(collection.id, collection.isActive)}>
                       {collection.isActive ? (
@@ -473,14 +477,14 @@ function CollectionForm({ formData, setFormData, generateSlug }: CollectionFormP
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Image de couverture</Label>
-        <Input
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-          placeholder="https://..."
-        />
-      </div>
+      <ImageUpload
+        value={formData.image}
+        onChange={(url) => setFormData({ ...formData, image: url })}
+        type="collection"
+        label="Image de couverture"
+        placeholder="Ajouter une image"
+        aspectRatio="video"
+      />
 
       <div className="space-y-4 pt-4 border-t">
         <div className="flex items-center justify-between">

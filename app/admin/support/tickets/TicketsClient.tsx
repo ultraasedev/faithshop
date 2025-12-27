@@ -228,10 +228,10 @@ export function TicketsClient({ tickets, staff, stats, currentUserId }: TicketsC
               const StatusIcon = status.icon
 
               return (
-                <div
+                <Link
                   key={ticket.id}
-                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
-                  onClick={() => setSelectedTicket(ticket)}
+                  href={`/admin/support/tickets/${ticket.id}`}
+                  className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
                   <div className="flex items-start gap-4">
                     <div className={cn(
@@ -309,7 +309,7 @@ export function TicketsClient({ tickets, staff, stats, currentUserId }: TicketsC
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                </div>
+                </Link>
               )
             })}
 

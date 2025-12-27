@@ -7,7 +7,7 @@ import { sendEmail } from '@/lib/email'
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session?.user || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 

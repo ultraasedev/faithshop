@@ -12,15 +12,33 @@ import ShippingBanner from '@/components/banners/ShippingBanner'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
+interface ShippingConfig {
+  freeShippingThreshold: number
+  standardShippingPrice: number
+  expressShippingPrice: number
+  processingTime: string
+}
+
 export default function CheckoutPage() {
   const [clientSecret, setClientSecret] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [shippingConfig, setShippingConfig] = useState<ShippingConfig>({
+    freeShippingThreshold: 50,
+    standardShippingPrice: 4.95,
+    expressShippingPrice: 9.95,
+    processingTime: '1-2 jours ouvrés'
+  })
   const items = useCart((state) => state.items)
   const getTotalPrice = useCart((state) => state.getTotalPrice)
 
   // Fix hydration: wait for client mount
   useEffect(() => {
     setMounted(true)
+    // Fetch shipping config
+    fetch('/api/shipping-config')
+      .then(res => res.json())
+      .then(data => setShippingConfig(data))
+      .catch(err => console.error('Error fetching shipping config:', err))
   }, [])
 
   useEffect(() => {
@@ -256,12 +274,23 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Livraison</span>
-                    <span className="text-green-600 font-medium">Gratuite</span>
+                    {totalPrice >= shippingConfig.freeShippingThreshold ? (
+                      <span className="text-green-600 font-medium">Gratuite</span>
+                    ) : (
+                      <span>{shippingConfig.standardShippingPrice.toFixed(2)} €</span>
+                    )}
                   </div>
+                  {totalPrice < shippingConfig.freeShippingThreshold && (
+                    <p className="text-xs text-muted-foreground">
+                      Plus que {(shippingConfig.freeShippingThreshold - totalPrice).toFixed(2)} € pour la livraison gratuite !
+                    </p>
+                  )}
                   <div className="flex justify-between items-end pt-4 border-t border-gray-100 mt-4">
                     <span className="font-bold text-lg">Total</span>
                     <div className="text-right">
-                      <span className="font-bold text-2xl">{totalPrice.toFixed(2)} €</span>
+                      <span className="font-bold text-2xl">
+                        {(totalPrice + (totalPrice >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardShippingPrice)).toFixed(2)} €
+                      </span>
                       <p className="text-xs text-muted-foreground mt-1">TVA incluse</p>
                     </div>
                   </div>

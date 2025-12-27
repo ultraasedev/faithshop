@@ -39,6 +39,7 @@ interface NavItem {
   href: string
   icon: React.ElementType
   badge?: number
+  requireSuperAdmin?: boolean
 }
 
 interface NavSection {
@@ -47,52 +48,63 @@ interface NavSection {
   collapsible?: boolean
 }
 
-const navigationItems: NavSection[] = [
-  {
-    title: 'Vue d\'ensemble',
-    items: [
-      { name: 'Tableau de bord', href: '/admin', icon: LayoutDashboard },
-      { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
-    ]
-  },
-  {
-    title: 'Commerce',
-    items: [
-      { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
-      { name: 'Produits', href: '/admin/products', icon: Package },
-      { name: 'Collections', href: '/admin/collections', icon: Layers },
-      { name: 'Clients', href: '/admin/customers', icon: Users },
-      { name: 'Promotions', href: '/admin/promotions', icon: Tag },
-    ]
-  },
-  {
-    title: 'Support',
-    items: [
-      { name: 'Tickets', href: '/admin/support/tickets', icon: TicketCheck },
-      { name: 'Retours', href: '/admin/support/returns', icon: RotateCcw },
-    ]
-  },
-  {
-    title: 'Contenu',
-    items: [
-      { name: 'Pages', href: '/admin/pages', icon: FileText },
-      { name: 'Médiathèque', href: '/admin/media', icon: Image },
-      { name: 'Menus', href: '/admin/menus', icon: Navigation },
-    ]
-  },
-  {
-    title: 'Configuration',
-    items: [
-      { name: 'Équipe', href: '/admin/staff', icon: UserCog },
-      { name: 'Paramètres', href: '/admin/settings', icon: Settings },
-    ]
-  }
-]
+const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
+  const allItems: NavSection[] = [
+    {
+      title: 'Vue d\'ensemble',
+      items: [
+        { name: 'Tableau de bord', href: '/admin', icon: LayoutDashboard },
+        { name: 'Analytiques', href: '/admin/analytics', icon: BarChart3 },
+      ]
+    },
+    {
+      title: 'Commerce',
+      items: [
+        { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
+        { name: 'Produits', href: '/admin/products', icon: Package },
+        { name: 'Collections', href: '/admin/collections', icon: Layers },
+        { name: 'Clients', href: '/admin/customers', icon: Users },
+        { name: 'Promotions', href: '/admin/promotions', icon: Tag },
+      ]
+    },
+    {
+      title: 'Support',
+      items: [
+        { name: 'Tickets', href: '/admin/support/tickets', icon: TicketCheck },
+        { name: 'Retours', href: '/admin/support/returns', icon: RotateCcw },
+      ]
+    },
+    {
+      title: 'Contenu',
+      items: [
+        { name: 'Pages', href: '/admin/pages', icon: FileText },
+        { name: 'Médiathèque', href: '/admin/media', icon: Image },
+        { name: 'Menus', href: '/admin/menus', icon: Navigation },
+      ]
+    },
+    {
+      title: 'Configuration',
+      items: [
+        { name: 'Équipe', href: '/admin/staff', icon: UserCog, requireSuperAdmin: true },
+        { name: 'Paramètres', href: '/admin/settings', icon: Settings },
+      ]
+    }
+  ]
+
+  // Filter items based on user role
+  return allItems.map(section => ({
+    ...section,
+    items: section.items.filter(item => !item.requireSuperAdmin || isSuperAdmin)
+  }))
+}
 
 export function AdminSidebar({ session }: AdminSidebarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [collapsedSections, setCollapsedSections] = useState<string[]>([])
   const pathname = usePathname()
+
+  const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN'
+  const navigationItems = getNavigationItems(isSuperAdmin)
 
   const getUserInitials = (name?: string | null) => {
     if (!name) return 'AD'

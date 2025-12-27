@@ -40,12 +40,14 @@ function hexToRgb(hex: string) {
     : '0 0 0'
 }
 
-export function ThemeProvider({ 
+export function ThemeProvider({
   children,
-  themes = []
-}: { 
+  themes = [],
+  defaultDarkMode = false
+}: {
   children: React.ReactNode
   themes?: ThemeConfig[]
+  defaultDarkMode?: boolean
 }) {
   const [theme, setTheme] = useState<Theme>('system')
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
@@ -56,8 +58,11 @@ export function ThemeProvider({
     const savedTheme = localStorage.getItem('theme') as Theme | null
     if (savedTheme) {
       setTheme(savedTheme)
+    } else if (defaultDarkMode) {
+      // If no saved preference and admin set dark mode as default
+      setTheme('dark')
     }
-  }, [])
+  }, [defaultDarkMode])
 
   useEffect(() => {
     if (!mounted) return

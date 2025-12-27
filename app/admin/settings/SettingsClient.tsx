@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { ImageUpload } from '@/components/admin/common'
 import {
   Store,
   Palette,
@@ -201,32 +202,22 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Logo</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={config.general.logo}
-                      onChange={(e) => updateConfig('general', 'logo', e.target.value)}
-                      placeholder="https://..."
-                    />
-                    <Button variant="outline" size="icon">
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Favicon</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={config.general.favicon}
-                      onChange={(e) => updateConfig('general', 'favicon', e.target.value)}
-                      placeholder="https://..."
-                    />
-                    <Button variant="outline" size="icon">
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <ImageUpload
+                  value={config.general.logo}
+                  onChange={(url) => updateConfig('general', 'logo', url)}
+                  type="logo"
+                  label="Logo"
+                  placeholder="Ajouter le logo"
+                  aspectRatio="auto"
+                />
+                <ImageUpload
+                  value={config.general.favicon}
+                  onChange={(url) => updateConfig('general', 'favicon', url)}
+                  type="favicon"
+                  label="Favicon"
+                  placeholder="Ajouter le favicon"
+                  aspectRatio="square"
+                />
               </div>
             </CardContent>
           </Card>
@@ -365,19 +356,14 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>Image Open Graph</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={config.seo.ogImage}
-                    onChange={(e) => updateConfig('seo', 'ogImage', e.target.value)}
-                    placeholder="https://..."
-                  />
-                  <Button variant="outline" size="icon">
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <ImageUpload
+                value={config.seo.ogImage}
+                onChange={(url) => updateConfig('seo', 'ogImage', url)}
+                type="og-image"
+                label="Image Open Graph"
+                placeholder="Image de partage sur les réseaux sociaux (1200x630)"
+                aspectRatio="video"
+              />
             </CardContent>
           </Card>
 
