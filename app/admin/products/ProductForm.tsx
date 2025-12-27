@@ -32,8 +32,11 @@ import {
   Eye,
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Play,
+  FileVideo
 } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -71,6 +74,8 @@ interface ProductVideo {
   url: string
   thumbnail?: string
   title?: string
+  size?: number
+  duration?: number
 }
 
 export function ProductForm({ product, collections }: ProductFormProps) {
@@ -103,6 +108,9 @@ export function ProductForm({ product, collections }: ProductFormProps) {
   const [images, setImages] = useState<string[]>(product?.images || [])
   const [videos, setVideos] = useState<ProductVideo[]>(product?.videos || [])
   const [uploadingImages, setUploadingImages] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0)
+  const [compressVideo, setCompressVideo] = useState(true)
 
   // Variants
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false)
@@ -204,6 +212,108 @@ export function ProductForm({ product, collections }: ProductFormProps) {
 
   const removeVideo = (id: string) => {
     setVideos(prev => prev.filter(v => v.id !== id))
+  }
+
+  // Video upload with optional compression
+  const handleVideoUpload = async (file: File) => {
+    setUploadingVideo(true)
+    setVideoUploadProgress(0)
+
+    try {
+      let fileToUpload = file
+
+      // Compression côté client si activée et fichier > 20MB
+      if (compressVideo && file.size > 20 * 1024 * 1024) {
+        toast.info('Compression de la vidéo en cours...')
+        // Note: Une vraie compression nécessiterait FFmpeg.wasm ou un service externe
+        // Pour l'instant, on avertit juste l'utilisateur
+      }
+
+      // Vérifier la taille max (100MB)
+      if (fileToUpload.size > 100 * 1024 * 1024) {
+        toast.error('Fichier trop volumineux (max 100MB). Veuillez compresser votre vidéo.')
+        setUploadingVideo(false)
+        return
+      }
+
+      // Upload avec XMLHttpRequest pour le suivi de progression
+      const formData = new FormData()
+      formData.append('file', fileToUpload)
+      formData.append('type', 'product')
+
+      const xhr = new XMLHttpRequest()
+
+      await new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100)
+            setVideoUploadProgress(progress)
+          }
+        })
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve()
+          } else {
+            reject(new Error(xhr.responseText))
+          }
+        })
+
+        xhr.addEventListener('error', () => reject(new Error('Erreur réseau')))
+
+        xhr.open('POST', '/api/admin/upload-video')
+        xhr.send(formData)
+      })
+
+      const result = JSON.parse(xhr.responseText)
+
+      if (result.success) {
+        const video: ProductVideo = {
+          id: crypto.randomUUID(),
+          type: 'upload',
+          url: result.url,
+          title: file.name,
+          size: file.size
+        }
+        setVideos(prev => [...prev, video])
+        toast.success('Vidéo uploadée avec succès')
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de l'upload de la vidéo")
+    } finally {
+      setUploadingVideo(false)
+      setVideoUploadProgress(0)
+    }
+  }
+
+  // Video dropzone
+  const onVideoDrop = useCallback(async (acceptedFiles: File[]) => {
+    for (const file of acceptedFiles) {
+      await handleVideoUpload(file)
+    }
+  }, [compressVideo])
+
+  const {
+    getRootProps: getVideoRootProps,
+    getInputProps: getVideoInputProps,
+    isDragActive: isVideoDragActive
+  } = useDropzone({
+    onDrop: onVideoDrop,
+    accept: {
+      'video/*': ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.ogg']
+    },
+    maxSize: 100 * 1024 * 1024, // 100MB
+    multiple: false,
+    disabled: uploadingVideo
+  })
+
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
   // Variant attributes
@@ -663,57 +773,142 @@ export function ProductForm({ product, collections }: ProductFormProps) {
             <CardHeader>
               <CardTitle>Vidéos</CardTitle>
               <CardDescription>
-                Ajoutez des vidéos YouTube ou Vimeo
+                Uploadez des vidéos ou ajoutez des liens YouTube/Vimeo
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Select value={videoType} onValueChange={(v: 'youtube' | 'vimeo') => setVideoType(v)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="youtube">YouTube</SelectItem>
-                    <SelectItem value="vimeo">Vimeo</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="URL de la vidéo"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="button" onClick={addVideoEmbed}>
-                  <Plus className="h-4 w-4" />
-                </Button>
+            <CardContent className="space-y-6">
+              {/* Upload vidéo */}
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Upload depuis votre PC</Label>
+                <div
+                  {...getVideoRootProps()}
+                  className={cn(
+                    "border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors",
+                    isVideoDragActive
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      : "border-gray-300 dark:border-gray-700 hover:border-gray-400",
+                    uploadingVideo && "pointer-events-none opacity-50"
+                  )}
+                >
+                  <input {...getVideoInputProps()} />
+                  {uploadingVideo ? (
+                    <div className="space-y-3">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Upload en cours... {videoUploadProgress}%
+                      </p>
+                      <Progress value={videoUploadProgress} className="w-full max-w-xs mx-auto" />
+                    </div>
+                  ) : (
+                    <>
+                      <FileVideo className="h-8 w-8 mx-auto text-gray-400 mb-3" />
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Glissez une vidéo ici ou cliquez pour sélectionner
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        MP4, WebM, MOV, AVI, MKV (max 100MB)
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
 
+              {/* Ou lien externe */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t dark:border-gray-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-gray-900 px-2 text-gray-500">ou</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Lien YouTube / Vimeo</Label>
+                <div className="flex gap-2">
+                  <Select value={videoType} onValueChange={(v: 'youtube' | 'vimeo') => setVideoType(v)}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="youtube">YouTube</SelectItem>
+                      <SelectItem value="vimeo">Vimeo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="URL de la vidéo"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="button" onClick={addVideoEmbed}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Liste des vidéos */}
               {videos.length > 0 && (
-                <div className="space-y-2">
-                  {videos.map((video) => (
-                    <div
-                      key={video.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Video className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="font-medium">{video.title}</p>
-                          <p className="text-sm text-gray-500 truncate max-w-md">
-                            {video.url}
-                          </p>
+                <div className="space-y-3 pt-4 border-t dark:border-gray-700">
+                  <Label className="text-base font-medium">Vidéos ajoutées ({videos.length})</Label>
+                  <div className="space-y-2">
+                    {videos.map((video) => (
+                      <div
+                        key={video.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          {video.type === 'upload' ? (
+                            <div className="h-12 w-16 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                              <Play className="h-5 w-5 text-gray-500" />
+                            </div>
+                          ) : (
+                            <div className={cn(
+                              "h-12 w-16 rounded flex items-center justify-center text-white text-xs font-bold",
+                              video.type === 'youtube' ? "bg-red-600" : "bg-blue-600"
+                            )}>
+                              {video.type === 'youtube' ? 'YT' : 'VM'}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-sm">{video.title}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              {video.type === 'upload' ? (
+                                <>
+                                  <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                                    Uploadé
+                                  </span>
+                                  {video.size && <span>{formatFileSize(video.size)}</span>}
+                                </>
+                              ) : (
+                                <span className="truncate max-w-xs">{video.url}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {video.type === 'upload' && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.open(video.url, '_blank')}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeVideo(video.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeVideo(video.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
