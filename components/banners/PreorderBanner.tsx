@@ -1,51 +1,18 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Clock, Calendar } from 'lucide-react'
-import { prisma } from '@/lib/prisma'
 
 interface PreorderBannerProps {
   className?: string
   currentPage?: 'product' | 'checkout' | 'shop' | 'home'
 }
 
-async function getPreorderConfig() {
-  try {
-    const configs = await prisma.siteConfig.findMany({
-      where: {
-        key: {
-          in: ['preorder_enabled', 'preorder_message', 'preorder_shipping_date', 'preorder_show_pages']
-        }
-      }
-    })
-
-    const configMap = configs.reduce((acc, config) => {
-      let value = config.value
-      if (config.type === 'boolean') {
-        value = config.value === 'true'
-      } else if (config.type === 'json') {
-        try {
-          value = JSON.parse(config.value)
-        } catch {
-          value = config.value
-        }
-      }
-      acc[config.key] = value
-      return acc
-    }, {} as Record<string, any>)
-
-    return {
-      enabled: configMap.preorder_enabled ?? false,
-      message: configMap.preorder_message ?? 'Expédition le 16 janvier 2025',
-      shippingDate: configMap.preorder_shipping_date ?? '2025-01-16',
-      showPages: configMap.preorder_show_pages ?? ['product', 'checkout']
-    }
-  } catch (error) {
-    console.error('Erreur lors de la récupération de la config pré-commande:', error)
-    return {
-      enabled: false,
-      message: 'Expédition le 16 janvier 2025',
-      shippingDate: '2025-01-16',
-      showPages: ['product', 'checkout']
-    }
-  }
+interface PreorderConfig {
+  enabled: boolean
+  message: string
+  shippingDate: string
+  showPages: string[]
 }
 
 function formatShippingDate(dateString: string): string {
@@ -61,14 +28,46 @@ function formatShippingDate(dateString: string): string {
   }
 }
 
-export default async function PreorderBanner({
+export default function PreorderBanner({
   className = "",
   currentPage = 'product'
 }: PreorderBannerProps) {
-  const config = await getPreorderConfig()
+  const [config, setConfig] = useState<PreorderConfig | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Ne pas afficher si pas activé ou pas sur les bonnes pages
-  if (!config.enabled || !config.showPages.includes(currentPage)) {
+  useEffect(() => {
+    async function fetchConfig() {
+      try {
+        const res = await fetch('/api/admin/preorder-config')
+        if (res.ok) {
+          const data = await res.json()
+          setConfig(data)
+        } else {
+          // Default config if API fails
+          setConfig({
+            enabled: false,
+            message: 'Expédition le 16 janvier 2025',
+            shippingDate: '2025-01-16',
+            showPages: ['product', 'checkout']
+          })
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération de la config pré-commande:', error)
+        setConfig({
+          enabled: false,
+          message: 'Expédition le 16 janvier 2025',
+          shippingDate: '2025-01-16',
+          showPages: ['product', 'checkout']
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchConfig()
+  }, [])
+
+  // Don't render while loading or if not enabled or not on right pages
+  if (loading || !config || !config.enabled || !config.showPages.includes(currentPage)) {
     return null
   }
 
@@ -91,7 +90,7 @@ export default async function PreorderBanner({
           </div>
 
           <div className="hidden md:flex items-center gap-2 text-xs text-amber-600 bg-amber-100 px-3 py-1 rounded-full">
-            <span>Commandez maintenant • Expédition {formattedDate}</span>
+            <span>Commandez maintenant - Expédition {formattedDate}</span>
           </div>
         </div>
       </div>

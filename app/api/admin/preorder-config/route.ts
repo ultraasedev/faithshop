@@ -2,14 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 
-// GET - Récupérer la configuration de pré-commande
+// GET - Récupérer la configuration de pré-commande (public)
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
-    }
-
+    // Public endpoint - no auth required for reading preorder config
     const configs = await prisma.siteConfig.findMany({
       where: {
         key: {
@@ -46,11 +42,11 @@ export async function GET() {
   }
 }
 
-// POST - Mettre à jour la configuration de pré-commande
+// POST - Mettre à jour la configuration de pré-commande (admin only)
 export async function POST(request: NextRequest) {
   try {
     const session = await auth()
-    if (!session?.user || session.user.role !== 'ADMIN') {
+    if (!session?.user || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
