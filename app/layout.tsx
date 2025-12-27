@@ -15,6 +15,7 @@ const playfair = Playfair_Display({
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import SessionProvider from '@/components/SessionProvider'
+import { TawktoWidget } from '@/components/TawktoWidget'
 
 import { getThemes, getSeoConfig, getThemeConfig } from '@/app/actions/admin/settings'
 
@@ -103,6 +104,21 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
+        {/* Prevent theme flash - must be first */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (theme === 'dark' || (!theme && ${defaultDarkMode})) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch (e) {}
+              })();
+            `
+          }}
+        />
         {/* Données structurées pour IA et SEO */}
         {structuredData && (
           <script
@@ -166,23 +182,8 @@ export default async function RootLayout({
           </ThemeProvider>
         </SessionProvider>
 
-        {/* Tawk.to Live Chat Widget */}
-        <Script
-          id="tawk-to"
-          strategy="afterInteractive"
-        >
-          {`
-            var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-            (function(){
-              var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-              s1.async=true;
-              s1.src='https://embed.tawk.to/695054165823b7197c1541f2/1jdgsgubt';
-              s1.charset='UTF-8';
-              s1.setAttribute('crossorigin','*');
-              s0.parentNode.insertBefore(s1,s0);
-            })();
-          `}
-        </Script>
+        {/* Tawk.to Live Chat Widget - Hidden on admin */}
+        <TawktoWidget />
       </body>
     </html>
   )
