@@ -49,23 +49,34 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('Erreur upload image:', error)
+    console.error('=== UPLOAD IMAGE ERROR ===')
+    console.error('Error name:', error?.name)
+    console.error('Error message:', error?.message)
+    console.error('Error code:', error?.code)
+    console.error('Error stack:', error?.stack)
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
 
-    // Provide more specific error messages
-    if (error.message?.includes('BLOB_READ_WRITE_TOKEN')) {
+    // Check for common Vercel Blob errors
+    if (error.message?.includes('BLOB_READ_WRITE_TOKEN') || error.message?.includes('token')) {
       return NextResponse.json({
-        error: 'Storage non configuré. Ajoutez BLOB_READ_WRITE_TOKEN.'
+        error: 'Token Blob invalide ou expiré. Vérifiez BLOB_READ_WRITE_TOKEN.'
       }, { status: 500 })
     }
 
-    if (error.message?.includes('network') || error.code === 'ENOTFOUND') {
+    if (error.message?.includes('network') || error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
       return NextResponse.json({
-        error: 'Erreur réseau. Vérifiez votre connexion.'
+        error: 'Erreur réseau vers Vercel Blob.'
+      }, { status: 500 })
+    }
+
+    if (error.message?.includes('size') || error.message?.includes('too large')) {
+      return NextResponse.json({
+        error: 'Fichier trop volumineux pour Vercel Blob.'
       }, { status: 500 })
     }
 
     return NextResponse.json({
-      error: error.message || 'Erreur lors de l\'upload'
+      error: error.message || 'Erreur inconnue lors de l\'upload'
     }, { status: 500 })
   }
 }
