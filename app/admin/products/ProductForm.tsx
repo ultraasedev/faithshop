@@ -147,12 +147,12 @@ export function ProductForm({ product, collections }: ProductFormProps) {
       .replace(/(^-|-$)/g, '')
   }
 
-  // Image upload
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    setUploadingImages(true)
+  // Upload with retry mechanism
+  const uploadWithRetry = async (file: File, maxRetries = 3): Promise<string> => {
+    let lastError: Error | null = null
 
-    try {
-      const uploadPromises = acceptedFiles.map(async (file) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
         const formData = new FormData()
         formData.append('file', file)
         formData.append('type', 'product')
@@ -162,20 +162,54 @@ export function ProductForm({ product, collections }: ProductFormProps) {
           body: formData,
         })
 
-        if (!response.ok) throw new Error('Upload failed')
-
         const data = await response.json()
-        return data.url
-      })
 
-      const urls = await Promise.all(uploadPromises)
-      setImages(prev => [...prev, ...urls])
-      toast.success(`${urls.length} image(s) uploadée(s)`)
-    } catch (error) {
-      toast.error("Erreur lors de l'upload des images")
-    } finally {
-      setUploadingImages(false)
+        if (!response.ok) {
+          throw new Error(data.error || 'Upload failed')
+        }
+
+        return data.url
+      } catch (error: any) {
+        lastError = error
+        console.warn(`Upload attempt ${attempt}/${maxRetries} failed:`, error.message)
+
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff: 1s, 2s, 4s...)
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)))
+        }
+      }
     }
+
+    throw lastError || new Error('Upload failed after retries')
+  }
+
+  // Image upload
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setUploadingImages(true)
+
+    const successUrls: string[] = []
+    const failedFiles: string[] = []
+
+    for (const file of acceptedFiles) {
+      try {
+        const url = await uploadWithRetry(file)
+        successUrls.push(url)
+      } catch (error: any) {
+        console.error(`Failed to upload ${file.name}:`, error)
+        failedFiles.push(file.name)
+      }
+    }
+
+    if (successUrls.length > 0) {
+      setImages(prev => [...prev, ...successUrls])
+      toast.success(`${successUrls.length} image(s) uploadée(s)`)
+    }
+
+    if (failedFiles.length > 0) {
+      toast.error(`Échec: ${failedFiles.join(', ')}. Vérifiez votre connexion.`)
+    }
+
+    setUploadingImages(false)
   }, [])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -214,78 +248,92 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     setVideos(prev => prev.filter(v => v.id !== id))
   }
 
-  // Video upload with optional compression
-  const handleVideoUpload = async (file: File) => {
+  // Video upload with retry mechanism
+  const handleVideoUpload = async (file: File, maxRetries = 3) => {
     setUploadingVideo(true)
     setVideoUploadProgress(0)
 
-    try {
-      let fileToUpload = file
-
-      // Compression côté client si activée et fichier > 20MB
-      if (compressVideo && file.size > 20 * 1024 * 1024) {
-        toast.info('Compression de la vidéo en cours...')
-        // Note: Une vraie compression nécessiterait FFmpeg.wasm ou un service externe
-        // Pour l'instant, on avertit juste l'utilisateur
-      }
-
-      // Vérifier la taille max (100MB)
-      if (fileToUpload.size > 100 * 1024 * 1024) {
-        toast.error('Fichier trop volumineux (max 100MB). Veuillez compresser votre vidéo.')
-        setUploadingVideo(false)
-        return
-      }
-
-      // Upload avec XMLHttpRequest pour le suivi de progression
-      const formData = new FormData()
-      formData.append('file', fileToUpload)
-      formData.append('type', 'product')
-
-      const xhr = new XMLHttpRequest()
-
-      await new Promise<void>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const progress = Math.round((event.loaded / event.total) * 100)
-            setVideoUploadProgress(progress)
-          }
-        })
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve()
-          } else {
-            reject(new Error(xhr.responseText))
-          }
-        })
-
-        xhr.addEventListener('error', () => reject(new Error('Erreur réseau')))
-
-        xhr.open('POST', '/api/admin/upload-video')
-        xhr.send(formData)
-      })
-
-      const result = JSON.parse(xhr.responseText)
-
-      if (result.success) {
-        const video: ProductVideo = {
-          id: crypto.randomUUID(),
-          type: 'upload',
-          url: result.url,
-          title: file.name,
-          size: file.size
-        }
-        setVideos(prev => [...prev, video])
-        toast.success('Vidéo uploadée avec succès')
-      } else {
-        throw new Error(result.error)
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de l'upload de la vidéo")
-    } finally {
+    // Vérifier la taille max (100MB)
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux (max 100MB). Veuillez compresser votre vidéo.')
       setUploadingVideo(false)
-      setVideoUploadProgress(0)
+      return
     }
+
+    let lastError: Error | null = null
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 1) {
+          toast.info(`Nouvelle tentative (${attempt}/${maxRetries})...`)
+          setVideoUploadProgress(0)
+        }
+
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('type', 'product')
+
+        const xhr = new XMLHttpRequest()
+
+        await new Promise<void>((resolve, reject) => {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+              const progress = Math.round((event.loaded / event.total) * 100)
+              setVideoUploadProgress(progress)
+            }
+          })
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve()
+            } else {
+              try {
+                const errorData = JSON.parse(xhr.responseText)
+                reject(new Error(errorData.error || 'Upload failed'))
+              } catch {
+                reject(new Error('Upload failed'))
+              }
+            }
+          })
+
+          xhr.addEventListener('error', () => reject(new Error('Erreur réseau')))
+          xhr.addEventListener('abort', () => reject(new Error('Upload annulé')))
+
+          xhr.open('POST', '/api/admin/upload-video')
+          xhr.send(formData)
+        })
+
+        const result = JSON.parse(xhr.responseText)
+
+        if (result.success) {
+          const video: ProductVideo = {
+            id: crypto.randomUUID(),
+            type: 'upload',
+            url: result.url,
+            title: file.name,
+            size: file.size
+          }
+          setVideos(prev => [...prev, video])
+          toast.success('Vidéo uploadée avec succès')
+          return // Success, exit the retry loop
+        } else {
+          throw new Error(result.error)
+        }
+      } catch (error: any) {
+        lastError = error
+        console.warn(`Video upload attempt ${attempt}/${maxRetries} failed:`, error.message)
+
+        if (attempt < maxRetries) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        }
+      }
+    }
+
+    // All retries failed
+    toast.error(lastError?.message || "Erreur lors de l'upload. Vérifiez votre connexion.")
+    setUploadingVideo(false)
+    setVideoUploadProgress(0)
   }
 
   // Video dropzone
