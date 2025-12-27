@@ -9,6 +9,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    // Check if Vercel Blob is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not configured')
+      return NextResponse.json({
+        error: 'Storage non configuré. Contactez l\'administrateur.'
+      }, { status: 500 })
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const type = formData.get('type') as string
@@ -28,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Upload vers Vercel Blob
-    const filename = `${type}-${Date.now()}-${file.name}`
+    const filename = `images/${type}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
     const blob = await put(filename, file, {
       access: 'public',
       contentType: file.type
@@ -40,8 +48,24 @@ export async function POST(request: NextRequest) {
       filename: blob.pathname
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur upload image:', error)
-    return NextResponse.json({ error: 'Erreur lors de l\'upload' }, { status: 500 })
+
+    // Provide more specific error messages
+    if (error.message?.includes('BLOB_READ_WRITE_TOKEN')) {
+      return NextResponse.json({
+        error: 'Storage non configuré. Ajoutez BLOB_READ_WRITE_TOKEN.'
+      }, { status: 500 })
+    }
+
+    if (error.message?.includes('network') || error.code === 'ENOTFOUND') {
+      return NextResponse.json({
+        error: 'Erreur réseau. Vérifiez votre connexion.'
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      error: error.message || 'Erreur lors de l\'upload'
+    }, { status: 500 })
   }
 }

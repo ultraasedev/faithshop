@@ -13,7 +13,12 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800 p-1",
+      // Mobile-first: scrollable horizontally, full width
+      "flex w-full overflow-x-auto scrollbar-hide",
+      "h-auto min-h-[40px] items-center gap-1",
+      "rounded-md bg-gray-100 dark:bg-gray-800 p-1",
+      // Desktop: inline and centered
+      "md:inline-flex md:h-10 md:w-auto md:justify-center md:overflow-visible",
       className
     )}
     {...props}
@@ -28,11 +33,17 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
+      // Mobile-first: smaller padding, flexible sizing
+      "inline-flex items-center justify-center whitespace-nowrap rounded-sm",
+      "px-2 py-1.5 text-xs font-medium transition-all flex-shrink-0",
+      // Desktop: larger padding and text
+      "md:px-3 md:py-1.5 md:text-sm",
+      // Colors
       "text-gray-600 dark:text-gray-300",
       "hover:text-gray-900 dark:hover:text-white",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",
+      // Active state
       "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900",
       "data-[state=active]:text-gray-900 dark:data-[state=active]:text-white",
       "data-[state=active]:shadow-sm",
