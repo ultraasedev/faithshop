@@ -78,6 +78,16 @@ interface ProductVideo {
   duration?: number
 }
 
+// Pending image with local preview
+interface PendingImage {
+  id: string
+  localUrl: string
+  file: File
+  status: 'uploading' | 'success' | 'error'
+  remoteUrl?: string
+  error?: string
+}
+
 export function ProductForm({ product, collections }: ProductFormProps) {
   const router = useRouter()
   const isEditing = !!product
@@ -106,6 +116,7 @@ export function ProductForm({ product, collections }: ProductFormProps) {
 
   // Media
   const [images, setImages] = useState<string[]>(product?.images || [])
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
   const [videos, setVideos] = useState<ProductVideo[]>(product?.videos || [])
   const [uploadingImages, setUploadingImages] = useState(false)
   const [uploadingVideo, setUploadingVideo] = useState(false)
@@ -183,34 +194,100 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     throw lastError || new Error('Upload failed after retries')
   }
 
-  // Image upload
+  // Image upload with instant preview
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return
+
+    // Create pending images with local preview URLs immediately
+    const newPendingImages: PendingImage[] = acceptedFiles.map(file => ({
+      id: crypto.randomUUID(),
+      localUrl: URL.createObjectURL(file),
+      file,
+      status: 'uploading' as const
+    }))
+
+    setPendingImages(prev => [...prev, ...newPendingImages])
     setUploadingImages(true)
 
-    const successUrls: string[] = []
-    const failedFiles: string[] = []
-
-    for (const file of acceptedFiles) {
+    // Upload all images in parallel
+    const uploadPromises = newPendingImages.map(async (pending) => {
       try {
-        const url = await uploadWithRetry(file)
-        successUrls.push(url)
+        const url = await uploadWithRetry(pending.file)
+
+        // Update pending image status
+        setPendingImages(prev => prev.map(p =>
+          p.id === pending.id
+            ? { ...p, status: 'success' as const, remoteUrl: url }
+            : p
+        ))
+
+        // Add to final images and remove from pending after short delay
+        setTimeout(() => {
+          setImages(prev => [...prev, url])
+          setPendingImages(prev => prev.filter(p => p.id !== pending.id))
+          // Cleanup blob URL
+          URL.revokeObjectURL(pending.localUrl)
+        }, 500) // Brief delay to show success state
+
+        return { success: true, file: pending.file.name }
       } catch (error: any) {
-        console.error(`Failed to upload ${file.name}:`, error)
-        failedFiles.push(file.name)
+        // Update pending image with error
+        setPendingImages(prev => prev.map(p =>
+          p.id === pending.id
+            ? { ...p, status: 'error' as const, error: error.message }
+            : p
+        ))
+        return { success: false, file: pending.file.name, error: error.message }
       }
+    })
+
+    const results = await Promise.all(uploadPromises)
+
+    const successCount = results.filter(r => r.success).length
+    const failedResults = results.filter(r => !r.success)
+
+    if (successCount > 0) {
+      toast.success(`${successCount} image(s) uploadée(s)`)
     }
 
-    if (successUrls.length > 0) {
-      setImages(prev => [...prev, ...successUrls])
-      toast.success(`${successUrls.length} image(s) uploadée(s)`)
-    }
-
-    if (failedFiles.length > 0) {
-      toast.error(`Échec: ${failedFiles.join(', ')}. Vérifiez votre connexion.`)
+    if (failedResults.length > 0) {
+      toast.error(`Échec: ${failedResults.map(r => r.file).join(', ')}`)
     }
 
     setUploadingImages(false)
   }, [])
+
+  // Retry failed pending image
+  const retryPendingImage = async (pendingId: string) => {
+    const pending = pendingImages.find(p => p.id === pendingId)
+    if (!pending) return
+
+    setPendingImages(prev => prev.map(p =>
+      p.id === pendingId ? { ...p, status: 'uploading' as const, error: undefined } : p
+    ))
+
+    try {
+      const url = await uploadWithRetry(pending.file)
+      setImages(prev => [...prev, url])
+      setPendingImages(prev => prev.filter(p => p.id !== pendingId))
+      URL.revokeObjectURL(pending.localUrl)
+      toast.success('Image uploadée')
+    } catch (error: any) {
+      setPendingImages(prev => prev.map(p =>
+        p.id === pendingId ? { ...p, status: 'error' as const, error: error.message } : p
+      ))
+      toast.error('Échec de l\'upload')
+    }
+  }
+
+  // Remove failed pending image
+  const removePendingImage = (pendingId: string) => {
+    const pending = pendingImages.find(p => p.id === pendingId)
+    if (pending) {
+      URL.revokeObjectURL(pending.localUrl)
+    }
+    setPendingImages(prev => prev.filter(p => p.id !== pendingId))
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -780,11 +857,12 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                 )}
               </div>
 
-              {images.length > 0 && (
-                <div className="grid grid-cols-4 gap-4">
+              {(images.length > 0 || pendingImages.length > 0) && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {/* Uploaded images */}
                   {images.map((url, index) => (
                     <div
-                      key={index}
+                      key={`uploaded-${index}`}
                       className={cn(
                         "relative aspect-square rounded-lg overflow-hidden border-2",
                         index === 0
@@ -810,6 +888,73 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                       >
                         <X className="h-4 w-4" />
                       </button>
+                    </div>
+                  ))}
+
+                  {/* Pending images (uploading, success, or error) */}
+                  {pendingImages.map((pending) => (
+                    <div
+                      key={pending.id}
+                      className={cn(
+                        "relative aspect-square rounded-lg overflow-hidden border-2",
+                        pending.status === 'uploading' && "border-blue-400 dark:border-blue-500",
+                        pending.status === 'success' && "border-green-400 dark:border-green-500",
+                        pending.status === 'error' && "border-red-400 dark:border-red-500"
+                      )}
+                    >
+                      {/* Local preview image - using img tag for blob URLs */}
+                      <img
+                        src={pending.localUrl}
+                        alt="Uploading..."
+                        className={cn(
+                          "absolute inset-0 w-full h-full object-cover transition-opacity",
+                          pending.status === 'uploading' && "opacity-70"
+                        )}
+                      />
+
+                      {/* Status overlay */}
+                      <div className={cn(
+                        "absolute inset-0 flex items-center justify-center",
+                        pending.status === 'uploading' && "bg-black/30",
+                        pending.status === 'success' && "bg-green-500/20",
+                        pending.status === 'error' && "bg-red-500/30"
+                      )}>
+                        {pending.status === 'uploading' && (
+                          <div className="flex flex-col items-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-white" />
+                            <span className="text-white text-xs mt-1 font-medium">Upload...</span>
+                          </div>
+                        )}
+                        {pending.status === 'success' && (
+                          <CheckCircle className="h-8 w-8 text-green-500" />
+                        )}
+                        {pending.status === 'error' && (
+                          <div className="flex flex-col items-center gap-1">
+                            <AlertCircle className="h-6 w-6 text-red-500" />
+                            <span className="text-white text-xs bg-red-500 px-1 rounded">Échec</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Error actions */}
+                      {pending.status === 'error' && (
+                        <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => retryPendingImage(pending.id)}
+                            className="flex-1 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            Réessayer
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removePendingImage(pending.id)}
+                            className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
