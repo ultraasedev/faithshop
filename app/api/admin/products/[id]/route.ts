@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 
@@ -19,7 +19,10 @@ export async function GET(
       include: {
         collections: {
           include: { collection: true }
-        }
+        },
+        videos: true,
+        variants: true,
+        variantAttributes: true
       }
     })
 
@@ -47,17 +50,19 @@ export async function PUT(
     const { id } = await params
     const data = await request.json()
 
-    // First, delete existing collection associations
-    await prisma.productCollection.deleteMany({
-      where: { productId: id }
-    })
+    // Delete existing relations first
+    await Promise.all([
+      prisma.productCollection.deleteMany({ where: { productId: id } }),
+      prisma.productVideo.deleteMany({ where: { productId: id } }),
+      prisma.variantAttribute.deleteMany({ where: { productId: id } }),
+    ])
 
     // Mise à jour dans la base de données locale
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
         name: data.name,
-        description: data.description,
+        description: data.description || '',
         price: data.price,
         comparePrice: data.comparePrice,
         sku: data.sku,
@@ -76,15 +81,37 @@ export async function PUT(
         metaDescription: data.metaDescription,
         slug: data.slug,
         hasVariants: data.hasVariants ?? false,
-        variantAttributes: data.variantAttributes || [],
-        variants: data.variants || [],
-        videos: data.videos || [],
         // Recreate collection associations
-        collections: {
-          create: (data.collections || []).map((collectionId: string) => ({
-            collection: { connect: { id: collectionId } }
+        collections: data.collections?.length > 0 ? {
+          create: data.collections.map((collectionId: string, index: number) => ({
+            collectionId,
+            sortOrder: index
           }))
-        }
+        } : undefined,
+        // Recreate videos
+        videos: data.videos?.length > 0 ? {
+          create: data.videos.map((video: any, index: number) => ({
+            type: video.type,
+            url: video.url,
+            thumbnail: video.thumbnail,
+            title: video.title,
+            sortOrder: index
+          }))
+        } : undefined,
+        // Recreate variant attributes
+        variantAttributes: data.variantAttributes?.length > 0 ? {
+          create: data.variantAttributes.map((attr: any, index: number) => ({
+            name: attr.name,
+            values: attr.values,
+            sortOrder: index
+          }))
+        } : undefined
+      },
+      include: {
+        collections: { include: { collection: true } },
+        videos: true,
+        variants: true,
+        variantAttributes: true
       }
     })
 
@@ -125,10 +152,10 @@ export async function PUT(
       message: 'Produit mis à jour avec succès'
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erreur lors de la mise à jour du produit:', error)
     return NextResponse.json({
-      error: 'Erreur serveur lors de la mise à jour'
+      error: error.message || 'Erreur serveur lors de la mise à jour'
     }, { status: 500 })
   }
 }
