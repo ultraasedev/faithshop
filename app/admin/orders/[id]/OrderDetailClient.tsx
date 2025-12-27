@@ -98,6 +98,28 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
   const [adminNote, setAdminNote] = useState(order.adminNote || '')
   const [savingNote, setSavingNote] = useState(false)
 
+  // Confirmation dialog for delivered status
+  const [deliverConfirmOpen, setDeliverConfirmOpen] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+
+  const handleStatusChange = (newStatus: string) => {
+    // Si c'est "Livré", demander confirmation car c'est définitif
+    if (newStatus === 'DELIVERED') {
+      setPendingStatus(newStatus)
+      setDeliverConfirmOpen(true)
+      return
+    }
+    updateOrderStatus(newStatus)
+  }
+
+  const confirmDelivery = () => {
+    if (pendingStatus) {
+      updateOrderStatus(pendingStatus)
+    }
+    setDeliverConfirmOpen(false)
+    setPendingStatus(null)
+  }
+
   const updateOrderStatus = async (newStatus: string) => {
     setUpdating(true)
     try {
@@ -413,7 +435,7 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                       key={s.value}
                       variant={isActive ? 'default' : 'outline'}
                       size="sm"
-                      onClick={() => updateOrderStatus(s.value)}
+                      onClick={() => handleStatusChange(s.value)}
                       disabled={updating || isActive}
                       className={cn(
                         !isActive && s.color
@@ -659,6 +681,50 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
           </Card>
         </div>
       </div>
+
+      {/* Confirmation Dialog for Delivered Status */}
+      <Dialog open={deliverConfirmOpen} onOpenChange={setDeliverConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Confirmer la livraison
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est définitive. Une fois marquée comme livrée, la commande ne pourra plus être modifiée.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Attention :</strong> Marquer cette commande comme livrée enverra automatiquement une notification au client et figera le statut de la commande.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeliverConfirmOpen(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={confirmDelivery}
+              disabled={updating}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {updating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirmation...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirmer la livraison
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
