@@ -299,3 +299,137 @@ export async function sendShippingEmail(
 
   return sendEmail(to, `Ta commande #${orderNumber} est en route !`, emailLayout(content))
 }
+
+// Email de remboursement
+export async function sendRefundEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  amount: number,
+  type: 'total' | 'partiel'
+) {
+  const firstName = name?.split(' ')[0] || 'Client'
+
+  const content = `
+    <div class="content">
+      <h2>Remboursement ${type === 'total' ? 'effectué' : 'partiel effectué'}</h2>
+
+      <p>Bonjour ${firstName},</p>
+
+      <p>Nous avons bien traité le remboursement de ta commande <strong>#${orderNumber}</strong>.</p>
+
+      <div class="highlight-box">
+        <p style="margin: 0;">
+          <strong>Montant remboursé :</strong> ${amount.toFixed(2)} €<br>
+          <strong>Type :</strong> Remboursement ${type}
+        </p>
+      </div>
+
+      <p>Le montant sera crédité sur ton moyen de paiement d'origine dans un délai de 5 à 10 jours ouvrés, selon ta banque.</p>
+
+      ${type === 'partiel' ? `
+        <p style="font-size: 14px; color: #666;">
+          Note : Comme il s'agit d'un remboursement partiel, le reste de ta commande reste inchangé.
+        </p>
+      ` : ''}
+
+      <div class="divider"></div>
+
+      <p>Si tu as des questions, n'hésite pas à nous contacter.</p>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/contact" class="button">Nous contacter</a>
+      </div>
+
+      <p style="margin-top: 30px;">L'équipe Faith Shop</p>
+    </div>
+  `
+
+  return sendEmail(to, `Remboursement de ta commande #${orderNumber}`, emailLayout(content))
+}
+
+// Email de livraison effectuée
+export async function sendDeliveryConfirmationEmail(
+  to: string,
+  name: string,
+  orderNumber: string
+) {
+  const firstName = name?.split(' ')[0] || 'Client'
+
+  const content = `
+    <div class="content">
+      <h2>Ta commande a été livrée !</h2>
+
+      <p>Bonjour ${firstName},</p>
+
+      <p>Ta commande <strong>#${orderNumber}</strong> a bien été livrée.</p>
+
+      <p>Nous espérons que tu es satisfait(e) de tes achats ! Ton avis compte beaucoup pour nous.</p>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/account/orders" class="button">Donner mon avis</a>
+      </div>
+
+      <div class="highlight-box">
+        <p style="margin: 0; font-style: italic;">
+          "Revêtez-vous du Seigneur Jésus Christ" — Romains 13:14
+        </p>
+      </div>
+
+      <div class="divider"></div>
+
+      <p>Merci de ta confiance,<br><strong>L'équipe Faith Shop</strong></p>
+    </div>
+  `
+
+  return sendEmail(to, `Ta commande #${orderNumber} a été livrée !`, emailLayout(content))
+}
+
+// Email de demande de retour
+export async function sendReturnRequestEmail(
+  to: string,
+  name: string,
+  orderNumber: string,
+  returnNumber: string
+) {
+  const firstName = name?.split(' ')[0] || 'Client'
+
+  const content = `
+    <div class="content">
+      <h2>Demande de retour reçue</h2>
+
+      <p>Bonjour ${firstName},</p>
+
+      <p>Nous avons bien reçu ta demande de retour pour la commande <strong>#${orderNumber}</strong>.</p>
+
+      <div class="highlight-box">
+        <p style="margin: 0;">
+          <strong>Numéro de retour :</strong> ${returnNumber}<br>
+          <strong>Statut :</strong> En attente de validation
+        </p>
+      </div>
+
+      <p>Notre équipe va examiner ta demande et te répondra sous 48 heures ouvrées.</p>
+
+      <p><strong>Prochaines étapes :</strong></p>
+      <ol style="color: #666; font-size: 14px;">
+        <li>Nous validons ta demande de retour</li>
+        <li>Tu reçois une étiquette de retour prépayée</li>
+        <li>Tu déposes ton colis chez le transporteur</li>
+        <li>Nous te remboursons dès réception du colis</li>
+      </ol>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/account/returns" class="button">Suivre mon retour</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <p>Si tu as des questions, n'hésite pas à nous contacter.</p>
+
+      <p>L'équipe Faith Shop</p>
+    </div>
+  `
+
+  return sendEmail(to, `Demande de retour #${returnNumber} reçue`, emailLayout(content))
+}

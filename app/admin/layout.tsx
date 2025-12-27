@@ -1,43 +1,45 @@
-import { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { AdminNavigation } from '@/components/admin/AdminNavigation'
+import { AdminSidebar } from '@/components/admin/layout/AdminSidebar'
+import { AdminHeader } from '@/components/admin/layout/AdminHeader'
 
-export const metadata: Metadata = {
-  title: 'Administration - Faith Shop',
-  description: 'Panel d\'administration Faith Shop',
-  robots: 'noindex, nofollow'
+export const dynamic = 'force-dynamic'
+
+export const metadata = {
+  title: 'Admin - Faith Shop',
+  description: 'Panneau d\'administration Faith Shop',
 }
 
 export default async function AdminLayout({
-  children
+  children,
 }: {
   children: React.ReactNode
 }) {
   const session = await auth()
 
-  if (!session?.user?.email) {
+  if (!session?.user) {
     redirect('/login?callbackUrl=/admin')
   }
 
-  // Check if user is admin
-  const isAdmin = session.user.email === 'admin@faith-shop.fr' ||
-                  (session.user as any)?.role === 'ADMIN'
-
-  if (!isAdmin) {
+  if (session.user.role !== 'ADMIN' && session.user.role !== 'SUPER_ADMIN') {
     redirect('/')
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <AdminNavigation session={session} />
-      <main className="lg:ml-64">
-        <div className="p-4 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </div>
-      </main>
+      {/* Sidebar */}
+      <AdminSidebar session={session} />
+
+      {/* Main content */}
+      <div className="lg:pl-64">
+        {/* Header */}
+        <AdminHeader session={session} />
+
+        {/* Page content */}
+        <main className="py-8 px-4 sm:px-6 lg:px-8">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

@@ -295,6 +295,10 @@ body {
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --tooltip-bg: #ffffff;
+  --tooltip-border: #e5e7eb;
+  --tooltip-color: #111827;
+  --chart-grid: #e5e7eb;
   --card: #ffffff;
   --card-foreground: #171717;
   --popover: #ffffff;
@@ -318,6 +322,10 @@ body {
 .dark {
   --background: #0a0a0a;
   --foreground: #fafafa;
+  --tooltip-bg: #1f2937;
+  --tooltip-border: #374151;
+  --tooltip-color: #f9fafb;
+  --chart-grid: #374151;
   --card: #171717;
   --card-foreground: #fafafa;
   --popover: #171717;

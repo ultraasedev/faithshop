@@ -75,6 +75,36 @@ enum RefundStatus {
   CANCELLED
 }
 
+enum ProductType {
+  IN_STOCK
+  PRINT_ON_DEMAND
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  IN_TRANSIT
+  RECEIVED
+  REFUNDED
+  COMPLETED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
 // ==================== USER ====================
 
 model User {
@@ -123,6 +153,17 @@ model User {
   abandonedCarts      AbandonedCart[]
   segmentMemberships  SegmentUser[]
   createdCampaigns    Campaign[]      @relation("CreatedCampaigns")
+
+  // Support & Returns
+  handledReturns    Return[]          @relation("ReturnHandler")
+  supportTickets    SupportTicket[]   @relation("UserTickets")
+  assignedTickets   SupportTicket[]   @relation("TicketAssignee")
+  ticketMessages    TicketMessage[]
+  activityLogs      ActivityLog[]
+
+  // Last activity tracking
+  lastLoginAt DateTime?
+  lastLoginIp String?
 }
 
 // ==================== ADDRESS ====================
@@ -239,13 +280,29 @@ model Product {
   // Type de variantes
   hasVariants Boolean @default(false) // Si le produit a des variantes complexes
 
+  // Type de produit (stock ou print-on-demand)
+  productType     ProductType @default(IN_STOCK)
+  printProvider   String?     // Printful, Printify, fournisseur propre
+  printProviderId String?     // ID externe chez le fournisseur
+
+  // SEO avancé
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  ogImage         String?
+  ogTitle         String?
+  ogDescription   String?
+  structuredData  String?     @db.Text // JSON-LD
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderItems  OrderItem[]
-  reviews     Review[]
-  collections ProductCollection[]
-  variants    ProductVariant[]
+  orderItems        OrderItem[]
+  reviews           Review[]
+  collections       ProductCollection[]
+  variants          ProductVariant[]
+  videos            ProductVideo[]
+  variantAttributes VariantAttribute[]
 
   // Recommandations
   recommendations       ProductRecommendation[] @relation("MainProduct")
@@ -262,19 +319,23 @@ model ProductVariant {
   sku    String  @unique
   title  String // Ex: "Rouge / Taille M"
 
-  // Attributs de variante
-  color String?
-  size  String?
+  // Attributs de variante standards
+  color    String?
+  size     String?
   material String?
   style    String?
 
+  // Attributs personnalisés (JSON: {"tissu": "Coton", "broderie": "Oui"})
+  customAttributes String? @db.Text
+
   // Prix et stock spécifiques
-  price       Decimal @db.Decimal(10, 2)
+  price        Decimal  @db.Decimal(10, 2)
   comparePrice Decimal? @db.Decimal(10, 2) // Prix barré
-  stock       Int     @default(0)
+  stock        Int      @default(0)
 
   // Images spécifiques à cette variante
-  images String[]
+  images    String[]
+  mediaUrls String[] // URLs additionnelles (vidéos, etc.)
 
   // Dimensions & poids spécifiques
   weight     Decimal? @db.Decimal(8, 3)
@@ -284,13 +345,41 @@ model ProductVariant {
   stripePriceId String?
 
   // Gestion
-  isActive Boolean @default(true)
-  sortOrder Int    @default(0)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   orderItems OrderItem[]
+}
+
+// Vidéos associées aux produits
+model ProductVideo {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  type      String  // 'upload' | 'youtube' | 'vimeo'
+  url       String
+  thumbnail String?
+  title     String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+}
+
+// Attributs personnalisés pour les variantes
+model VariantAttribute {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name      String   // "Tissu", "Broderie", "Personnalisation"
+  values    String[] // ["Coton", "Lin", "Polyester"]
+  sortOrder Int      @default(0)
+
+  createdAt DateTime @default(now())
 }
 
 // ==================== ORDER ====================
@@ -346,10 +435,11 @@ model Order {
   customerNote String?
   adminNote    String?
 
-  items    OrderItem[]
-  shipping Shipping?
+  items          OrderItem[]
+  shipping       Shipping?
   discountUsages DiscountUsage[]
-  refunds  Refund[]
+  refunds        Refund[]
+  returns        Return[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -406,6 +496,9 @@ model Refund {
   // Admin qui a traité le remboursement
   adminUserId String?
   adminUser   User?   @relation("RefundsByAdmin", fields: [adminUserId], references: [id])
+
+  // Retours liés à ce remboursement
+  returns Return[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -887,4 +980,145 @@ model Review {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ==================== RETURNS ====================
+
+model Return {
+  id      String       @id @default(cuid())
+  orderId String
+  order   Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status      ReturnStatus @default(REQUESTED)
+  reason      String
+  description String?      @db.Text
+
+  // Items à retourner
+  items ReturnItem[]
+
+  // Suivi retour
+  returnTrackingNumber String?
+  returnCarrier        String?
+
+  // Résolution
+  refundId String?
+  refund   Refund? @relation(fields: [refundId], references: [id])
+
+  // Admin qui a traité le retour
+  handledById String?
+  handledBy   User?    @relation("ReturnHandler", fields: [handledById], references: [id])
+  handledAt   DateTime?
+  adminNotes  String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReturnItem {
+  id       String @id @default(cuid())
+  returnId String
+  return   Return @relation(fields: [returnId], references: [id], onDelete: Cascade)
+
+  orderItemId String
+  quantity    Int
+  reason      String?
+}
+
+// ==================== SUPPORT TICKETS ====================
+
+model SupportTicket {
+  id           String         @id @default(cuid())
+  ticketNumber String         @unique
+
+  userId String?
+  user   User?   @relation("UserTickets", fields: [userId], references: [id])
+
+  // Pour les guests
+  guestEmail String?
+  guestName  String?
+
+  subject  String
+  status   TicketStatus   @default(OPEN)
+  priority TicketPriority @default(MEDIUM)
+  category String         // 'order', 'product', 'shipping', 'refund', 'other'
+
+  // Entités liées
+  orderId   String?
+  productId String?
+
+  messages TicketMessage[]
+
+  // Assignation
+  assignedToId String?
+  assignedTo   User?   @relation("TicketAssignee", fields: [assignedToId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
+}
+
+model TicketMessage {
+  id       String        @id @default(cuid())
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  senderId String?
+  sender   User?   @relation(fields: [senderId], references: [id])
+
+  content String  @db.Text
+  isStaff Boolean @default(false)
+
+  attachments String[] // URLs des pièces jointes
+
+  createdAt DateTime @default(now())
+}
+
+// ==================== ACTIVITY LOGS ====================
+
+model ActivityLog {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  action     String  // 'create', 'update', 'delete', 'login', 'export'
+  resource   String  // 'product', 'order', 'customer', 'settings'
+  resourceId String?
+
+  details   String? @db.Text // JSON avec détails des changements
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// ==================== SEO ====================
+
+model Redirect {
+  id         String  @id @default(cuid())
+  fromPath   String  @unique
+  toPath     String
+  statusCode Int     @default(301) // 301 ou 302
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+}
+
+// Versionnage des pages pour le page builder
+model PageVersion {
+  id     String @id @default(cuid())
+  pageId String
+
+  content   String   @db.Text // JSON du contenu
+  version   Int
+  createdBy String?
+  comment   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([pageId])
 }

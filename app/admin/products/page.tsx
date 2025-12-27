@@ -1,47 +1,100 @@
+import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { ProductsManagement } from '@/components/admin/ProductsManagement'
+import { ProductsClient } from './ProductsClient'
+import { Skeleton } from '@/components/ui/skeleton'
 
-async function getProductsData() {
-  try {
-    const products = await prisma.product.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        images: true,
-        stock: true,
-        isActive: true,
-        isFeatured: true,
-        category: true,
-        brand: true,
-        sku: true,
-        tags: true,
-        colors: true,
-        sizes: true,
-        weight: true,
-        dimensions: true,
-        lowStockThreshold: true,
-        trackQuantity: true,
-        hasVariants: true,
-        createdAt: true,
-        updatedAt: true
+async function getProducts() {
+  const products = await prisma.product.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      variants: true,
+      collections: {
+        include: {
+          collection: {
+            select: { name: true }
+          }
+        }
+      },
+      _count: {
+        select: { orderItems: true }
       }
-    })
+    }
+  })
 
-    return products.map(product => ({
-      ...product,
-      price: Number(product.price)
-    }))
-  } catch (error) {
-    console.error('Erreur chargement produits:', error)
-    return []
-  }
+  return products.map(product => ({
+    ...product,
+    price: Number(product.price),
+    totalStock: product.hasVariants
+      ? product.variants.reduce((sum, v) => sum + v.stock, 0)
+      : product.stock,
+    variantCount: product.variants.length,
+    collections: product.collections.map(pc => pc.collection.name),
+    orderCount: product._count.orderItems
+  }))
 }
 
-export default async function ProductsPage() {
-  const products = await getProductsData()
+async function getStats() {
+  const [total, active, outOfStock, lowStock] = await Promise.all([
+    prisma.product.count(),
+    prisma.product.count({ where: { isActive: true } }),
+    prisma.product.count({
+      where: {
+        OR: [
+          { hasVariants: false, stock: 0 },
+          {
+            hasVariants: true,
+            variants: { every: { stock: 0 } }
+          }
+        ]
+      }
+    }),
+    prisma.product.count({
+      where: {
+        trackQuantity: true,
+        OR: [
+          { hasVariants: false, stock: { lte: 5, gt: 0 } },
+          {
+            hasVariants: true,
+            variants: { some: { stock: { lte: 5, gt: 0 } } }
+          }
+        ]
+      }
+    })
+  ])
 
-  return <ProductsManagement products={products} />
+  return { total, active, outOfStock, lowStock }
+}
+
+function LoadingState() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between">
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-10 w-40" />
+      </div>
+      <div className="grid grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-20" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+    </div>
+  )
+}
+
+async function ProductsContent() {
+  const [products, stats] = await Promise.all([
+    getProducts(),
+    getStats()
+  ])
+
+  return <ProductsClient products={products} stats={stats} />
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ProductsContent />
+    </Suspense>
+  )
 }
