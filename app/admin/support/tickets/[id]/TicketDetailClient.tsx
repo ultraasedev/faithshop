@@ -30,8 +30,11 @@ import {
   ExternalLink,
   Calendar,
   MessageSquare,
-  Paperclip
+  Paperclip,
+  MessageCircle,
+  Info
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -146,6 +149,9 @@ export function TicketDetailClient({ ticket, staff, currentUserId, relatedOrder 
     ? { name: ticket.user.name || 'Client', email: ticket.user.email, phone: ticket.user.phone }
     : { name: ticket.guestName || 'Invité', email: ticket.guestEmail || '', phone: null }
 
+  // Check if this is a Tawk.to ticket
+  const isTawktoTicket = ticket.category?.startsWith('tawkto:')
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [ticket.messages])
@@ -184,17 +190,48 @@ export function TicketDetailClient({ ticket, staff, currentUserId, relatedOrder 
 
     setIsLoading(true)
     try {
-      await fetch('/api/admin/support/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticketId: ticket.id,
-          message: replyMessage,
-          status: 'WAITING_CUSTOMER'
+      if (isTawktoTicket) {
+        // Use Tawk.to API for Tawk.to tickets
+        const response = await fetch('/api/admin/tawkto/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.id,
+            message: replyMessage
+          })
         })
-      })
+        const result = await response.json()
+
+        if (result.success) {
+          if (result.tawkSent) {
+            toast.success('Message envoyé au client via Tawk.to')
+          } else {
+            toast.info('Message enregistré. Répondez aussi via l\'app Tawk.to.', {
+              description: 'Pour que le client reçoive le message en temps réel, utilisez l\'app Tawk.to',
+              duration: 5000
+            })
+          }
+        } else {
+          toast.error('Erreur lors de l\'envoi')
+        }
+      } else {
+        // Standard ticket response
+        await fetch('/api/admin/support/tickets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ticketId: ticket.id,
+            message: replyMessage,
+            status: 'WAITING_CUSTOMER'
+          })
+        })
+        toast.success('Réponse envoyée')
+      }
+
       setReplyMessage('')
       router.refresh()
+    } catch (error) {
+      toast.error('Erreur lors de l\'envoi du message')
     } finally {
       setIsLoading(false)
     }
@@ -257,7 +294,19 @@ export function TicketDetailClient({ ticket, staff, currentUserId, relatedOrder 
               <CardTitle className="flex items-center gap-2 text-base">
                 <MessageSquare className="h-5 w-5" />
                 Conversation
+                {isTawktoTicket && (
+                  <Badge className="ml-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0">
+                    <MessageCircle className="h-3 w-3 mr-1" />
+                    Tawk.to
+                  </Badge>
+                )}
               </CardTitle>
+              {isTawktoTicket && (
+                <CardDescription className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                  <Info className="h-4 w-4" />
+                  Les réponses sont synchronisées avec Tawk.to. Utilisez aussi l'app Tawk.to pour répondre en temps réel.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
               {ticket.messages.map((message) => {
@@ -354,7 +403,9 @@ export function TicketDetailClient({ ticket, staff, currentUserId, relatedOrder 
                 </Button>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Le client recevra une notification par email
+                {isTawktoTicket
+                  ? 'Le message sera enregistré. Pour une réponse instantanée, utilisez l\'app Tawk.to.'
+                  : 'Le client recevra une notification par email'}
               </p>
             </div>
           </Card>

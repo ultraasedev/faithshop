@@ -40,7 +40,8 @@ import {
   User,
   Mail,
   Send,
-  Filter
+  Filter,
+  MessageCircle
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -252,6 +253,12 @@ export function TicketsClient({ tickets, staff, stats, currentUserId }: TicketsC
                         <span className={cn("text-xs font-medium", priority.color)}>
                           {priority.label}
                         </span>
+                        {ticket.category?.startsWith('tawkto:') && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            <MessageCircle className="h-3 w-3" />
+                            Tawk.to
+                          </span>
+                        )}
                       </div>
                       <h3 className="font-medium text-gray-900 dark:text-white mt-1 truncate">
                         {ticket.subject}
