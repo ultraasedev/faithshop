@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { StaffClient } from './StaffClient'
 import { Skeleton } from '@/components/ui/skeleton'

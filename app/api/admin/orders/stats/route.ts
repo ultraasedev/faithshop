@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { getOrderStats } from '@/app/actions/admin/orders'
 
 export async function GET() {

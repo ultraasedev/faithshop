@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 
 // GET - Récupérer la configuration de pré-commande (public)
 export async function GET() {

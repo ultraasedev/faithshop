@@ -1,4 +1,4 @@
-import { auth } from '@/auth'
+import { auth } from '@/lib/auth'
 import { redirect, notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { ProductForm } from '../../ProductForm'
@@ -17,7 +17,10 @@ async function getProduct(id: string) {
         include: {
           collection: true
         }
-      }
+      },
+      videos: true,
+      variants: true,
+      variantAttributes: true
     }
   })
 }
@@ -53,6 +56,28 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     comparePrice: product.comparePrice?.toNumber() || null,
     collections: product.collections.map(c => ({
       collectionId: c.collectionId
+    })),
+    videos: product.videos.map(v => ({
+      id: v.id,
+      type: v.type as 'upload' | 'youtube' | 'vimeo',
+      url: v.url,
+      thumbnail: v.thumbnail,
+      title: v.title
+    })),
+    variants: product.variants.map(v => ({
+      id: v.id,
+      sku: v.sku,
+      title: v.title,
+      attributes: v.customAttributes ? JSON.parse(v.customAttributes) : {},
+      price: v.price.toNumber(),
+      comparePrice: v.comparePrice?.toNumber(),
+      stock: v.stock,
+      images: v.images
+    })),
+    variantAttributes: product.variantAttributes.map(a => ({
+      id: a.id,
+      name: a.name,
+      values: a.values
     }))
   }
 
