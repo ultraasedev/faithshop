@@ -47,14 +47,26 @@ export default async function PageEditorPage({
   }
 
   // Parse content from page safely
+  // Content can be either:
+  // - Array format: [{...}, {...}]
+  // - Object format: { blocks: [{...}, {...}] }
   let content: { blocks: unknown[] } = { blocks: [] }
   try {
     if (page.content && typeof page.content === 'string' && page.content.trim()) {
       const parsed = JSON.parse(page.content)
-      content = { blocks: Array.isArray(parsed?.blocks) ? parsed.blocks : [] }
+      // Handle both array and object formats
+      if (Array.isArray(parsed)) {
+        content = { blocks: parsed }
+      } else if (Array.isArray(parsed?.blocks)) {
+        content = { blocks: parsed.blocks }
+      }
     } else if (page.content && typeof page.content === 'object') {
-      const obj = page.content as { blocks?: unknown[] }
-      content = { blocks: Array.isArray(obj?.blocks) ? obj.blocks : [] }
+      const obj = page.content as { blocks?: unknown[] } | unknown[]
+      if (Array.isArray(obj)) {
+        content = { blocks: obj }
+      } else if (Array.isArray((obj as { blocks?: unknown[] })?.blocks)) {
+        content = { blocks: (obj as { blocks: unknown[] }).blocks }
+      }
     }
   } catch (e) {
     console.error('Failed to parse page content:', e)

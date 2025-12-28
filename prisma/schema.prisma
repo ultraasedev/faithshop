@@ -467,6 +467,9 @@ model OrderItem {
   productImage String?
   variantTitle String? // Titre de la variante
   variantSku   String? // SKU de la variante
+
+  // Return items linked to this order item
+  returnItems ReturnItem[]
 }
 
 // ==================== REFUNDS ====================
@@ -1020,6 +1023,7 @@ model ReturnItem {
   return   Return @relation(fields: [returnId], references: [id], onDelete: Cascade)
 
   orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
   quantity    Int
   reason      String?
 }
