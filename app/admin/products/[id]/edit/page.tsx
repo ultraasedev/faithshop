@@ -53,7 +53,6 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const productData = {
     ...product,
     price: product.price.toNumber(),
-    comparePrice: product.comparePrice?.toNumber() || null,
     collections: product.collections.map(c => ({
       collectionId: c.collectionId
     })),

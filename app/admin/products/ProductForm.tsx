@@ -566,7 +566,6 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         name,
         description,
         price: parseFloat(price),
-        comparePrice: comparePrice ? parseFloat(comparePrice) : null,
         sku: sku || null,
         isActive,
         isFeatured,
