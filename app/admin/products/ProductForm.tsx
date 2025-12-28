@@ -1395,34 +1395,44 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         </TabsContent>
       </Tabs>
 
-      {/* Actions */}
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-900 border-t sticky bottom-0">
+      {/* Actions - Mobile-first sticky footer */}
+      <div className="flex items-center justify-between gap-2 p-3 sm:p-4 bg-white dark:bg-gray-900 border-t sticky bottom-0 z-10">
         <Button
           type="button"
           variant="outline"
+          size="sm"
+          className="h-9 px-3 sm:h-10 sm:px-4"
           onClick={() => router.back()}
         >
-          Annuler
+          <X className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Annuler</span>
         </Button>
-        <div className="flex gap-2">
+        <div className="flex gap-1.5 sm:gap-2">
           <Button
             type="button"
             variant="outline"
+            size="sm"
+            className="h-9 px-3 sm:h-10 sm:px-4"
             onClick={() => window.open(`/products/preview?data=${encodeURIComponent(JSON.stringify({ name, price, images }))}`, '_blank')}
           >
-            <Eye className="h-4 w-4 mr-2" />
-            Prévisualiser
+            <Eye className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Prévisualiser</span>
           </Button>
-          <Button onClick={handleSubmit} disabled={saving}>
+          <Button
+            onClick={handleSubmit}
+            disabled={saving}
+            size="sm"
+            className="h-9 px-3 sm:h-10 sm:px-4"
+          >
             {saving ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enregistrement...
+                <Loader2 className="h-4 w-4 animate-spin sm:mr-2" />
+                <span className="hidden sm:inline">Enregistrement...</span>
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
-                {isEditing ? 'Mettre à jour' : 'Créer le produit'}
+                <Save className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{isEditing ? 'Mettre à jour' : 'Créer'}</span>
               </>
             )}
           </Button>

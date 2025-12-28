@@ -153,7 +153,26 @@ export async function PUT(
     })
 
   } catch (error: any) {
-    console.error('Erreur lors de la mise à jour du produit:', error)
+    console.error('=== PRODUCT UPDATE ERROR ===')
+    console.error('Error name:', error?.name)
+    console.error('Error message:', error?.message)
+    console.error('Error code:', error?.code)
+    console.error('Prisma meta:', error?.meta)
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+
+    // Specific Prisma errors
+    if (error.code === 'P2002') {
+      return NextResponse.json({
+        error: 'Un produit avec ce SKU ou slug existe déjà'
+      }, { status: 400 })
+    }
+
+    if (error.code === 'P2025') {
+      return NextResponse.json({
+        error: 'Produit non trouvé'
+      }, { status: 404 })
+    }
+
     return NextResponse.json({
       error: error.message || 'Erreur serveur lors de la mise à jour'
     }, { status: 500 })
