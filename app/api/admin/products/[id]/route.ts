@@ -57,23 +57,27 @@ export async function PUT(
       prisma.variantAttribute.deleteMany({ where: { productId: id } }),
     ])
 
+    // Safely parse numeric values
+    const price = typeof data.price === 'string' ? parseFloat(data.price) : data.price
+    const stock = typeof data.stock === 'string' ? parseInt(data.stock) : (data.stock || 0)
+    const lowStockThreshold = typeof data.lowStockThreshold === 'string' ? parseInt(data.lowStockThreshold) : (data.lowStockThreshold || 5)
+
     // Mise à jour dans la base de données locale
     const updatedProduct = await prisma.product.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description || '',
-        price: data.price,
-        comparePrice: data.comparePrice,
-        sku: data.sku,
+        price,
+        sku: data.sku || null,
         images: data.images || [],
         colors: data.colors || [],
         sizes: data.sizes || [],
         isActive: data.isActive ?? true,
         isFeatured: data.isFeatured ?? false,
-        stock: data.stock || 0,
+        stock,
         trackQuantity: data.trackQuantity ?? true,
-        lowStockThreshold: data.lowStockThreshold || 5,
+        lowStockThreshold,
         productType: data.productType || 'IN_STOCK',
         printProvider: data.printProvider,
         tags: data.tags || [],

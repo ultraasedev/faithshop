@@ -34,7 +34,10 @@ import {
   AlertCircle,
   CheckCircle,
   Play,
-  FileVideo
+  FileVideo,
+  ChevronLeft,
+  ChevronRight,
+  Star
 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
@@ -300,6 +303,22 @@ export function ProductForm({ product, collections }: ProductFormProps) {
 
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Move image to a different position
+  const moveImage = (fromIndex: number, toIndex: number) => {
+    setImages(prev => {
+      const newImages = [...prev]
+      const [removed] = newImages.splice(fromIndex, 1)
+      newImages.splice(toIndex, 0, removed)
+      return newImages
+    })
+  }
+
+  // Set image as main (move to first position)
+  const setAsMainImage = (index: number) => {
+    if (index === 0) return
+    moveImage(index, 0)
   }
 
   // Add video
@@ -864,9 +883,9 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                     <div
                       key={`uploaded-${index}`}
                       className={cn(
-                        "relative aspect-square rounded-lg overflow-hidden border-2",
+                        "relative aspect-square rounded-lg overflow-hidden border-2 group",
                         index === 0
-                          ? "border-gray-900 dark:border-white"
+                          ? "border-gray-900 dark:border-white ring-2 ring-gray-900 dark:ring-white"
                           : "border-gray-200 dark:border-gray-700"
                       )}
                     >
@@ -877,14 +896,58 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                         className="object-cover"
                       />
                       {index === 0 && (
-                        <span className="absolute top-2 left-2 px-2 py-1 bg-gray-900 text-white text-xs rounded">
-                          Principale
+                        <span className="absolute top-2 left-2 px-2 py-1 bg-gray-900 text-white text-xs rounded flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          <span className="hidden sm:inline">Principale</span>
                         </span>
                       )}
+
+                      {/* Controls overlay */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-1">
+                          {/* Move left */}
+                          {index > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, index - 1)}
+                              className="p-1.5 bg-white/90 text-gray-700 rounded hover:bg-white"
+                              title="Déplacer à gauche"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+                          )}
+
+                          {/* Set as main */}
+                          {index !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setAsMainImage(index)}
+                              className="p-1.5 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+                              title="Définir comme principale"
+                            >
+                              <Star className="h-4 w-4" />
+                            </button>
+                          )}
+
+                          {/* Move right */}
+                          {index < images.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, index + 1)}
+                              className="p-1.5 bg-white/90 text-gray-700 rounded hover:bg-white"
+                              title="Déplacer à droite"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Delete button */}
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="h-4 w-4" />
                       </button>
