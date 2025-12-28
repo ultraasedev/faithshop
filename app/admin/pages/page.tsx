@@ -4,14 +4,24 @@ import { PagesClient } from './PagesClient'
 import { Skeleton } from '@/components/ui/skeleton'
 
 async function getPages() {
-  return prisma.page.findMany({
-    orderBy: { updatedAt: 'desc' },
-    include: {
-      _count: {
-        select: { versions: true }
-      }
-    }
+  const pagesData = await prisma.pageContent.findMany({
+    orderBy: { updatedAt: 'desc' }
   })
+
+  // Convert to format expected by PagesClient
+  return pagesData.map(page => ({
+    id: page.id,
+    title: page.title,
+    slug: page.slug,
+    status: page.isPublished ? 'PUBLISHED' : 'DRAFT' as const,
+    isHomepage: page.slug === 'home',
+    template: null,
+    metaTitle: page.metaTitle,
+    metaDescription: page.metaDescription,
+    createdAt: page.createdAt,
+    updatedAt: page.updatedAt,
+    _count: { versions: 0 }
+  }))
 }
 
 function LoadingState() {

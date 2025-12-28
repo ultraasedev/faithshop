@@ -12,7 +12,7 @@ export default async function ReturnsPage() {
     redirect('/login')
   }
 
-  const returns = await prisma.return.findMany({
+  const returnsData = await prisma.return.findMany({
     include: {
       order: {
         include: {
@@ -33,6 +33,25 @@ export default async function ReturnsPage() {
     },
     orderBy: { createdAt: 'desc' }
   })
+
+  // Convert Decimal fields to numbers for client component
+  const returns = returnsData.map(r => ({
+    ...r,
+    items: r.items.map(item => ({
+      ...item,
+      orderItem: {
+        ...item.orderItem,
+        product: {
+          ...item.orderItem.product,
+          price: item.orderItem.product.price.toNumber()
+        }
+      }
+    })),
+    refund: r.refund ? {
+      ...r.refund,
+      amount: r.refund.amount.toNumber()
+    } : null
+  }))
 
   const stats = {
     total: returns.length,
