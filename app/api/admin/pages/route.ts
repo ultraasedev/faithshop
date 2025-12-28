@@ -10,16 +10,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const pages = await prisma.page.findMany({
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        _count: {
-          select: { versions: true }
-        }
-      }
+    const pages = await prisma.pageContent.findMany({
+      orderBy: { updatedAt: 'desc' }
     })
 
-    return NextResponse.json(pages)
+    // Transform to expected format
+    const transformedPages = pages.map(page => ({
+      ...page,
+      status: page.isPublished ? 'PUBLISHED' : 'DRAFT',
+      isHomepage: page.slug === 'home',
+      template: null,
+      _count: { versions: 0 }
+    }))
+
+    return NextResponse.json(transformedPages)
   } catch (error) {
     console.error('Erreur lors de la récupération des pages:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -37,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { title, slug, template, status, duplicateFrom } = body
 
     // Check if slug already exists
-    const existingPage = await prisma.page.findFirst({
+    const existingPage = await prisma.pageContent.findFirst({
       where: { slug }
     })
 
@@ -46,51 +50,38 @@ export async function POST(request: NextRequest) {
     }
 
     // If duplicating, get the source page content
-    let content = { blocks: [] }
+    let content = JSON.stringify({ blocks: [] })
     if (duplicateFrom) {
-      const sourcePage = await prisma.page.findUnique({
-        where: { id: duplicateFrom },
-        include: {
-          versions: {
-            orderBy: { version: 'desc' },
-            take: 1
-          }
-        }
+      const sourcePage = await prisma.pageContent.findUnique({
+        where: { id: duplicateFrom }
       })
 
-      if (sourcePage?.versions[0]?.content) {
-        content = typeof sourcePage.versions[0].content === 'string'
-          ? JSON.parse(sourcePage.versions[0].content)
-          : sourcePage.versions[0].content as { blocks: unknown[] }
+      if (sourcePage?.content) {
+        content = sourcePage.content
       }
     } else if (template && template !== 'blank') {
-      content = getTemplateContent(template)
+      content = JSON.stringify(getTemplateContent(template))
     }
 
     // Create the page
-    const page = await prisma.page.create({
+    const page = await prisma.pageContent.create({
       data: {
         title,
         slug,
-        template,
-        status: status || 'DRAFT',
-        isHomepage: false
-      }
-    })
-
-    // Create initial version
-    await prisma.pageVersion.create({
-      data: {
-        pageId: page.id,
-        version: 1,
-        content: JSON.stringify(content),
-        publishedById: session.user.id
+        content,
+        isPublished: status === 'PUBLISHED'
       }
     })
 
     revalidatePath('/admin/pages')
 
-    return NextResponse.json(page)
+    // Return with expected format
+    return NextResponse.json({
+      ...page,
+      status: page.isPublished ? 'PUBLISHED' : 'DRAFT',
+      isHomepage: page.slug === 'home',
+      template: null
+    })
   } catch (error) {
     console.error('Erreur lors de la création de la page:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

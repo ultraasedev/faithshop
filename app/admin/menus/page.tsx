@@ -28,8 +28,8 @@ export default async function MenusPage() {
   })
 
   // Get pages for link selection
-  const pages = await prisma.page.findMany({
-    where: { status: 'PUBLISHED' },
+  const pages = await prisma.pageContent.findMany({
+    where: { isPublished: true },
     select: { id: true, title: true, slug: true }
   })
 

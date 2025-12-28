@@ -3,14 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { PageBuilder } from '@/components/admin/page-builder/PageBuilder'
 
 async function getPage(slug: string) {
-  return prisma.page.findFirst({
-    where: { slug },
-    include: {
-      versions: {
-        orderBy: { version: 'desc' },
-        take: 1
-      }
-    }
+  return prisma.pageContent.findFirst({
+    where: { slug }
   })
 }
 
@@ -52,11 +46,11 @@ export default async function PageEditorPage({
     notFound()
   }
 
-  // Parse content from latest version or empty
-  const content = page.versions[0]?.content
-    ? (typeof page.versions[0].content === 'string'
-        ? JSON.parse(page.versions[0].content)
-        : page.versions[0].content)
+  // Parse content from page
+  const content = page.content
+    ? (typeof page.content === 'string'
+        ? JSON.parse(page.content)
+        : page.content)
     : { blocks: [] }
 
   return (
@@ -65,7 +59,7 @@ export default async function PageEditorPage({
         id: page.id,
         title: page.title,
         slug: page.slug,
-        status: page.status,
+        status: page.isPublished ? 'PUBLISHED' : 'DRAFT',
         content,
         metaTitle: page.metaTitle,
         metaDescription: page.metaDescription

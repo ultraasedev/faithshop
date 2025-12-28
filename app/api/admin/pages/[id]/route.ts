@@ -15,21 +15,22 @@ export async function GET(
 
     const { id } = await params
 
-    const page = await prisma.page.findUnique({
-      where: { id },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 10
-        }
-      }
+    const page = await prisma.pageContent.findUnique({
+      where: { id }
     })
 
     if (!page) {
       return NextResponse.json({ error: 'Page non trouvée' }, { status: 404 })
     }
 
-    return NextResponse.json(page)
+    // Transform to expected format
+    return NextResponse.json({
+      ...page,
+      status: page.isPublished ? 'PUBLISHED' : 'DRAFT',
+      isHomepage: page.slug === 'home',
+      template: null,
+      versions: []
+    })
   } catch (error) {
     console.error('Erreur lors de la récupération de la page:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -51,14 +52,8 @@ export async function PATCH(
     const { content, status, metaTitle, metaDescription, title, slug } = body
 
     // Get current page
-    const currentPage = await prisma.page.findUnique({
-      where: { id },
-      include: {
-        versions: {
-          orderBy: { version: 'desc' },
-          take: 1
-        }
-      }
+    const currentPage = await prisma.pageContent.findUnique({
+      where: { id }
     })
 
     if (!currentPage) {
@@ -67,7 +62,7 @@ export async function PATCH(
 
     // Check if slug changed and if new slug already exists
     if (slug && slug !== currentPage.slug) {
-      const existingPage = await prisma.page.findFirst({
+      const existingPage = await prisma.pageContent.findFirst({
         where: { slug, id: { not: id } }
       })
 
@@ -77,31 +72,18 @@ export async function PATCH(
     }
 
     // Update page
-    const page = await prisma.page.update({
+    const page = await prisma.pageContent.update({
       where: { id },
       data: {
         ...(title && { title }),
         ...(slug && { slug }),
-        ...(status && { status }),
+        ...(status && { isPublished: status === 'PUBLISHED' }),
         ...(metaTitle !== undefined && { metaTitle }),
         ...(metaDescription !== undefined && { metaDescription }),
+        ...(content && { content: typeof content === 'string' ? content : JSON.stringify(content) }),
         updatedAt: new Date()
       }
     })
-
-    // If content changed, create new version
-    if (content) {
-      const lastVersion = currentPage.versions[0]?.version || 0
-
-      await prisma.pageVersion.create({
-        data: {
-          pageId: id,
-          version: lastVersion + 1,
-          content: JSON.stringify(content),
-          publishedById: session.user.id
-        }
-      })
-    }
 
     revalidatePath('/admin/pages')
     revalidatePath(`/admin/pages/${page.slug}/edit`)
@@ -109,7 +91,11 @@ export async function PATCH(
 
     return NextResponse.json({
       success: true,
-      page,
+      page: {
+        ...page,
+        status: page.isPublished ? 'PUBLISHED' : 'DRAFT',
+        isHomepage: page.slug === 'home'
+      },
       message: status === 'PUBLISHED' ? 'Page publiée' : 'Page enregistrée'
     })
   } catch (error) {
@@ -131,23 +117,18 @@ export async function DELETE(
     const { id } = await params
 
     // Check if page is homepage
-    const page = await prisma.page.findUnique({ where: { id } })
+    const page = await prisma.pageContent.findUnique({ where: { id } })
 
     if (!page) {
       return NextResponse.json({ error: 'Page non trouvée' }, { status: 404 })
     }
 
-    if (page.isHomepage) {
+    if (page.slug === 'home') {
       return NextResponse.json({ error: 'Impossible de supprimer la page d\'accueil' }, { status: 400 })
     }
 
-    // Delete versions first
-    await prisma.pageVersion.deleteMany({
-      where: { pageId: id }
-    })
-
     // Delete page
-    await prisma.page.delete({ where: { id } })
+    await prisma.pageContent.delete({ where: { id } })
 
     revalidatePath('/admin/pages')
 
