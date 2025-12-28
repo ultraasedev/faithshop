@@ -154,14 +154,14 @@ function SortableBlock({
       {/* Block Content */}
       <div
         style={{
-          paddingTop: block.settings.padding?.top || 0,
-          paddingBottom: block.settings.padding?.bottom || 0,
-          paddingLeft: block.settings.padding?.left || 0,
-          paddingRight: block.settings.padding?.right || 0,
-          marginTop: block.settings.margin?.top || 0,
-          marginBottom: block.settings.margin?.bottom || 0,
-          backgroundColor: block.settings.backgroundColor || undefined,
-          color: block.settings.textColor || undefined,
+          paddingTop: block.settings?.padding?.top || 0,
+          paddingBottom: block.settings?.padding?.bottom || 0,
+          paddingLeft: block.settings?.padding?.left || 0,
+          paddingRight: block.settings?.padding?.right || 0,
+          marginTop: block.settings?.margin?.top || 0,
+          marginBottom: block.settings?.margin?.bottom || 0,
+          backgroundColor: block.settings?.backgroundColor || undefined,
+          color: block.settings?.textColor || undefined,
         }}
       >
         <BlockPreview
