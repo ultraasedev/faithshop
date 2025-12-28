@@ -11,7 +11,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
-    const { orderId, amount, reason, type } = await request.json()
+    const body = await request.json()
+    const { orderId, amount, reason, type } = body
+
+    console.log('Refund request:', { orderId, amount, reason, type })
+
+    if (!orderId) {
+      return NextResponse.json({ error: 'ID de commande requis' }, { status: 400 })
+    }
 
     // Récupérer la commande avec les détails de paiement
     const order = await prisma.order.findUnique({
@@ -30,16 +37,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 })
     }
 
-    if (!order.stripePaymentIntentId) {
-      return NextResponse.json({
-        error: 'Aucun ID de paiement Stripe trouvé pour cette commande'
-      }, { status: 400 })
-    }
+    console.log('Order found:', {
+      orderNumber: order.orderNumber,
+      total: order.total,
+      paymentStatus: order.paymentStatus,
+      hasStripeId: !!order.stripePaymentIntentId
+    })
 
-    if (order.paymentStatus !== 'COMPLETED') {
-      return NextResponse.json({
-        error: 'Le paiement doit être terminé pour être remboursé'
-      }, { status: 400 })
+    // For store credit, we don't need Stripe
+    if (type !== 'STORE_CREDIT') {
+      if (!order.stripePaymentIntentId) {
+        return NextResponse.json({
+          error: 'Cette commande n\'a pas de paiement Stripe associé. Utilisez un avoir boutique à la place.'
+        }, { status: 400 })
+      }
+
+      if (order.paymentStatus !== 'COMPLETED') {
+        return NextResponse.json({
+          error: `Le paiement doit être terminé pour être remboursé (statut actuel: ${order.paymentStatus})`
+        }, { status: 400 })
+      }
     }
 
     let refundAmount = amount
@@ -82,10 +99,17 @@ export async function POST(request: NextRequest) {
       if (type === 'STORE_CREDIT') {
         // Pour les avoirs boutique, on ne rembourse pas via Stripe
         // mais on crée directement un avoir
+        const recipientEmail = order.user?.email || order.guestEmail
+        if (!recipientEmail) {
+          return NextResponse.json({
+            error: 'Email du client non trouvé pour créer l\'avoir'
+          }, { status: 400 })
+        }
+
         const giftCard = await createGiftCard({
           amount: refundAmount / 100,
-          recipientEmail: order.user?.email || order.guestEmail,
-          reason: `Avoir pour commande #${order.orderNumber} - ${reason}`,
+          recipientEmail,
+          reason: `Avoir pour commande #${order.orderNumber} - ${reason || 'Remboursement'}`,
           orderId: order.id
         })
 
@@ -95,7 +119,7 @@ export async function POST(request: NextRequest) {
             orderId,
             amount: refundAmount / 100,
             currency: 'EUR',
-            reason,
+            reason: reason || 'Avoir boutique',
             type: 'STORE_CREDIT',
             status: 'COMPLETED',
             stripeRefundId: null, // Pas de remboursement Stripe réel
@@ -108,7 +132,7 @@ export async function POST(request: NextRequest) {
           success: true,
           refund,
           giftCard,
-          message: 'Avoir boutique créé avec succès'
+          message: `Avoir de ${(refundAmount / 100).toFixed(2)}€ créé avec succès. Code: ${giftCard.code}`
         })
 
       } else {

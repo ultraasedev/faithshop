@@ -41,6 +41,7 @@ export default async function ReturnsPage() {
       ...item,
       orderItem: {
         ...item.orderItem,
+        price: item.orderItem.price.toNumber(),
         product: {
           ...item.orderItem.product,
           price: item.orderItem.product.price.toNumber()

@@ -379,22 +379,22 @@ export function MenusClient({ menus: initialMenus, pages, collections }: MenusCl
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Menus de navigation</h1>
-          <p className="text-muted-foreground">
-            Gérez les menus de votre site (header, footer, etc.)
+          <h1 className="text-xl sm:text-2xl font-bold">Menus de navigation</h1>
+          <p className="text-sm text-muted-foreground">
+            Gérez les menus de votre site
           </p>
         </div>
-        <Button onClick={() => setShowNewMenuModal(true)}>
+        <Button onClick={() => setShowNewMenuModal(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Nouveau menu
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Menu List */}
         <div className="space-y-2">
           <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
@@ -402,29 +402,29 @@ export function MenusClient({ menus: initialMenus, pages, collections }: MenusCl
           </h3>
           {menus.length === 0 ? (
             <Card>
-              <CardContent className="p-6 text-center">
-                <Menu className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Aucun menu créé</p>
+              <CardContent className="p-4 sm:p-6 text-center">
+                <Menu className="h-8 w-8 sm:h-10 sm:w-10 mx-auto text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">Aucun menu créé</p>
               </CardContent>
             </Card>
           ) : (
             menus.map(menu => (
               <Card
                 key={menu.id}
-                className={`cursor-pointer transition-colors ${selectedMenu?.id === menu.id ? 'border-primary bg-primary/5' : 'hover:border-primary/50'}`}
+                className={`cursor-pointer transition-colors ${selectedMenu?.id === menu.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'}`}
                 onClick={() => handleSelectMenu(menu)}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{menu.title}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{menu.title}</p>
+                      <code className="text-sm text-foreground bg-muted px-1.5 py-0.5 rounded font-mono inline-block mt-1">
                         {menu.handle}
-                      </p>
+                      </code>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="shrink-0">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -442,7 +442,7 @@ export function MenusClient({ menus: initialMenus, pages, collections }: MenusCl
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-2">
                     {menu.items.length} élément{menu.items.length > 1 ? 's' : ''}
                   </p>
                 </CardContent>
@@ -455,21 +455,23 @@ export function MenusClient({ menus: initialMenus, pages, collections }: MenusCl
         <div className="lg:col-span-3">
           {selectedMenu ? (
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-6">
                 <div>
-                  <CardTitle>{selectedMenu.title}</CardTitle>
-                  <CardDescription>
-                    Handle: <code className="bg-muted px-1 py-0.5 rounded text-xs">{selectedMenu.handle}</code>
+                  <CardTitle className="text-lg sm:text-xl">{selectedMenu.title}</CardTitle>
+                  <CardDescription className="mt-1">
+                    Handle: <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground">{selectedMenu.handle}</code>
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowAddItemModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un lien
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button variant="outline" onClick={() => setShowAddItemModal(true)} className="flex-1 sm:flex-none">
+                    <Plus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Ajouter un lien</span>
+                    <span className="sm:hidden">Ajouter</span>
                   </Button>
                   <Button
                     onClick={handleSave}
                     disabled={!hasChanges || saving}
+                    className="flex-1 sm:flex-none"
                   >
                     {saving ? 'Sauvegarde...' : 'Sauvegarder'}
                   </Button>
