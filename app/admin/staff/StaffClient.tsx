@@ -85,6 +85,7 @@ interface StaffClientProps {
   staff: StaffMember[]
   activityLogs: ActivityLog[]
   currentUserId: string
+  isSuperAdmin?: boolean
 }
 
 const permissions = [
@@ -96,7 +97,7 @@ const permissions = [
   { key: 'canManageShipping', label: 'Livraison', description: 'Gérer les options de livraison' }
 ]
 
-export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientProps) {
+export function StaffClient({ staff, activityLogs, currentUserId, isSuperAdmin = false }: StaffClientProps) {
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState<StaffMember | null>(null)
@@ -259,12 +260,14 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
         </div>
 
         <Dialog open={isCreating} onOpenChange={setIsCreating}>
-          <DialogTrigger asChild>
-            <Button className="gap-2" onClick={resetForm}>
-              <Plus className="h-4 w-4" />
-              Ajouter un membre
-            </Button>
-          </DialogTrigger>
+          {isSuperAdmin && (
+            <DialogTrigger asChild>
+              <Button className="gap-2" onClick={resetForm}>
+                <Plus className="h-4 w-4" />
+                Ajouter un membre
+              </Button>
+            </DialogTrigger>
+          )}
           <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Nouveau membre de l'équipe</DialogTitle>
@@ -308,37 +311,39 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
             {staff.map((member) => (
               <Card key={member.id} className="relative group">
                 <CardContent className="p-6">
-                  {/* Actions dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-4 right-4 opacity-0 group-hover:opacity-100"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => openEditModal(member)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Modifier
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleResetPassword(member)}>
-                        <Key className="h-4 w-4 mr-2" />
-                        Réinitialiser le mot de passe
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleDelete(member.id)}
-                        className="text-red-600"
-                        disabled={member.id === currentUserId}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* Actions dropdown - Only visible to SUPER_ADMIN */}
+                  {isSuperAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-4 right-4 opacity-0 group-hover:opacity-100"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openEditModal(member)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleResetPassword(member)}>
+                          <Key className="h-4 w-4 mr-2" />
+                          Réinitialiser le mot de passe
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(member.id)}
+                          className="text-red-600"
+                          disabled={member.id === currentUserId}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
 
                   {/* Avatar & Info */}
                   <div className="flex items-start gap-4">
@@ -421,12 +426,14 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
                   Aucun membre
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  Ajoutez votre premier membre d'équipe
+                  {isSuperAdmin ? "Ajoutez votre premier membre d'équipe" : "Aucun membre de l'équipe pour le moment"}
                 </p>
-                <Button onClick={() => setIsCreating(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter un membre
-                </Button>
+                {isSuperAdmin && (
+                  <Button onClick={() => setIsCreating(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un membre
+                  </Button>
+                )}
               </div>
             )}
           </div>

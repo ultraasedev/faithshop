@@ -62,10 +62,12 @@ function LoadingState() {
 async function StaffContent() {
   const session = await auth()
 
-  // Only SUPER_ADMIN can access staff management
-  if (session?.user?.role !== 'SUPER_ADMIN') {
+  // All admins can access staff management (view), but only SUPER_ADMIN can edit
+  if (!session?.user?.role || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
     redirect('/admin')
   }
+
+  const isSuperAdmin = session.user.role === 'SUPER_ADMIN'
 
   const [staff, activityLogs] = await Promise.all([
     getStaffMembers(),
@@ -77,6 +79,7 @@ async function StaffContent() {
       staff={staff}
       activityLogs={activityLogs}
       currentUserId={session.user.id}
+      isSuperAdmin={isSuperAdmin}
     />
   )
 }
