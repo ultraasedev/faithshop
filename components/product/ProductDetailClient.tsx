@@ -42,14 +42,28 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   // Swipe handlers - lower distance for easier swiping
   const minSwipeDistance = 30
+  const [touchStartY, setTouchStartY] = useState<number | null>(null)
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
     setTouchStart(e.targetTouches[0].clientX)
+    setTouchStartY(e.targetTouches[0].clientY)
   }
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
+    if (!touchStart || !touchStartY) return
+
+    const currentX = e.targetTouches[0].clientX
+    const currentY = e.targetTouches[0].clientY
+    const diffX = Math.abs(currentX - touchStart)
+    const diffY = Math.abs(currentY - touchStartY)
+
+    // If horizontal movement is greater than vertical, it's a swipe
+    if (diffX > diffY && diffX > 10) {
+      e.preventDefault() // Prevent vertical scroll during horizontal swipe
+    }
+
+    setTouchEnd(currentX)
   }
 
   const onTouchEnd = () => {
@@ -68,6 +82,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     // Reset touch state
     setTouchStart(null)
     setTouchEnd(null)
+    setTouchStartY(null)
   }
 
   const goToPrevImage = useCallback(() => {
@@ -128,8 +143,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="flex flex-col gap-4">
               {/* Main Image with Swipe */}
               <div
-                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group touch-pan-y"
-                style={{ touchAction: 'pan-y pinch-zoom' }}
+                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
+                style={{ touchAction: 'manipulation' }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}

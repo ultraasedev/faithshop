@@ -119,13 +119,12 @@ export default function HomepageEditorPage() {
     if (!file) return
 
     setUploadingSlideId(slideId)
-    const formData = new FormData()
-    formData.append('file', file)
 
     try {
-      const res = await fetch('/api/upload', {
+      // API expects filename as query param and raw file as body
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&folder=hero`, {
         method: 'POST',
-        body: formData
+        body: file
       })
 
       if (res.ok) {
@@ -133,7 +132,8 @@ export default function HomepageEditorPage() {
         updateSlide(slideId, 'image', data.url)
         toast.success('Image uploadée')
       } else {
-        toast.error('Erreur lors de l\'upload')
+        const error = await res.json()
+        toast.error(error.error || 'Erreur lors de l\'upload')
       }
     } catch (error) {
       toast.error('Erreur lors de l\'upload')
