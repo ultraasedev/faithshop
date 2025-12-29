@@ -38,7 +38,7 @@ export default function HomeClient({
     {
       id: 1,
       image: heroImage || '/hero-bg.png',
-      subtitle: heroSubtitle || 'Collection Automne-Hiver',
+      subtitle: heroSubtitle || 'Collection Hiver 2025',
       title: heroTitle || "L'Élégance de la Foi",
       description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
       cta: heroCtaText || 'Découvrir',

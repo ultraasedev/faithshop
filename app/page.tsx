@@ -1,80 +1,49 @@
 import { prisma } from '@/lib/prisma'
-import { BlockRenderer } from '@/components/page-blocks/BlockRenderer'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
+import { getSiteConfigs } from '@/app/actions/admin/settings'
+import HomeClient from '@/components/home/HomeClient'
 
 export const dynamic = 'force-dynamic'
 
-interface PageBlock {
-  id: string
-  type: string
-  content: Record<string, unknown>
-  settings?: Record<string, unknown>
-}
-
-function parsePageContent(content: string): PageBlock[] {
-  try {
-    const parsed = JSON.parse(content)
-    if (Array.isArray(parsed)) return parsed
-    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.blocks)) {
-      return parsed.blocks
-    }
-    return []
-  } catch {
-    return []
-  }
-}
-
 export default async function Home() {
-  // Fetch the home page from PageContent
-  const page = await prisma.pageContent.findFirst({
-    where: { slug: 'home' }
-  })
+  let configMap: Record<string, string> = {}
+  let productsToShow: any[] = []
 
-  // Fetch collections and products for block rendering
-  const [collections, products] = await Promise.all([
-    prisma.collection.findMany({
-      where: { isActive: true },
-      select: { id: true, name: true, slug: true }
-    }),
-    prisma.product.findMany({
-      where: { isActive: true },
-      take: 50,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        price: true,
-        images: true,
-        isFeatured: true
-      },
+  try {
+    // Fetch site configuration
+    const configs = await getSiteConfigs('homepage')
+    configMap = configs.reduce((acc, config) => {
+      acc[config.key] = config.value
+      return acc
+    }, {} as Record<string, string>)
+
+    // Fetch featured products
+    const featuredProducts = await prisma.product.findMany({
+      where: { isFeatured: true },
+      take: 3,
       orderBy: { createdAt: 'desc' }
     })
-  ])
 
-  const blocks = page ? parsePageContent(page.content) : []
+    // If no featured products, fallback to recent ones
+    const rawProducts = featuredProducts.length > 0
+      ? featuredProducts
+      : await prisma.product.findMany({ take: 3, orderBy: { createdAt: 'desc' } })
+
+    productsToShow = rawProducts.map(p => ({
+      ...p,
+      price: p.price.toNumber(),
+    }))
+  } catch (error) {
+    console.error('Failed to fetch homepage data:', error)
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-1">
-        {blocks.length > 0 ? (
-          <BlockRenderer
-            blocks={blocks}
-            collections={collections}
-            products={products.map(p => ({
-              ...p,
-              price: Number(p.price),
-              images: p.images as string[]
-            }))}
-          />
-        ) : (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <p className="text-gray-500">Configurez la page d'accueil dans le Page Builder</p>
-          </div>
-        )}
-      </main>
-      <Footer />
-    </div>
+    <HomeClient
+      heroTitle={configMap['home_hero_title']}
+      heroSubtitle={configMap['home_hero_subtitle']}
+      heroImage={configMap['home_hero_image']}
+      heroCtaText={configMap['home_hero_cta_text']}
+      heroCtaLink={configMap['home_hero_cta_link']}
+      featuredProducts={productsToShow}
+    />
   )
 }
