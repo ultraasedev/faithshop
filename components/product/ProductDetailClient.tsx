@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import PreorderBanner from '@/components/banners/PreorderBanner'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -80,7 +79,6 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
-      <PreorderBanner currentPage="product" />
       <main className="flex-1 pt-32">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
@@ -224,6 +222,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 <div className="flex items-center gap-4">
                   <div className="p-2 bg-secondary/30 rounded-full"><ShieldCheck className="w-5 h-5 text-foreground" /></div>
                   <span>Paiement 100% sécurisé</span>
+                </div>
+              </div>
+
+              {/* Bandeau Expédition */}
+              <div className="mt-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg p-4 shadow-lg">
+                <div className="flex items-center gap-3 text-white">
+                  <Truck className="w-6 h-6 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm uppercase tracking-wide">⚠️ Information Livraison</p>
+                    <p className="text-white/90">Expédition à partir du <span className="font-bold">16 janvier 2025</span></p>
+                  </div>
                 </div>
               </div>
             </div>

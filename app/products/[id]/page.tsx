@@ -2,7 +2,6 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import ProductDetailClient from '@/components/product/ProductDetailClient'
-import ShippingBanner from '@/components/banners/ShippingBanner'
 
 interface ProductPageProps {
   params: Promise<{
@@ -75,11 +74,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     price: product.price.toNumber()
   }
 
-  return (
-    <>
-      <ShippingBanner showOnPages={['product']} />
-      <ProductDetailClient product={productJson} />
-    </>
-  )
+  return <ProductDetailClient product={productJson} />
 }
 
