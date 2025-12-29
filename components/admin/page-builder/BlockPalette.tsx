@@ -27,7 +27,8 @@ import {
   CreditCard,
   FileText,
   ListOrdered,
-  MessageCircle
+  MessageCircle,
+  Presentation
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -227,6 +228,13 @@ const blockTypes: BlockType[] = [
     icon: MessageCircle,
     category: 'content',
     description: 'Citation avec auteur'
+  },
+  {
+    type: 'slider',
+    label: 'Slider',
+    icon: Presentation,
+    category: 'layout',
+    description: 'Carrousel d\'images avec texte et boutons'
   },
 ]
 

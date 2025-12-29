@@ -108,17 +108,23 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
               <div className="grid grid-cols-4 gap-4">
                  {product.images.map((img, idx) => (
-                   <div
+                   <button
                      key={idx}
+                     type="button"
                      onClick={() => setSelectedImageIndex(idx)}
-                     className={`relative aspect-square bg-secondary/30 overflow-hidden cursor-pointer transition-all ${
+                     className={`relative aspect-square bg-secondary/30 overflow-hidden cursor-pointer transition-all border-0 p-0 ${
                        selectedImageIndex === idx
                          ? 'ring-2 ring-foreground opacity-100'
                          : 'hover:opacity-80'
                      }`}
                    >
-                     <Image src={img} alt={`Vue ${idx + 1}`} fill className="object-cover" />
-                   </div>
+                     <Image
+                       src={img}
+                       alt={`Vue ${idx + 1}`}
+                       fill
+                       className="object-cover pointer-events-none"
+                     />
+                   </button>
                  ))}
               </div>
             </div>

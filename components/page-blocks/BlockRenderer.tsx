@@ -25,6 +25,7 @@ import { PricingPreview } from '@/components/admin/page-builder/blocks/PricingBl
 import { ManifestoBlockPreview } from '@/components/admin/page-builder/blocks/ManifestoBlock'
 import { ValuesBlockPreview } from '@/components/admin/page-builder/blocks/ValuesBlock'
 import { QuoteBlockPreview } from '@/components/admin/page-builder/blocks/QuoteBlock'
+import { SliderBlockPreview } from '@/components/admin/page-builder/blocks/SliderBlock'
 
 interface PageBlock {
   id: string
@@ -77,6 +78,7 @@ const blockComponents: Record<string, React.FC<{
   manifesto: ManifestoBlockPreview,
   values: ValuesBlockPreview,
   quote: QuoteBlockPreview,
+  slider: SliderBlockPreview,
 }
 
 export function BlockRenderer({ blocks, collections = [], products = [] }: BlockRendererProps) {

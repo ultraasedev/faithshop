@@ -40,6 +40,7 @@ import { PricingPreview } from './blocks/PricingBlock'
 import { ManifestoBlockPreview } from './blocks/ManifestoBlock'
 import { ValuesBlockPreview } from './blocks/ValuesBlock'
 import { QuoteBlockPreview } from './blocks/QuoteBlock'
+import { SliderBlockPreview } from './blocks/SliderBlock'
 
 interface EditorCanvasProps {
   blocks: PageBlock[]
@@ -281,6 +282,7 @@ function getBlockPreview(type: string) {
     manifesto: ManifestoBlockPreview,
     values: ValuesBlockPreview,
     quote: QuoteBlockPreview,
+    slider: SliderBlockPreview,
   }
 
   return previews[type] || DefaultBlockPreview
@@ -325,6 +327,7 @@ function getBlockLabel(type: string): string {
     manifesto: 'Manifesto',
     values: 'Valeurs',
     quote: 'Citation',
+    slider: 'Slider',
   }
 
   return labels[type] || type

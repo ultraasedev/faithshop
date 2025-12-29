@@ -264,6 +264,8 @@ function ContentSettings({ type, content, onUpdate, collections, products }: Con
       return <ValuesSettings content={content} onUpdate={onUpdate} />
     case 'quote':
       return <QuoteSettings content={content} onUpdate={onUpdate} />
+    case 'slider':
+      return <SliderSettings content={content} onUpdate={onUpdate} />
     default:
       return <p className="text-sm text-gray-500">Aucun paramètre disponible</p>
   }
@@ -2338,6 +2340,175 @@ function QuoteSettings({ content, onUpdate }: { content: Record<string, unknown>
             placeholder="hsl(var(--secondary) / 0.1)"
           />
         </div>
+      </div>
+    </div>
+  )
+}
+
+interface SliderSlide {
+  image: string
+  title?: string
+  subtitle?: string
+  buttonText?: string
+  buttonLink?: string
+  alignment?: 'left' | 'center' | 'right'
+}
+
+function SliderSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const slides = (content.slides as SliderSlide[]) || []
+
+  const addSlide = () => {
+    const newSlide: SliderSlide = {
+      image: '',
+      title: '',
+      subtitle: '',
+      buttonText: '',
+      buttonLink: '',
+      alignment: 'center'
+    }
+    onUpdate({ slides: [...slides, newSlide] })
+  }
+
+  const updateSlide = (index: number, updates: Partial<SliderSlide>) => {
+    const newSlides = [...slides]
+    newSlides[index] = { ...newSlides[index], ...updates }
+    onUpdate({ slides: newSlides })
+  }
+
+  const removeSlide = (index: number) => {
+    onUpdate({ slides: slides.filter((_, i) => i !== index) })
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Global Settings */}
+      <div className="flex items-center justify-between">
+        <Label>Lecture automatique</Label>
+        <Switch
+          checked={(content.autoplay as boolean) ?? true}
+          onCheckedChange={(checked) => onUpdate({ autoplay: checked })}
+        />
+      </div>
+      {content.autoplay && (
+        <div className="space-y-2">
+          <Label>Vitesse ({(content.autoplaySpeed as number) || 5000}ms)</Label>
+          <Slider
+            value={[(content.autoplaySpeed as number) || 5000]}
+            onValueChange={([value]) => onUpdate({ autoplaySpeed: value })}
+            min={2000}
+            max={10000}
+            step={500}
+          />
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <Label>Afficher les flèches</Label>
+        <Switch
+          checked={(content.showArrows as boolean) ?? true}
+          onCheckedChange={(checked) => onUpdate({ showArrows: checked })}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Afficher les points</Label>
+        <Switch
+          checked={(content.showDots as boolean) ?? true}
+          onCheckedChange={(checked) => onUpdate({ showDots: checked })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Hauteur</Label>
+        <Select
+          value={(content.height as string) || '80vh'}
+          onValueChange={(value) => onUpdate({ height: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="50vh">Petite (50vh)</SelectItem>
+            <SelectItem value="60vh">Moyenne (60vh)</SelectItem>
+            <SelectItem value="80vh">Grande (80vh)</SelectItem>
+            <SelectItem value="100vh">Plein écran (100vh)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Overlay sombre</Label>
+        <Switch
+          checked={(content.overlay as boolean) ?? true}
+          onCheckedChange={(checked) => onUpdate({ overlay: checked })}
+        />
+      </div>
+      {content.overlay && (
+        <div className="space-y-2">
+          <Label>Opacité overlay ({(content.overlayOpacity as number) || 40}%)</Label>
+          <Slider
+            value={[(content.overlayOpacity as number) || 40]}
+            onValueChange={([value]) => onUpdate({ overlayOpacity: value })}
+            min={0}
+            max={80}
+            step={10}
+          />
+        </div>
+      )}
+
+      {/* Slides */}
+      <div className="space-y-2">
+        <Label>Slides</Label>
+        {slides.map((slide, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Slide {index + 1}</span>
+              <Button variant="ghost" size="sm" onClick={() => removeSlide(index)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="URL de l'image"
+              value={slide.image || ''}
+              onChange={(e) => updateSlide(index, { image: e.target.value })}
+            />
+            <Input
+              placeholder="Titre"
+              value={slide.title || ''}
+              onChange={(e) => updateSlide(index, { title: e.target.value })}
+            />
+            <Input
+              placeholder="Sous-titre"
+              value={slide.subtitle || ''}
+              onChange={(e) => updateSlide(index, { subtitle: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                placeholder="Texte du bouton"
+                value={slide.buttonText || ''}
+                onChange={(e) => updateSlide(index, { buttonText: e.target.value })}
+              />
+              <Input
+                placeholder="Lien du bouton"
+                value={slide.buttonLink || ''}
+                onChange={(e) => updateSlide(index, { buttonLink: e.target.value })}
+              />
+            </div>
+            <Select
+              value={slide.alignment || 'center'}
+              onValueChange={(value) => updateSlide(index, { alignment: value as 'left' | 'center' | 'right' })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="left">Gauche</SelectItem>
+                <SelectItem value="center">Centre</SelectItem>
+                <SelectItem value="right">Droite</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={addSlide} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter une slide
+        </Button>
       </div>
     </div>
   )
