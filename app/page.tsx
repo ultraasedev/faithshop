@@ -43,6 +43,7 @@ export default async function Home() {
       heroImage={configMap['home_hero_image']}
       heroCtaText={configMap['home_hero_cta_text']}
       heroCtaLink={configMap['home_hero_cta_link']}
+      heroSlides={configMap['home_hero_slides']}
       featuredProducts={productsToShow}
     />
   )

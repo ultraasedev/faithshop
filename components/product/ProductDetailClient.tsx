@@ -40,8 +40,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   // Image courante basée sur l'index sélectionné
   const currentImage = product.images[selectedImageIndex] || product.images[0] || '/logo2-nobg.png'
 
-  // Swipe handlers
-  const minSwipeDistance = 50
+  // Swipe handlers - lower distance for easier swiping
+  const minSwipeDistance = 30
 
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null)
@@ -64,6 +64,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     if (isRightSwipe && selectedImageIndex > 0) {
       setSelectedImageIndex(prev => prev - 1)
     }
+
+    // Reset touch state
+    setTouchStart(null)
+    setTouchEnd(null)
   }
 
   const goToPrevImage = useCallback(() => {
@@ -124,7 +128,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="flex flex-col gap-4">
               {/* Main Image with Swipe */}
               <div
-                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
+                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group touch-pan-y"
+                style={{ touchAction: 'pan-y pinch-zoom' }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
@@ -148,29 +153,48 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   />
                 )}
 
-                {/* Navigation Arrows */}
+                {/* Navigation Arrows - visible on mobile and hover on desktop */}
                 {product.images.length > 1 && (
                   <>
                     <button
                       type="button"
                       onClick={goToPrevImage}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-black shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all md:opacity-0 md:group-hover:opacity-100"
                       aria-label="Image précédente"
                     >
-                      <ChevronLeft className="w-6 h-6" />
+                      <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <button
                       type="button"
                       onClick={goToNextImage}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-black shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all md:opacity-0 md:group-hover:opacity-100"
                       aria-label="Image suivante"
                     >
-                      <ChevronRight className="w-6 h-6" />
+                      <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
 
-                    {/* Image Counter */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
-                      {selectedImageIndex + 1} / {product.images.length}
+                    {/* Dots Navigation for Mobile */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2">
+                      {product.images.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedImageIndex(idx)}
+                          className={`w-2.5 h-2.5 rounded-full transition-all ${
+                            idx === selectedImageIndex
+                              ? 'bg-white w-6'
+                              : 'bg-white/50 hover:bg-white/70'
+                          }`}
+                          aria-label={`Voir image ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Swipe Hint on Mobile (shown briefly) */}
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10 text-white/70 text-xs md:hidden flex items-center gap-1">
+                      <ChevronLeft className="w-3 h-3" />
+                      Swipez
+                      <ChevronRight className="w-3 h-3" />
                     </div>
                   </>
                 )}

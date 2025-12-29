@@ -16,7 +16,14 @@ const TEMPLATE_PAGES = [
 ]
 
 async function getPages() {
+  // Get template slugs to exclude from dynamic pages
+  const templateSlugs = TEMPLATE_PAGES.map(tp => tp.slug)
+
   const pagesData = await prisma.pageContent.findMany({
+    where: {
+      // Exclude pages that are templates (they have their own editors)
+      slug: { notIn: templateSlugs }
+    },
     orderBy: { updatedAt: 'desc' }
   })
 
@@ -41,7 +48,7 @@ async function getPages() {
     title: tp.title,
     slug: tp.slug,
     status: 'PUBLISHED' as const,
-    isHomepage: false,
+    isHomepage: tp.slug === 'home',
     template: 'fixed',
     metaTitle: tp.title,
     metaDescription: tp.description,

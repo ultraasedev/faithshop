@@ -9,43 +9,72 @@ import { Button } from '@/components/ui/button'
 import { useState, useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
+interface Slide {
+  id: string
+  image: string
+  title: string
+  subtitle: string
+  ctaText: string
+  ctaLink: string
+}
+
 interface HomeClientProps {
-  heroTitle: string
-  heroSubtitle: string
-  heroImage: string
-  heroCtaText: string
-  heroCtaLink: string
+  heroTitle?: string
+  heroSubtitle?: string
+  heroImage?: string
+  heroCtaText?: string
+  heroCtaLink?: string
+  heroSlides?: string // JSON string of Slide[]
   featuredProducts: any[]
 }
 
-export default function HomeClient({ 
-  heroTitle, 
-  heroSubtitle, 
-  heroImage, 
-  heroCtaText, 
+export default function HomeClient({
+  heroTitle,
+  heroSubtitle,
+  heroImage,
+  heroCtaText,
   heroCtaLink,
-  featuredProducts 
+  heroSlides,
+  featuredProducts
 }: HomeClientProps) {
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Check if heroImage is a video
-  const isVideo = heroImage?.endsWith('.mp4') || heroImage?.endsWith('.webm')
-
-  const slides = [
-    {
-      id: 1,
-      image: heroImage || '/hero-bg.png',
-      subtitle: heroSubtitle || 'Collection Hiver 2025',
-      title: heroTitle || "L'Élégance de la Foi",
-      description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
-      cta: heroCtaText || 'Découvrir',
-      link: heroCtaLink || '/shop',
-      isVideo: isVideo
+  // Parse slides from JSON or use legacy single slide
+  const parsedSlides: Slide[] = (() => {
+    if (heroSlides) {
+      try {
+        const parsed = JSON.parse(heroSlides)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed
+        }
+      } catch {
+        // Fall through to legacy
+      }
     }
-  ]
+    // Legacy single slide format
+    return [{
+      id: '1',
+      image: heroImage || '/hero-bg.png',
+      title: heroTitle || "L'Élégance de la Foi",
+      subtitle: heroSubtitle || 'Collection Hiver 2025',
+      ctaText: heroCtaText || 'Découvrir',
+      ctaLink: heroCtaLink || '/shop'
+    }]
+  })()
+
+  const slides = parsedSlides.map(slide => ({
+    id: slide.id,
+    image: slide.image || '/hero-bg.png',
+    subtitle: slide.subtitle || 'Collection Hiver 2025',
+    title: slide.title || "L'Élégance de la Foi",
+    description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
+    cta: slide.ctaText || 'Découvrir',
+    link: slide.ctaLink || '/shop',
+    isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm')
+  }))
 
   // Auto-play du carrousel (désactivé s'il n'y a qu'un slide)
   useEffect(() => {

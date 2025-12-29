@@ -8,7 +8,8 @@ const HOMEPAGE_KEYS = [
   'home_hero_subtitle',
   'home_hero_image',
   'home_hero_cta_text',
-  'home_hero_cta_link'
+  'home_hero_cta_link',
+  'home_hero_slides'
 ]
 
 export async function GET() {
@@ -81,7 +82,8 @@ function getLabel(key: string): string {
     home_hero_subtitle: 'Sous-titre Hero',
     home_hero_image: 'Image Hero',
     home_hero_cta_text: 'Texte bouton Hero',
-    home_hero_cta_link: 'Lien bouton Hero'
+    home_hero_cta_link: 'Lien bouton Hero',
+    home_hero_slides: 'Slides Hero'
   }
   return labels[key] || key
 }
