@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import {
   LayoutDashboard,
   Package,
@@ -271,6 +271,7 @@ export function AdminSidebar({ session }: AdminSidebarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-64">
+          <SheetTitle className="sr-only">Menu Admin</SheetTitle>
           <SidebarContent />
         </SheetContent>
       </Sheet>
