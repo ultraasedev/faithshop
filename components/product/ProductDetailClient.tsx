@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -31,59 +31,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
-  const [touchStart, setTouchStart] = useState<number | null>(null)
-  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const addItem = useCart((state) => state.addItem)
 
   const reviewsRef = useRef<HTMLDivElement>(null)
+  const imageContainerRef = useRef<HTMLDivElement>(null)
 
   // Image courante basée sur l'index sélectionné
   const currentImage = product.images[selectedImageIndex] || product.images[0] || '/logo2-nobg.png'
-
-  // Swipe handlers - lower distance for easier swiping
-  const minSwipeDistance = 30
-  const [touchStartY, setTouchStartY] = useState<number | null>(null)
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null)
-    setTouchStart(e.targetTouches[0].clientX)
-    setTouchStartY(e.targetTouches[0].clientY)
-  }
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchStart || !touchStartY) return
-
-    const currentX = e.targetTouches[0].clientX
-    const currentY = e.targetTouches[0].clientY
-    const diffX = Math.abs(currentX - touchStart)
-    const diffY = Math.abs(currentY - touchStartY)
-
-    // If horizontal movement is greater than vertical, it's a swipe
-    if (diffX > diffY && diffX > 10) {
-      e.preventDefault() // Prevent vertical scroll during horizontal swipe
-    }
-
-    setTouchEnd(currentX)
-  }
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-    const isRightSwipe = distance < -minSwipeDistance
-
-    if (isLeftSwipe && selectedImageIndex < product.images.length - 1) {
-      setSelectedImageIndex(prev => prev + 1)
-    }
-    if (isRightSwipe && selectedImageIndex > 0) {
-      setSelectedImageIndex(prev => prev - 1)
-    }
-
-    // Reset touch state
-    setTouchStart(null)
-    setTouchEnd(null)
-    setTouchStartY(null)
-  }
 
   const goToPrevImage = useCallback(() => {
     setSelectedImageIndex(prev => (prev > 0 ? prev - 1 : product.images.length - 1))
@@ -91,6 +45,64 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const goToNextImage = useCallback(() => {
     setSelectedImageIndex(prev => (prev < product.images.length - 1 ? prev + 1 : 0))
+  }, [product.images.length])
+
+  // Native touch event handlers for proper swipe on mobile
+  useEffect(() => {
+    const container = imageContainerRef.current
+    if (!container || product.images.length <= 1) return
+
+    let touchStartX = 0
+    let touchStartY = 0
+    let touchEndX = 0
+    let isSwiping = false
+    const minSwipeDistance = 50
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      touchEndX = touchStartX
+      isSwiping = false
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      touchEndX = e.touches[0].clientX
+      const touchEndY = e.touches[0].clientY
+      const diffX = Math.abs(touchEndX - touchStartX)
+      const diffY = Math.abs(touchEndY - touchStartY)
+
+      // If horizontal movement is greater than vertical, it's a swipe
+      if (diffX > diffY && diffX > 15) {
+        isSwiping = true
+        e.preventDefault() // Prevent scroll during horizontal swipe
+      }
+    }
+
+    const handleTouchEnd = () => {
+      if (!isSwiping) return
+
+      const distance = touchStartX - touchEndX
+
+      if (distance > minSwipeDistance) {
+        // Swipe left - next image
+        setSelectedImageIndex(prev =>
+          prev < product.images.length - 1 ? prev + 1 : prev
+        )
+      } else if (distance < -minSwipeDistance) {
+        // Swipe right - previous image
+        setSelectedImageIndex(prev => prev > 0 ? prev - 1 : prev)
+      }
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
   }, [product.images.length])
 
   const handleAddToCart = () => {
@@ -143,11 +155,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="flex flex-col gap-4">
               {/* Main Image with Swipe */}
               <div
-                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
-                style={{ touchAction: 'manipulation' }}
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
+                ref={imageContainerRef}
+                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group cursor-grab active:cursor-grabbing"
               >
                 {(currentImage.endsWith('.mp4') || currentImage.endsWith('.webm')) ? (
                   <video
