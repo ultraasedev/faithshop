@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 // Template pages with fixed design that are editable
 const TEMPLATE_PAGES = [
+  { slug: 'home', title: 'Accueil', description: 'Page d\'accueil du site' },
   { slug: 'about', title: 'À propos', description: 'Page de présentation' },
   { slug: 'contact', title: 'Contact', description: 'Page de contact' },
   { slug: 'shop', title: 'Boutique', description: 'Liste des produits' },
