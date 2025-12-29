@@ -2,6 +2,10 @@ import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import { BlockRenderer } from '@/components/page-blocks/BlockRenderer'
+import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
+
+export const dynamic = 'force-dynamic'
 
 // Generate Metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -88,32 +92,40 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   // If we have blocks, render them with BlockRenderer
   if (blocks.length > 0) {
     return (
-      <div className="min-h-screen bg-background">
-        <BlockRenderer
-          blocks={blocks}
-          collections={collections}
-          products={products.map(p => ({
-            ...p,
-            price: Number(p.price),
-            images: p.images as string[]
-          }))}
-        />
+      <div className="flex min-h-screen flex-col bg-background">
+        <Header />
+        <main className="flex-1">
+          <BlockRenderer
+            blocks={blocks}
+            collections={collections}
+            products={products.map(p => ({
+              ...p,
+              price: Number(p.price),
+              images: p.images as string[]
+            }))}
+          />
+        </main>
+        <Footer />
       </div>
     )
   }
 
   // Fallback: render legacy HTML content
   return (
-    <div className="min-h-screen bg-background pt-24 pb-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <h1 className="font-serif text-4xl md:text-5xl mb-8 text-center">{page.title}</h1>
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
+      <main className="flex-1 pt-24 pb-12">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h1 className="font-serif text-4xl md:text-5xl mb-8 text-center">{page.title}</h1>
 
-        {/* Render HTML Content safely */}
-        <div
-          className="prose prose-lg dark:prose-invert mx-auto"
-          dangerouslySetInnerHTML={{ __html: page.content }}
-        />
-      </div>
+          {/* Render HTML Content safely */}
+          <div
+            className="prose prose-lg dark:prose-invert mx-auto"
+            dangerouslySetInnerHTML={{ __html: page.content }}
+          />
+        </div>
+      </main>
+      <Footer />
     </div>
   )
 }
