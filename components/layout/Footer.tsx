@@ -181,9 +181,9 @@ export default async function Footer() {
           <p className="text-xs text-muted-foreground">
             {copyrightText}
           </p>
-          <div className="flex gap-6">
-            {socialLinks.length > 0 ? (
-              socialLinks.map((link) => (
+          {socialLinks.length > 0 && (
+            <div className="flex gap-6">
+              {socialLinks.map((link) => (
                 <a
                   key={link.platform}
                   href={link.url}
@@ -194,25 +194,9 @@ export default async function Footer() {
                   <SocialIcon platform={link.platform} className="h-5 w-5" />
                   <span className="sr-only">{link.platform}</span>
                 </a>
-              ))
-            ) : (
-              // Default social links if none configured
-              <>
-                <a href="https://instagram.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
-                  <SocialIcon platform="instagram" className="h-5 w-5" />
-                  <span className="sr-only">Instagram</span>
-                </a>
-                <a href="https://facebook.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
-                  <SocialIcon platform="facebook" className="h-5 w-5" />
-                  <span className="sr-only">Facebook</span>
-                </a>
-                <a href="https://twitter.com/faithshop" target="_blank" rel="noopener noreferrer" className="text-muted-foreground transition-colors hover:text-primary">
-                  <SocialIcon platform="twitter" className="h-5 w-5" />
-                  <span className="sr-only">Twitter</span>
-                </a>
-              </>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </footer>
