@@ -31,7 +31,11 @@ import {
   Copy,
   MoreHorizontal,
   Globe,
-  Clock
+  Clock,
+  Lock,
+  Scale,
+  Shield,
+  Truck
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -67,6 +71,10 @@ const pageIcons: Record<string, typeof FileText> = {
   shop: ShoppingBag,
   contact: Mail,
   about: Info,
+  cgv: Scale,
+  legal: Scale,
+  privacy: Shield,
+  livraison: Truck,
 }
 
 const templates = [
@@ -287,32 +295,36 @@ export function PagesClient({ pages }: PagesClientProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/admin/pages/${page.slug}/edit`)}>
+                      <DropdownMenuItem onClick={() => router.push(page.template === 'fixed' ? `/admin/pages/${page.slug}` : `/admin/pages/${page.slug}/edit`)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`/${page.slug}`, '_blank')}>
+                      <DropdownMenuItem onClick={() => window.open(`/${page.slug === 'home' ? '' : page.slug}`, '_blank')}>
                         <Eye className="h-4 w-4 mr-2" />
                         Voir la page
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDuplicatePage(page)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Dupliquer
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleDeletePage(page.id)}
-                        className="text-red-600"
-                        disabled={page.isHomepage}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Supprimer
-                      </DropdownMenuItem>
+                      {page.template !== 'fixed' && (
+                        <DropdownMenuItem onClick={() => handleDuplicatePage(page)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Dupliquer
+                        </DropdownMenuItem>
+                      )}
+                      {page.template !== 'fixed' && <DropdownMenuSeparator />}
+                      {page.template !== 'fixed' && (
+                        <DropdownMenuItem
+                          onClick={() => handleDeletePage(page.id)}
+                          className="text-red-600"
+                          disabled={page.isHomepage}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
 
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex items-center gap-2 flex-wrap">
                   <StatusBadge
                     status={page.status}
                     type="page"
@@ -322,6 +334,12 @@ export function PagesClient({ pages }: PagesClientProps) {
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                       <Home className="h-3 w-3" />
                       Accueil
+                    </span>
+                  )}
+                  {page.template === 'fixed' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                      <Lock className="h-3 w-3" />
+                      Design fixe
                     </span>
                   )}
                 </div>
@@ -342,10 +360,10 @@ export function PagesClient({ pages }: PagesClientProps) {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => router.push(`/admin/pages/${page.slug}/edit`)}
+                  onClick={() => router.push(page.template === 'fixed' ? `/admin/pages/${page.slug}` : `/admin/pages/${page.slug}/edit`)}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Éditer avec le Page Builder
+                  {page.template === 'fixed' ? 'Modifier le contenu' : 'Éditer avec le Page Builder'}
                 </Button>
               </CardFooter>
             </Card>

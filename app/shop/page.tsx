@@ -3,14 +3,25 @@ import Image from 'next/image'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { prisma } from '@/lib/prisma'
+import { getPageConfig } from '@/app/actions/admin/page-content'
 
 export const dynamic = 'force-dynamic'
 
+const DEFAULTS = {
+  title: 'La Boutique',
+  description: "Découvrez l'ensemble de notre collection. Des pièces conçues pour durer et inspirer.",
+}
+
 export default async function ShopPage() {
-  const products = await prisma.product.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' }
-  })
+  const [products, dbContent] = await Promise.all([
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    }),
+    getPageConfig('shop')
+  ])
+
+  const content = { ...DEFAULTS, ...dbContent }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -18,9 +29,9 @@ export default async function ShopPage() {
       <main className="flex-1 pt-32">
         {/* Header de collection */}
         <div className="bg-secondary/30 py-16 text-center">
-          <h1 className="font-serif text-4xl md:text-5xl mb-4">La Boutique</h1>
+          <h1 className="font-serif text-4xl md:text-5xl mb-4">{content.title}</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Découvrez l'ensemble de notre collection. Des pièces conçues pour durer et inspirer.
+            {content.description}
           </p>
         </div>
 
