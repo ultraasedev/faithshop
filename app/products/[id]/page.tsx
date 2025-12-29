@@ -68,10 +68,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound()
   }
 
-  // Convert Decimal to number for Client Component
+  // Properly serialize all data for Client Component (avoid Decimal, Date issues)
   const productJson = {
-    ...product,
-    price: product.price.toNumber()
+    id: product.id,
+    name: product.name,
+    description: product.description || '',
+    price: product.price.toNumber(),
+    images: product.images || [],
+    colors: product.colors || [],
+    sizes: product.sizes || [],
+    reviews: (product.reviews || []).map(review => ({
+      id: review.id,
+      rating: review.rating,
+      text: review.comment || '',
+      author: review.authorName || 'Anonyme',
+      date: review.createdAt ? new Date(review.createdAt).toLocaleDateString('fr-FR') : ''
+    }))
   }
 
   return <ProductDetailClient product={productJson} />

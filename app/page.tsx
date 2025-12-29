@@ -28,9 +28,13 @@ export default async function Home() {
       ? featuredProducts
       : await prisma.product.findMany({ take: 3, orderBy: { createdAt: 'desc' } })
 
+    // Properly serialize products (avoid Decimal, Date serialization issues)
     productsToShow = rawProducts.map(p => ({
-      ...p,
+      id: p.id,
+      name: p.name,
       price: p.price.toNumber(),
+      images: p.images || [],
+      badge: p.badge || null
     }))
   } catch (error) {
     console.error('Failed to fetch homepage data:', error)
