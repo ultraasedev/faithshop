@@ -187,25 +187,34 @@ export default function HomeClient({
         {/* Carousel Controls (only if multiple slides) */}
         {slides.length > 1 && (
           <>
-            <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-center gap-3">
+            <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
               {slides.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentSlide(index)}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
                   className={cn(
-                    "h-1 w-8 rounded-full transition-all duration-300",
-                    index === currentSlide ? "bg-white w-12" : "bg-white/30 hover:bg-white/50"
+                    "h-2 rounded-full transition-all duration-300 cursor-pointer",
+                    index === currentSlide ? "bg-white w-12" : "bg-white/40 w-8 hover:bg-white/60"
                   )}
                   aria-label={`Aller à la slide ${index + 1}`}
                 />
               ))}
             </div>
-            
-            <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors">
-              <ChevronLeft className="h-6 w-6" />
+
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="h-6 w-6 pointer-events-none" />
             </button>
-            <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 hidden md:flex h-12 w-12 items-center justify-center rounded-full border border-white/20 text-white hover:bg-white/10 transition-colors">
-              <ChevronRight className="h-6 w-6" />
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              <ChevronRight className="h-6 w-6 pointer-events-none" />
             </button>
           </>
         )}
