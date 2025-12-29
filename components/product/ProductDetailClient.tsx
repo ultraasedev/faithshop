@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check } from 'lucide-react'
+import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
@@ -31,12 +31,48 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
   const addItem = useCart((state) => state.addItem)
 
   const reviewsRef = useRef<HTMLDivElement>(null)
 
   // Image courante basée sur l'index sélectionné
   const currentImage = product.images[selectedImageIndex] || product.images[0] || '/logo2-nobg.png'
+
+  // Swipe handlers
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe && selectedImageIndex < product.images.length - 1) {
+      setSelectedImageIndex(prev => prev + 1)
+    }
+    if (isRightSwipe && selectedImageIndex > 0) {
+      setSelectedImageIndex(prev => prev - 1)
+    }
+  }
+
+  const goToPrevImage = useCallback(() => {
+    setSelectedImageIndex(prev => (prev > 0 ? prev - 1 : product.images.length - 1))
+  }, [product.images.length])
+
+  const goToNextImage = useCallback(() => {
+    setSelectedImageIndex(prev => (prev < product.images.length - 1 ? prev + 1 : 0))
+  }, [product.images.length])
 
   const handleAddToCart = () => {
     addItem({
@@ -86,7 +122,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             
             {/* Gallery */}
             <div className="flex flex-col gap-4">
-              <div className="relative aspect-3/4 overflow-hidden bg-secondary w-full group">
+              {/* Main Image with Swipe */}
+              <div
+                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
                 {(currentImage.endsWith('.mp4') || currentImage.endsWith('.webm')) ? (
                   <video
                     src={currentImage}
@@ -105,27 +147,60 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     priority
                   />
                 )}
+
+                {/* Navigation Arrows */}
+                {product.images.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={goToPrevImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-black shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Image précédente"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/80 hover:bg-white text-black shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                      aria-label="Image suivante"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+
+                    {/* Image Counter */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
+                      {selectedImageIndex + 1} / {product.images.length}
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                 {product.images.map((img, idx) => (
-                   <button
-                     key={idx}
-                     type="button"
-                     onClick={() => setSelectedImageIndex(idx)}
-                     className={`relative aspect-square bg-secondary/30 overflow-hidden cursor-pointer transition-all border-0 p-0 ${
-                       selectedImageIndex === idx
-                         ? 'ring-2 ring-foreground opacity-100'
-                         : 'hover:opacity-80'
-                     }`}
-                   >
-                     <Image
-                       src={img}
-                       alt={`Vue ${idx + 1}`}
-                       fill
-                       className="object-cover pointer-events-none"
-                     />
-                   </button>
-                 ))}
+
+              {/* Thumbnails */}
+              <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                {product.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      console.log('Thumbnail clicked:', idx)
+                      setSelectedImageIndex(idx)
+                    }}
+                    className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
+                      selectedImageIndex === idx
+                        ? 'ring-2 ring-foreground ring-offset-2'
+                        : 'opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Vue ${idx + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 25vw, 150px"
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
               </div>
             </div>
 
