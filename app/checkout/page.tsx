@@ -8,7 +8,6 @@ import { useCart } from '@/lib/store/cart'
 import Link from 'next/link'
 import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import ShippingBanner from '@/components/banners/ShippingBanner'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -153,9 +152,8 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ShippingBanner showOnPages={['checkout']} />
       {/* Header simplifié pour le checkout */}
-      <header className="fixed top-[60px] z-40 w-full bg-background/80 backdrop-blur-md border-b border-border">
+      <header className="fixed top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/shop" className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-4 w-4" />
@@ -173,7 +171,7 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      <main className="pt-[140px] pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {items.length === 0 ? (
           <div className="text-center py-20 max-w-md mx-auto">
             <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/50 mb-6" />
