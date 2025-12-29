@@ -40,7 +40,14 @@ export default function HomeClient({
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
+  const [isClient, setIsClient] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Test if client-side JavaScript is running
+  useEffect(() => {
+    setIsClient(true)
+    console.log('HomeClient mounted on client')
+  }, [])
 
   // Parse slides from JSON or use legacy single slide - memoized to avoid recalculation
   const slides = useMemo(() => {
@@ -216,7 +223,7 @@ export default function HomeClient({
 
         {/* Debug indicator - remove after testing */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-mono">
-          Slide {currentSlide + 1} / {slidesCount}
+          Slide {currentSlide + 1} / {slidesCount} | JS: {isClient ? '✓' : '✗'}
         </div>
 
         {/* Carousel Controls (only if multiple slides) */}
