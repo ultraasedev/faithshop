@@ -85,7 +85,18 @@ export default async function RootLayout({
       generateStructuredData(),
       getThemeConfig()
     ])
-    allThemes = themes
+    // Serialize themes to avoid DateTime hydration issues
+    allThemes = themes.map(t => ({
+      name: t.name,
+      isDefault: t.isDefault,
+      primaryColor: t.primaryColor,
+      secondaryColor: t.secondaryColor,
+      accentColor: t.accentColor,
+      backgroundColor: t.backgroundColor,
+      textColor: t.textColor,
+      mutedColor: t.mutedColor,
+      borderColor: t.borderColor
+    }))
     integrations = ints
     structuredData = seoData
     defaultDarkMode = themeConfig.darkModeDefault
@@ -104,42 +115,6 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
       <head>
-        {/* Global error handler + JS test - catches JS errors before React loads */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.__jsErrors = [];
-              window.__jsWorking = false;
-              window.onerror = function(msg, url, line, col) {
-                window.__jsErrors.push({msg:msg, url:url, line:line});
-                console.error('JS ERROR:', msg, url, line);
-              };
-              window.addEventListener('unhandledrejection', function(e) {
-                window.__jsErrors.push({msg:'Promise: '+e.reason});
-                console.error('PROMISE ERROR:', e.reason);
-              });
-              // Test basic JS execution
-              console.log('=== BASIC JS TEST START ===');
-              window.__jsWorking = true;
-
-              // Check React hydration after 3 seconds
-              setTimeout(function() {
-                console.log('=== CHECKING REACT STATUS ===');
-                console.log('__NEXT_DATA__:', typeof window.__NEXT_DATA__);
-                console.log('React:', typeof window.React);
-                console.log('Next:', typeof window.next);
-
-                var indicator = document.querySelector('[data-js-test]');
-                if (indicator && indicator.textContent.indexOf('React: ✓') === -1) {
-                  // React didn't hydrate
-                  indicator.textContent = 'Basic JS: OK | React: FAILED';
-                  indicator.style.background = 'orange';
-                  console.error('=== REACT HYDRATION FAILED ===');
-                }
-              }, 3000);
-            `
-          }}
-        />
         {/* Prevent theme flash - must be first */}
         <script
           dangerouslySetInnerHTML={{

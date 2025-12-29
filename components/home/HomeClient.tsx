@@ -40,14 +40,7 @@ export default function HomeClient({
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
-  const [isClient, setIsClient] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
-
-  // Test if client-side JavaScript is running
-  useEffect(() => {
-    setIsClient(true)
-    console.log('HomeClient mounted on client')
-  }, [])
 
   // Parse slides from JSON or use legacy single slide - memoized to avoid recalculation
   const slides = useMemo(() => {
@@ -93,36 +86,18 @@ export default function HomeClient({
   // Auto-play du carrousel (désactivé s'il n'y a qu'un slide)
   useEffect(() => {
     if (slidesCount <= 1) return
-    console.log('Starting auto-play timer, slides:', slidesCount)
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const next = (prev + 1) % slidesCount
-        console.log('Auto-slide:', prev, '->', next)
-        return next
-      })
+      setCurrentSlide((prev) => (prev + 1) % slidesCount)
     }, 6000)
-    return () => {
-      console.log('Clearing auto-play timer')
-      clearInterval(timer)
-    }
+    return () => clearInterval(timer)
   }, [slidesCount])
 
   const nextSlide = () => {
-    console.log('Next slide clicked, current:', currentSlide, 'total:', slidesCount)
-    setCurrentSlide((prev) => {
-      const next = (prev + 1) % slidesCount
-      console.log('Changing to:', next)
-      return next
-    })
+    setCurrentSlide((prev) => (prev + 1) % slidesCount)
   }
 
   const prevSlide = () => {
-    console.log('Prev slide clicked, current:', currentSlide, 'total:', slidesCount)
-    setCurrentSlide((prev) => {
-      const next = prev === 0 ? slidesCount - 1 : prev - 1
-      console.log('Changing to:', next)
-      return next
-    })
+    setCurrentSlide((prev) => prev === 0 ? slidesCount - 1 : prev - 1)
   }
 
   const togglePlay = () => {
@@ -221,14 +196,6 @@ export default function HomeClient({
           </div>
         ))}
 
-        {/* Debug indicator - remove after testing */}
-        <div
-          data-js-test="true"
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-mono"
-        >
-          Slide {currentSlide + 1} / {slidesCount} | React: {isClient ? '✓' : '✗'}
-        </div>
-
         {/* Carousel Controls (only if multiple slides) */}
         {slidesCount > 1 && (
           <>
@@ -237,11 +204,7 @@ export default function HomeClient({
                 <button
                   key={index}
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    console.log('Dot clicked:', index)
-                    setCurrentSlide(index)
-                  }}
+                  onClick={() => setCurrentSlide(index)}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300 cursor-pointer",
                     index === currentSlide ? "bg-white w-12" : "bg-white/40 w-8 hover:bg-white/60"
@@ -253,17 +216,17 @@ export default function HomeClient({
 
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+              onClick={prevSlide}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
-              <ChevronLeft className="h-6 w-6 pointer-events-none" />
+              <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+              onClick={nextSlide}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
-              <ChevronRight className="h-6 w-6 pointer-events-none" />
+              <ChevronRight className="h-6 w-6" />
             </button>
           </>
         )}
