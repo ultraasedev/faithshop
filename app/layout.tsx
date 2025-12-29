@@ -102,7 +102,7 @@ export default async function RootLayout({
   const fbId = fb ? JSON.parse(fb.config).pixelId : null
 
   return (
-    <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         {/* Global error handler + JS test - catches JS errors before React loads */}
         <script
@@ -121,14 +121,22 @@ export default async function RootLayout({
               // Test basic JS execution
               console.log('=== BASIC JS TEST START ===');
               window.__jsWorking = true;
+
+              // Check React hydration after 3 seconds
               setTimeout(function() {
-                console.log('=== BASIC JS TIMEOUT FIRED ===');
+                console.log('=== CHECKING REACT STATUS ===');
+                console.log('__NEXT_DATA__:', typeof window.__NEXT_DATA__);
+                console.log('React:', typeof window.React);
+                console.log('Next:', typeof window.next);
+
                 var indicator = document.querySelector('[data-js-test]');
-                if (indicator) {
-                  indicator.textContent = 'Basic JS: OK';
-                  indicator.style.background = 'green';
+                if (indicator && indicator.textContent.indexOf('React: ✓') === -1) {
+                  // React didn't hydrate
+                  indicator.textContent = 'Basic JS: OK | React: FAILED';
+                  indicator.style.background = 'orange';
+                  console.error('=== REACT HYDRATION FAILED ===');
                 }
-              }, 1000);
+              }, 3000);
             `
           }}
         />
