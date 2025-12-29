@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { revalidatePath } from 'next/cache'
+import { sendStaffWelcomeEmail } from '@/lib/email'
+
+// Generate a random password
+function generatePassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%'
+  let password = ''
+  const randomBytes = crypto.randomBytes(length)
+  for (let i = 0; i < length; i++) {
+    password += chars[randomBytes[i] % chars.length]
+  }
+  return password
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -51,14 +64,15 @@ export async function POST(request: NextRequest) {
     const {
       name,
       email,
-      password,
+      password: providedPassword,
       role,
       canManageProducts,
       canManageOrders,
       canManageUsers,
       canManageSettings,
       canManageDiscounts,
-      canManageShipping
+      canManageShipping,
+      permissions // Alternative format from new UI
     } = body
 
     // Check if email already exists
@@ -70,8 +84,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Cet email est déjà utilisé' }, { status: 400 })
     }
 
+    // Generate a random password if not provided
+    const temporaryPassword = providedPassword || generatePassword(12)
+
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 12)
+
+    // Handle permissions from either format
+    const perms = permissions || {
+      canManageProducts,
+      canManageOrders,
+      canManageUsers,
+      canManageSettings,
+      canManageDiscounts,
+      canManageShipping
+    }
 
     // Create user
     const user = await prisma.user.create({
@@ -79,24 +106,47 @@ export async function POST(request: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role,
-        canManageProducts: role === 'SUPER_ADMIN' ? true : canManageProducts,
-        canManageOrders: role === 'SUPER_ADMIN' ? true : canManageOrders,
-        canManageUsers: role === 'SUPER_ADMIN' ? true : canManageUsers,
-        canManageSettings: role === 'SUPER_ADMIN' ? true : canManageSettings,
-        canManageDiscounts: role === 'SUPER_ADMIN' ? true : canManageDiscounts,
-        canManageShipping: role === 'SUPER_ADMIN' ? true : canManageShipping
+        role: role || 'ADMIN',
+        canManageProducts: role === 'SUPER_ADMIN' ? true : (perms.canManageProducts ?? true),
+        canManageOrders: role === 'SUPER_ADMIN' ? true : (perms.canManageOrders ?? true),
+        canManageUsers: role === 'SUPER_ADMIN' ? true : (perms.canManageUsers ?? false),
+        canManageSettings: role === 'SUPER_ADMIN' ? true : (perms.canManageSettings ?? false),
+        canManageDiscounts: role === 'SUPER_ADMIN' ? true : (perms.canManageDiscounts ?? false),
+        canManageShipping: role === 'SUPER_ADMIN' ? true : (perms.canManageShipping ?? false)
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        createdAt: true,
+        lastLoginAt: true,
+        canManageProducts: true,
+        canManageOrders: true,
+        canManageUsers: true,
+        canManageSettings: true,
+        canManageDiscounts: true,
+        canManageShipping: true,
       }
     })
+
+    // Send welcome email with temporary password
+    try {
+      await sendStaffWelcomeEmail(email, name, temporaryPassword)
+    } catch (emailError) {
+      console.error('Erreur envoi email:', emailError)
+      // Continue even if email fails - user is created
+    }
 
     // Log activity
     await prisma.activityLog.create({
       data: {
         userId: session.user.id,
         action: 'a créé un nouveau membre',
-        details: `${name} (${email}) - ${role}`,
-        entityType: 'user',
-        entityId: user.id
+        details: `${name} (${email}) - ${role || 'ADMIN'}`,
+        resource: 'user',
+        resourceId: user.id
       }
     })
 
@@ -104,12 +154,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
+      member: {
+        ...user,
+        createdAt: user.createdAt.toISOString(),
+        lastLoginAt: user.lastLoginAt?.toISOString() || null,
+      },
+      temporaryPassword, // Return to show in dialog
+      message: 'Membre créé et email envoyé'
     })
   } catch (error) {
     console.error('Erreur lors de la création du membre:', error)

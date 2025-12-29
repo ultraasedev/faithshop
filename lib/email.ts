@@ -385,6 +385,99 @@ export async function sendDeliveryConfirmationEmail(
   return sendEmail(to, `Ta commande #${orderNumber} a été livrée !`, emailLayout(content))
 }
 
+// Email de création de compte staff
+export async function sendStaffWelcomeEmail(
+  to: string,
+  name: string,
+  temporaryPassword: string
+) {
+  const firstName = name?.split(' ')[0] || 'Membre'
+
+  const content = `
+    <div class="content">
+      <h2>Bienvenue dans l'équipe Faith Shop !</h2>
+
+      <p>Bonjour ${firstName},</p>
+
+      <p>Un compte administrateur a été créé pour vous sur <strong>Faith Shop</strong>.</p>
+
+      <div class="highlight-box">
+        <p style="margin: 0 0 10px 0;">
+          <strong>Vos identifiants de connexion :</strong>
+        </p>
+        <p style="margin: 0;">
+          <strong>Email :</strong> ${to}<br>
+          <strong>Mot de passe temporaire :</strong> <code style="background: #e0e0e0; padding: 2px 8px; border-radius: 4px; font-family: monospace;">${temporaryPassword}</code>
+        </p>
+      </div>
+
+      <p style="color: #d32f2f; font-weight: 500;">
+        Important : Nous vous recommandons de changer ce mot de passe dès votre première connexion.
+      </p>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/login" class="button">Se connecter</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <p style="font-size: 14px; color: #666;">
+        Si vous n'avez pas demandé ce compte, veuillez ignorer cet email ou contacter l'administrateur.
+      </p>
+
+      <p>Bienvenue dans l'équipe !<br><strong>Faith Shop</strong></p>
+    </div>
+  `
+
+  return sendEmail(to, 'Votre compte administrateur Faith Shop', emailLayout(content))
+}
+
+// Email de réinitialisation de mot de passe staff (nouveau mot de passe généré)
+export async function sendStaffPasswordResetEmail(
+  to: string,
+  name: string,
+  newPassword: string
+) {
+  const firstName = name?.split(' ')[0] || 'Membre'
+
+  const content = `
+    <div class="content">
+      <h2>Votre nouveau mot de passe</h2>
+
+      <p>Bonjour ${firstName},</p>
+
+      <p>Votre mot de passe Faith Shop a été réinitialisé par un administrateur.</p>
+
+      <div class="highlight-box">
+        <p style="margin: 0 0 10px 0;">
+          <strong>Votre nouveau mot de passe :</strong>
+        </p>
+        <p style="margin: 0;">
+          <code style="background: #e0e0e0; padding: 4px 12px; border-radius: 4px; font-family: monospace; font-size: 16px;">${newPassword}</code>
+        </p>
+      </div>
+
+      <p style="color: #d32f2f; font-weight: 500;">
+        Important : Nous vous recommandons de changer ce mot de passe dès votre prochaine connexion.
+      </p>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/login" class="button">Se connecter</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <p style="font-size: 14px; color: #666;">
+        Si vous n'avez pas demandé cette réinitialisation, contactez immédiatement l'administrateur.
+      </p>
+
+      <p>L'équipe Faith Shop</p>
+    </div>
+  `
+
+  return sendEmail(to, 'Votre mot de passe Faith Shop a été réinitialisé', emailLayout(content))
+}
+
 // Email de demande de retour
 export async function sendReturnRequestEmail(
   to: string,

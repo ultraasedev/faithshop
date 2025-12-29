@@ -42,7 +42,10 @@ import {
   Edit,
   Trash2,
   Key,
-  RefreshCw
+  RefreshCw,
+  Copy,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -72,8 +75,8 @@ interface ActivityLog {
   id: string
   action: string
   details: string | null
-  entityType: string | null
-  entityId: string | null
+  resource: string
+  resourceId: string | null
   createdAt: Date
   user: { name: string | null; email: string } | null
 }
@@ -112,6 +115,11 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
     canManageShipping: true
   })
 
+  // State for showing generated password
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null)
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -128,21 +136,66 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
   }
 
   const handleCreate = async () => {
-    if (!formData.name || !formData.email || !formData.password) return
+    if (!formData.name || !formData.email) return
 
     setIsLoading(true)
     try {
       const res = await fetch('/api/admin/staff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          // If no password provided, API will generate one
+          password: formData.password || undefined
+        })
       })
 
-      if (res.ok) {
+      const data = await res.json()
+
+      if (res.ok && data.success) {
         setIsCreating(false)
         resetForm()
+
+        // Show generated password if provided
+        if (data.temporaryPassword) {
+          setGeneratedPassword(data.temporaryPassword)
+          setShowPasswordDialog(true)
+        }
+
         router.refresh()
+      } else {
+        alert(data.error || 'Erreur lors de la création')
       }
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de la création')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleResetPassword = async (member: StaffMember) => {
+    if (!confirm(`Voulez-vous réinitialiser le mot de passe de ${member.name || member.email} ? Un nouveau mot de passe sera généré et envoyé par email.`)) {
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/admin/staff/${member.id}/reset-password`, {
+        method: 'POST'
+      })
+
+      const data = await res.json()
+
+      if (res.ok && data.success) {
+        setGeneratedPassword(data.temporaryPassword)
+        setShowPasswordDialog(true)
+      } else {
+        alert(data.error || 'Erreur lors de la réinitialisation')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de la réinitialisation')
     } finally {
       setIsLoading(false)
     }
@@ -271,7 +324,7 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
                         <Edit className="h-4 w-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleResetPassword(member)}>
                         <Key className="h-4 w-4 mr-2" />
                         Réinitialiser le mot de passe
                       </DropdownMenuItem>
@@ -448,6 +501,58 @@ export function StaffClient({ staff, activityLogs, currentUserId }: StaffClientP
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Generated Password Dialog */}
+      <Dialog open={showPasswordDialog} onOpenChange={(open) => {
+        setShowPasswordDialog(open)
+        if (!open) {
+          setGeneratedPassword(null)
+          setShowPassword(false)
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mot de passe temporaire</DialogTitle>
+            <DialogDescription>
+              Ce mot de passe a été envoyé par email. Vous pouvez également le copier ci-dessous.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex items-center gap-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <code className="flex-1 font-mono text-lg text-center">
+                {showPassword ? generatedPassword : '••••••••••••'}
+              </code>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (generatedPassword) {
+                    navigator.clipboard.writeText(generatedPassword)
+                    alert('Mot de passe copié !')
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Ce mot de passe ne sera plus affiché après la fermeture de cette fenêtre.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowPasswordDialog(false)}>
+              Fermer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -496,13 +601,16 @@ function StaffForm({ formData, setFormData, isNew }: StaffFormProps) {
 
         {isNew && (
           <div className="space-y-2">
-            <Label>Mot de passe</Label>
+            <Label>Mot de passe (optionnel)</Label>
             <Input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="••••••••"
+              placeholder="Laissez vide pour générer automatiquement"
             />
+            <p className="text-xs text-gray-500">
+              Si vide, un mot de passe sera généré et envoyé par email
+            </p>
           </div>
         )}
 
