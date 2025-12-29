@@ -104,11 +104,12 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
-        {/* Global error handler - catches JS errors before React loads */}
+        {/* Global error handler + JS test - catches JS errors before React loads */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               window.__jsErrors = [];
+              window.__jsWorking = false;
               window.onerror = function(msg, url, line, col) {
                 window.__jsErrors.push({msg:msg, url:url, line:line});
                 console.error('JS ERROR:', msg, url, line);
@@ -117,6 +118,17 @@ export default async function RootLayout({
                 window.__jsErrors.push({msg:'Promise: '+e.reason});
                 console.error('PROMISE ERROR:', e.reason);
               });
+              // Test basic JS execution
+              console.log('=== BASIC JS TEST START ===');
+              window.__jsWorking = true;
+              setTimeout(function() {
+                console.log('=== BASIC JS TIMEOUT FIRED ===');
+                var indicator = document.querySelector('[data-js-test]');
+                if (indicator) {
+                  indicator.textContent = 'Basic JS: OK';
+                  indicator.style.background = 'green';
+                }
+              }, 1000);
             `
           }}
         />

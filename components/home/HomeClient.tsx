@@ -222,8 +222,11 @@ export default function HomeClient({
         ))}
 
         {/* Debug indicator - remove after testing */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-mono">
-          Slide {currentSlide + 1} / {slidesCount} | JS: {isClient ? '✓' : '✗'}
+        <div
+          data-js-test="true"
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-mono"
+        >
+          Slide {currentSlide + 1} / {slidesCount} | React: {isClient ? '✓' : '✗'}
         </div>
 
         {/* Carousel Controls (only if multiple slides) */}
