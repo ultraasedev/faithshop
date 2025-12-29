@@ -29,13 +29,14 @@ interface ProductDetailClientProps {
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
   const addItem = useCart((state) => state.addItem)
-  
+
   const reviewsRef = useRef<HTMLDivElement>(null)
 
-  // Fallback si pas d'images
-  const currentImage = product.images[0] || '/logo2-nobg.png'
+  // Image courante basée sur l'index sélectionné
+  const currentImage = product.images[selectedImageIndex] || product.images[0] || '/logo2-nobg.png'
 
   const handleAddToCart = () => {
     addItem({
@@ -107,7 +108,15 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
               <div className="grid grid-cols-4 gap-4">
                  {product.images.map((img, idx) => (
-                   <div key={idx} className="relative aspect-square bg-secondary/30 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                   <div
+                     key={idx}
+                     onClick={() => setSelectedImageIndex(idx)}
+                     className={`relative aspect-square bg-secondary/30 overflow-hidden cursor-pointer transition-all ${
+                       selectedImageIndex === idx
+                         ? 'ring-2 ring-foreground opacity-100'
+                         : 'hover:opacity-80'
+                     }`}
+                   >
                      <Image src={img} alt={`Vue ${idx + 1}`} fill className="object-cover" />
                    </div>
                  ))}
@@ -225,13 +234,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               </div>
 
-              {/* Bandeau Expédition */}
+              {/* Bandeau Pré-commande */}
               <div className="mt-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg p-4 shadow-lg">
                 <div className="flex items-center gap-3 text-white">
                   <Truck className="w-6 h-6 flex-shrink-0" />
                   <div>
-                    <p className="font-bold text-sm uppercase tracking-wide">⚠️ Information Livraison</p>
-                    <p className="text-white/90">Expédition à partir du <span className="font-bold">16 janvier 2025</span></p>
+                    <p className="font-bold text-sm uppercase tracking-wide">Pré-commande</p>
+                    <p className="text-white/90">Les expéditions commenceront à partir du <span className="font-bold">16 janvier 2025</span></p>
                   </div>
                 </div>
               </div>
