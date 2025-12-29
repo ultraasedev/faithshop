@@ -37,6 +37,9 @@ import { SocialLinksPreview } from './blocks/SocialLinksBlock'
 import { MapPreview } from './blocks/MapBlock'
 import { CounterPreview } from './blocks/CounterBlock'
 import { PricingPreview } from './blocks/PricingBlock'
+import { ManifestoBlockPreview } from './blocks/ManifestoBlock'
+import { ValuesBlockPreview } from './blocks/ValuesBlock'
+import { QuoteBlockPreview } from './blocks/QuoteBlock'
 
 interface EditorCanvasProps {
   blocks: PageBlock[]
@@ -275,6 +278,9 @@ function getBlockPreview(type: string) {
     map: MapPreview,
     counter: CounterPreview,
     pricing: PricingPreview,
+    manifesto: ManifestoBlockPreview,
+    values: ValuesBlockPreview,
+    quote: QuoteBlockPreview,
   }
 
   return previews[type] || DefaultBlockPreview
@@ -316,6 +322,9 @@ function getBlockLabel(type: string): string {
     map: 'Carte',
     counter: 'Compteurs',
     pricing: 'Tarification',
+    manifesto: 'Manifesto',
+    values: 'Valeurs',
+    quote: 'Citation',
   }
 
   return labels[type] || type

@@ -24,7 +24,10 @@ import {
   Share2,
   MapPin,
   Hash,
-  CreditCard
+  CreditCard,
+  FileText,
+  ListOrdered,
+  MessageCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -201,6 +204,29 @@ const blockTypes: BlockType[] = [
     icon: CreditCard,
     category: 'advanced',
     description: 'Tableaux de prix'
+  },
+
+  // Sections de page
+  {
+    type: 'manifesto',
+    label: 'Manifesto',
+    icon: FileText,
+    category: 'layout',
+    description: 'Section manifeste avec texte et branding'
+  },
+  {
+    type: 'values',
+    label: 'Valeurs',
+    icon: ListOrdered,
+    category: 'layout',
+    description: 'Section de valeurs numérotées'
+  },
+  {
+    type: 'quote',
+    label: 'Citation',
+    icon: MessageCircle,
+    category: 'content',
+    description: 'Citation avec auteur'
   },
 ]
 

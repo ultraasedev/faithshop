@@ -22,6 +22,9 @@ import { SocialLinksPreview } from '@/components/admin/page-builder/blocks/Socia
 import { MapPreview } from '@/components/admin/page-builder/blocks/MapBlock'
 import { CounterPreview } from '@/components/admin/page-builder/blocks/CounterBlock'
 import { PricingPreview } from '@/components/admin/page-builder/blocks/PricingBlock'
+import { ManifestoBlockPreview } from '@/components/admin/page-builder/blocks/ManifestoBlock'
+import { ValuesBlockPreview } from '@/components/admin/page-builder/blocks/ValuesBlock'
+import { QuoteBlockPreview } from '@/components/admin/page-builder/blocks/QuoteBlock'
 
 interface PageBlock {
   id: string
@@ -71,6 +74,9 @@ const blockComponents: Record<string, React.FC<{
   map: MapPreview,
   counter: CounterPreview,
   pricing: PricingPreview,
+  manifesto: ManifestoBlockPreview,
+  values: ValuesBlockPreview,
+  quote: QuoteBlockPreview,
 }
 
 export function BlockRenderer({ blocks, collections = [], products = [] }: BlockRendererProps) {

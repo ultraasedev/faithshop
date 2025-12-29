@@ -258,6 +258,12 @@ function ContentSettings({ type, content, onUpdate, collections, products }: Con
       return <CounterSettings content={content} onUpdate={onUpdate} />
     case 'pricing':
       return <PricingSettings content={content} onUpdate={onUpdate} />
+    case 'manifesto':
+      return <ManifestoSettings content={content} onUpdate={onUpdate} />
+    case 'values':
+      return <ValuesSettings content={content} onUpdate={onUpdate} />
+    case 'quote':
+      return <QuoteSettings content={content} onUpdate={onUpdate} />
     default:
       return <p className="text-sm text-gray-500">Aucun paramètre disponible</p>
   }
@@ -2136,6 +2142,202 @@ function PricingSettings({ content, onUpdate }: { content: Record<string, unknow
           <Plus className="h-4 w-4 mr-2" />
           Ajouter une formule
         </Button>
+      </div>
+    </div>
+  )
+}
+
+// ========== NEW PAGE SECTION BLOCKS ==========
+
+function ManifestoSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+          placeholder="Plus qu'une marque, un mouvement."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Texte 1</Label>
+        <textarea
+          value={(content.text1 as string) || ''}
+          onChange={(e) => onUpdate({ text1: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+          rows={3}
+          placeholder="Premier paragraphe..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Texte 2</Label>
+        <textarea
+          value={(content.text2 as string) || ''}
+          onChange={(e) => onUpdate({ text2: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+          rows={3}
+          placeholder="Deuxième paragraphe..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Nom de marque (affiché dans le bloc)</Label>
+        <Input
+          value={(content.brandName as string) || ''}
+          onChange={(e) => onUpdate({ brandName: e.target.value })}
+          placeholder="Faith-Shop"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Image (optionnelle, remplace le texte de marque)</Label>
+        <Input
+          value={(content.imageUrl as string) || ''}
+          onChange={(e) => onUpdate({ imageUrl: e.target.value })}
+          placeholder="https://..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Disposition</Label>
+        <Select
+          value={(content.layout as string) || 'left'}
+          onValueChange={(value) => onUpdate({ layout: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Texte à gauche</SelectItem>
+            <SelectItem value="right">Texte à droite</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+}
+
+function ValuesSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const values = (content.values as Array<{ title: string; text: string }>) || []
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Couleur de fond</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.backgroundColor as string) || '#000000'}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.backgroundColor as string) || ''}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+            placeholder="hsl(var(--foreground))"
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur du texte</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.textColor as string) || '#ffffff'}
+            onChange={(e) => onUpdate({ textColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.textColor as string) || ''}
+            onChange={(e) => onUpdate({ textColor: e.target.value })}
+            placeholder="hsl(var(--background))"
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Valeurs</Label>
+        {values.map((value, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Valeur {index + 1}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ values: values.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Titre"
+              value={value.title}
+              onChange={(e) => {
+                const newValues = [...values]
+                newValues[index] = { ...value, title: e.target.value }
+                onUpdate({ values: newValues })
+              }}
+            />
+            <textarea
+              placeholder="Description"
+              value={value.text}
+              onChange={(e) => {
+                const newValues = [...values]
+                newValues[index] = { ...value, text: e.target.value }
+                onUpdate({ values: newValues })
+              }}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+              rows={2}
+            />
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({ values: [...values, { title: '', text: '' }] })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter une valeur
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function QuoteSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Citation</Label>
+        <textarea
+          value={(content.text as string) || ''}
+          onChange={(e) => onUpdate({ text: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+          rows={3}
+          placeholder="La mode passe, le style reste..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Auteur</Label>
+        <Input
+          value={(content.author as string) || ''}
+          onChange={(e) => onUpdate({ author: e.target.value })}
+          placeholder="— Le Fondateur"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur de fond</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.backgroundColor as string) || '#f5f5f5'}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.backgroundColor as string) || ''}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+            placeholder="hsl(var(--secondary) / 0.1)"
+          />
+        </div>
       </div>
     </div>
   )
