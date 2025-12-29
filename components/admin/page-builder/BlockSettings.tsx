@@ -235,6 +235,22 @@ function ContentSettings({ type, content, onUpdate, collections, products }: Con
       return <DividerSettings content={content} onUpdate={onUpdate} />
     case 'columns':
       return <ColumnsSettings content={content} onUpdate={onUpdate} />
+    case 'custom-form':
+      return <CustomFormSettings content={content} onUpdate={onUpdate} />
+    case 'button':
+      return <ButtonSettings content={content} onUpdate={onUpdate} />
+    case 'accordion-tabs':
+      return <AccordionTabsSettings content={content} onUpdate={onUpdate} />
+    case 'features':
+      return <FeaturesSettings content={content} onUpdate={onUpdate} />
+    case 'social-links':
+      return <SocialLinksSettings content={content} onUpdate={onUpdate} />
+    case 'map':
+      return <MapSettings content={content} onUpdate={onUpdate} />
+    case 'counter':
+      return <CounterSettings content={content} onUpdate={onUpdate} />
+    case 'pricing':
+      return <PricingSettings content={content} onUpdate={onUpdate} />
     default:
       return <p className="text-sm text-gray-500">Aucun paramètre disponible</p>
   }
@@ -1064,6 +1080,1055 @@ function ColumnsSettings({ content, onUpdate }: { content: Record<string, unknow
           max={64}
           step={8}
         />
+      </div>
+    </div>
+  )
+}
+
+// ========== NEW BLOCK SETTINGS ==========
+
+interface FormField {
+  id: string
+  type: string
+  label: string
+  placeholder?: string
+  required?: boolean
+  options?: string[]
+  width?: string
+}
+
+function CustomFormSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const fields = (content.fields as FormField[]) || []
+  const fieldTypes = [
+    { value: 'text', label: 'Texte' },
+    { value: 'email', label: 'Email' },
+    { value: 'tel', label: 'Téléphone' },
+    { value: 'number', label: 'Nombre' },
+    { value: 'textarea', label: 'Zone de texte' },
+    { value: 'select', label: 'Liste déroulante' },
+    { value: 'checkbox', label: 'Cases à cocher' },
+    { value: 'radio', label: 'Boutons radio' },
+    { value: 'date', label: 'Date' },
+    { value: 'file', label: 'Fichier' }
+  ]
+
+  const addField = () => {
+    const newField: FormField = {
+      id: `field-${Date.now()}`,
+      type: 'text',
+      label: 'Nouveau champ',
+      placeholder: '',
+      required: false,
+      width: 'full'
+    }
+    onUpdate({ fields: [...fields, newField] })
+  }
+
+  const updateField = (index: number, updates: Partial<FormField>) => {
+    const newFields = [...fields]
+    newFields[index] = { ...newFields[index], ...updates }
+    onUpdate({ fields: newFields })
+  }
+
+  const removeField = (index: number) => {
+    onUpdate({ fields: fields.filter((_, i) => i !== index) })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <textarea
+          value={(content.description as string) || ''}
+          onChange={(e) => onUpdate({ description: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+          rows={2}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Champs du formulaire</Label>
+        {fields.map((field, index) => (
+          <div key={field.id} className="border rounded-lg p-3 space-y-2 bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Champ {index + 1}</span>
+              <Button variant="ghost" size="sm" onClick={() => removeField(index)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Label"
+              value={field.label}
+              onChange={(e) => updateField(index, { label: e.target.value })}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                value={field.type}
+                onValueChange={(value) => updateField(index, { type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {fieldTypes.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={field.width || 'full'}
+                onValueChange={(value) => updateField(index, { width: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Pleine largeur</SelectItem>
+                  <SelectItem value="half">Demi-largeur</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Input
+              placeholder="Placeholder"
+              value={field.placeholder || ''}
+              onChange={(e) => updateField(index, { placeholder: e.target.value })}
+            />
+            {['select', 'checkbox', 'radio'].includes(field.type) && (
+              <div className="space-y-1">
+                <label className="text-xs text-gray-500">Options (une par ligne)</label>
+                <textarea
+                  value={(field.options || []).join('\n')}
+                  onChange={(e) => updateField(index, { options: e.target.value.split('\n').filter(Boolean) })}
+                  className="w-full px-3 py-2 border rounded-md text-sm"
+                  rows={3}
+                  placeholder="Option 1&#10;Option 2&#10;Option 3"
+                />
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Obligatoire</span>
+              <Switch
+                checked={field.required || false}
+                onCheckedChange={(checked) => updateField(index, { required: checked })}
+              />
+            </div>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={addField} className="w-full">
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter un champ
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Texte du bouton</Label>
+        <Input
+          value={(content.submitText as string) || ''}
+          onChange={(e) => onUpdate({ submitText: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Message de succès</Label>
+        <Input
+          value={(content.successMessage as string) || ''}
+          onChange={(e) => onUpdate({ successMessage: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur du bouton</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.buttonColor as string) || '#000000'}
+            onChange={(e) => onUpdate({ buttonColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.buttonColor as string) || ''}
+            onChange={(e) => onUpdate({ buttonColor: e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ButtonSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Texte</Label>
+        <Input
+          value={(content.text as string) || ''}
+          onChange={(e) => onUpdate({ text: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Lien</Label>
+        <Input
+          value={(content.link as string) || ''}
+          onChange={(e) => onUpdate({ link: e.target.value })}
+          placeholder="https://..."
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Style</Label>
+        <Select
+          value={(content.style as string) || 'solid'}
+          onValueChange={(value) => onUpdate({ style: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="solid">Plein</SelectItem>
+            <SelectItem value="outline">Contour</SelectItem>
+            <SelectItem value="ghost">Transparent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Taille</Label>
+        <Select
+          value={(content.size as string) || 'medium'}
+          onValueChange={(value) => onUpdate({ size: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="small">Petit</SelectItem>
+            <SelectItem value="medium">Moyen</SelectItem>
+            <SelectItem value="large">Grand</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Alignement</Label>
+        <Select
+          value={(content.alignment as string) || 'center'}
+          onValueChange={(value) => onUpdate({ alignment: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Gauche</SelectItem>
+            <SelectItem value="center">Centre</SelectItem>
+            <SelectItem value="right">Droite</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Pleine largeur</Label>
+        <Switch
+          checked={(content.fullWidth as boolean) || false}
+          onCheckedChange={(checked) => onUpdate({ fullWidth: checked })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur de fond</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.backgroundColor as string) || '#000000'}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.backgroundColor as string) || ''}
+            onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur du texte</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.textColor as string) || '#ffffff'}
+            onChange={(e) => onUpdate({ textColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.textColor as string) || ''}
+            onChange={(e) => onUpdate({ textColor: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Arrondi ({(content.borderRadius as number) || 8}px)</Label>
+        <Slider
+          value={[(content.borderRadius as number) || 8]}
+          onValueChange={([value]) => onUpdate({ borderRadius: value })}
+          min={0}
+          max={50}
+          step={2}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Ouvrir dans un nouvel onglet</Label>
+        <Switch
+          checked={(content.openInNewTab as boolean) || false}
+          onCheckedChange={(checked) => onUpdate({ openInNewTab: checked })}
+        />
+      </div>
+    </div>
+  )
+}
+
+function AccordionTabsSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const items = (content.items as Array<{ title: string; content: string }>) || []
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre (optionnel)</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Mode</Label>
+        <Select
+          value={(content.mode as string) || 'accordion'}
+          onValueChange={(value) => onUpdate({ mode: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="accordion">Accordéon</SelectItem>
+            <SelectItem value="tabs">Onglets</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {content.mode === 'accordion' && (
+        <div className="flex items-center justify-between">
+          <Label>Ouvrir plusieurs à la fois</Label>
+          <Switch
+            checked={(content.allowMultiple as boolean) || false}
+            onCheckedChange={(checked) => onUpdate({ allowMultiple: checked })}
+          />
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label>Éléments</Label>
+        {items.map((item, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">#{index + 1}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ items: items.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Titre"
+              value={item.title}
+              onChange={(e) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, title: e.target.value }
+                onUpdate({ items: newItems })
+              }}
+            />
+            <textarea
+              placeholder="Contenu (HTML supporté)"
+              value={item.content}
+              onChange={(e) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, content: e.target.value }
+                onUpdate({ items: newItems })
+              }}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+              rows={3}
+            />
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({ items: [...items, { title: '', content: '' }] })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter un élément
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function FeaturesSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const items = (content.items as Array<{ icon: string; title: string; description: string }>) || []
+  const icons = ['truck', 'shield', 'creditCard', 'headphones', 'gift', 'clock', 'star', 'heart', 'zap', 'award', 'check', 'package']
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Sous-titre</Label>
+        <Input
+          value={(content.subtitle as string) || ''}
+          onChange={(e) => onUpdate({ subtitle: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Mise en page</Label>
+        <Select
+          value={(content.layout as string) || 'cards'}
+          onValueChange={(value) => onUpdate({ layout: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cards">Cartes</SelectItem>
+            <SelectItem value="minimal">Minimal</SelectItem>
+            <SelectItem value="centered">Centré</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Colonnes</Label>
+        <Select
+          value={String((content.columns as number) || 3)}
+          onValueChange={(value) => onUpdate({ columns: parseInt(value) })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[2, 3, 4].map((n) => (
+              <SelectItem key={n} value={String(n)}>{n} colonnes</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur des icônes</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.iconColor as string) || '#000000'}
+            onChange={(e) => onUpdate({ iconColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.iconColor as string) || ''}
+            onChange={(e) => onUpdate({ iconColor: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Fonctionnalités</Label>
+        {items.map((item, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">#{index + 1}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ items: items.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Select
+              value={item.icon}
+              onValueChange={(value) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, icon: value }
+                onUpdate({ items: newItems })
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Icône" />
+              </SelectTrigger>
+              <SelectContent>
+                {icons.map((icon) => (
+                  <SelectItem key={icon} value={icon}>{icon}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Titre"
+              value={item.title}
+              onChange={(e) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, title: e.target.value }
+                onUpdate({ items: newItems })
+              }}
+            />
+            <textarea
+              placeholder="Description"
+              value={item.description}
+              onChange={(e) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, description: e.target.value }
+                onUpdate({ items: newItems })
+              }}
+              className="w-full px-3 py-2 border rounded-md text-sm"
+              rows={2}
+            />
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({ items: [...items, { icon: 'check', title: '', description: '' }] })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter une fonctionnalité
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function SocialLinksSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const links = (content.links as Array<{ platform: string; url: string }>) || []
+  const platforms = ['facebook', 'instagram', 'twitter', 'x', 'linkedin', 'youtube', 'tiktok', 'pinterest', 'whatsapp', 'telegram', 'snapchat', 'discord']
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre (optionnel)</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Style</Label>
+        <Select
+          value={(content.style as string) || 'icons'}
+          onValueChange={(value) => onUpdate({ style: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="icons">Icônes</SelectItem>
+            <SelectItem value="buttons">Boutons</SelectItem>
+            <SelectItem value="pills">Pilules</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Taille</Label>
+        <Select
+          value={(content.size as string) || 'medium'}
+          onValueChange={(value) => onUpdate({ size: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="small">Petit</SelectItem>
+            <SelectItem value="medium">Moyen</SelectItem>
+            <SelectItem value="large">Grand</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Alignement</Label>
+        <Select
+          value={(content.alignment as string) || 'center'}
+          onValueChange={(value) => onUpdate({ alignment: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Gauche</SelectItem>
+            <SelectItem value="center">Centre</SelectItem>
+            <SelectItem value="right">Droite</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur</Label>
+        <Select
+          value={(content.color as string) || 'brand'}
+          onValueChange={(value) => onUpdate({ color: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="brand">Couleurs de marque</SelectItem>
+            <SelectItem value="dark">Sombre</SelectItem>
+            <SelectItem value="light">Clair</SelectItem>
+            <SelectItem value="custom">Personnalisé</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      {content.color === 'custom' && (
+        <div className="space-y-2">
+          <Label>Couleur personnalisée</Label>
+          <div className="flex gap-2">
+            <Input
+              type="color"
+              value={(content.customColor as string) || '#000000'}
+              onChange={(e) => onUpdate({ customColor: e.target.value })}
+              className="w-12 h-10 p-1"
+            />
+            <Input
+              value={(content.customColor as string) || ''}
+              onChange={(e) => onUpdate({ customColor: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+      <div className="space-y-2">
+        <Label>Liens</Label>
+        {links.map((link, index) => (
+          <div key={index} className="flex gap-2">
+            <Select
+              value={link.platform}
+              onValueChange={(value) => {
+                const newLinks = [...links]
+                newLinks[index] = { ...link, platform: value }
+                onUpdate({ links: newLinks })
+              }}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {platforms.map((p) => (
+                  <SelectItem key={p} value={p}>{p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="URL"
+              value={link.url}
+              onChange={(e) => {
+                const newLinks = [...links]
+                newLinks[index] = { ...link, url: e.target.value }
+                onUpdate({ links: newLinks })
+              }}
+              className="flex-1"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onUpdate({ links: links.filter((_, i) => i !== index) })}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({ links: [...links, { platform: 'instagram', url: '' }] })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter un lien
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function MapSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre (optionnel)</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Adresse</Label>
+        <textarea
+          value={(content.address as string) || ''}
+          onChange={(e) => onUpdate({ address: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+          rows={2}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
+          <Label>Latitude</Label>
+          <Input
+            type="number"
+            step="0.0001"
+            value={(content.latitude as number) || 48.8566}
+            onChange={(e) => onUpdate({ latitude: parseFloat(e.target.value) })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Longitude</Label>
+          <Input
+            type="number"
+            step="0.0001"
+            value={(content.longitude as number) || 2.3522}
+            onChange={(e) => onUpdate({ longitude: parseFloat(e.target.value) })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Hauteur ({(content.height as number) || 400}px)</Label>
+        <Slider
+          value={[(content.height as number) || 400]}
+          onValueChange={([value]) => onUpdate({ height: value })}
+          min={200}
+          max={600}
+          step={50}
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <Label>Afficher le marqueur</Label>
+        <Switch
+          checked={(content.showMarker as boolean) ?? true}
+          onCheckedChange={(checked) => onUpdate({ showMarker: checked })}
+        />
+      </div>
+    </div>
+  )
+}
+
+function CounterSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const items = (content.items as Array<{ value: number; suffix?: string; prefix?: string; label: string }>) || []
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Style</Label>
+        <Select
+          value={(content.style as string) || 'default'}
+          onValueChange={(value) => onUpdate({ style: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Par défaut</SelectItem>
+            <SelectItem value="cards">Cartes</SelectItem>
+            <SelectItem value="minimal">Minimal</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Colonnes</Label>
+        <Select
+          value={String((content.columns as number) || 4)}
+          onValueChange={(value) => onUpdate({ columns: parseInt(value) })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[2, 3, 4].map((n) => (
+              <SelectItem key={n} value={String(n)}>{n} colonnes</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Couleur des valeurs</Label>
+        <div className="flex gap-2">
+          <Input
+            type="color"
+            value={(content.valueColor as string) || '#000000'}
+            onChange={(e) => onUpdate({ valueColor: e.target.value })}
+            className="w-12 h-10 p-1"
+          />
+          <Input
+            value={(content.valueColor as string) || ''}
+            onChange={(e) => onUpdate({ valueColor: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label>Compteurs</Label>
+        {items.map((item, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">#{index + 1}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ items: items.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                type="text"
+                placeholder="Préfixe"
+                value={item.prefix || ''}
+                onChange={(e) => {
+                  const newItems = [...items]
+                  newItems[index] = { ...item, prefix: e.target.value }
+                  onUpdate({ items: newItems })
+                }}
+              />
+              <Input
+                type="number"
+                placeholder="Valeur"
+                value={item.value}
+                onChange={(e) => {
+                  const newItems = [...items]
+                  newItems[index] = { ...item, value: parseInt(e.target.value) || 0 }
+                  onUpdate({ items: newItems })
+                }}
+              />
+              <Input
+                type="text"
+                placeholder="Suffixe"
+                value={item.suffix || ''}
+                onChange={(e) => {
+                  const newItems = [...items]
+                  newItems[index] = { ...item, suffix: e.target.value }
+                  onUpdate({ items: newItems })
+                }}
+              />
+            </div>
+            <Input
+              placeholder="Label"
+              value={item.label}
+              onChange={(e) => {
+                const newItems = [...items]
+                newItems[index] = { ...item, label: e.target.value }
+                onUpdate({ items: newItems })
+              }}
+            />
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({ items: [...items, { value: 0, label: '' }] })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter un compteur
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function PricingSettings({ content, onUpdate }: { content: Record<string, unknown>; onUpdate: (u: Record<string, unknown>) => void }) {
+  const plans = (content.plans as Array<{
+    name: string
+    description?: string
+    price: number
+    currency?: string
+    period?: string
+    features: string[]
+    buttonText?: string
+    buttonLink?: string
+    highlighted?: boolean
+    badge?: string
+  }>) || []
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Titre</Label>
+        <Input
+          value={(content.title as string) || ''}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Sous-titre</Label>
+        <Input
+          value={(content.subtitle as string) || ''}
+          onChange={(e) => onUpdate({ subtitle: e.target.value })}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Style</Label>
+        <Select
+          value={(content.style as string) || 'cards'}
+          onValueChange={(value) => onUpdate({ style: value })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cards">Cartes</SelectItem>
+            <SelectItem value="bordered">Bordures</SelectItem>
+            <SelectItem value="minimal">Minimal</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Colonnes</Label>
+        <Select
+          value={String((content.columns as number) || 3)}
+          onValueChange={(value) => onUpdate({ columns: parseInt(value) })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[2, 3, 4].map((n) => (
+              <SelectItem key={n} value={String(n)}>{n} colonnes</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label>Formules</Label>
+        {plans.map((plan, index) => (
+          <div key={index} className="border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">Formule {index + 1}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onUpdate({ plans: plans.filter((_, i) => i !== index) })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Input
+              placeholder="Nom"
+              value={plan.name}
+              onChange={(e) => {
+                const newPlans = [...plans]
+                newPlans[index] = { ...plan, name: e.target.value }
+                onUpdate({ plans: newPlans })
+              }}
+            />
+            <Input
+              placeholder="Description"
+              value={plan.description || ''}
+              onChange={(e) => {
+                const newPlans = [...plans]
+                newPlans[index] = { ...plan, description: e.target.value }
+                onUpdate({ plans: newPlans })
+              }}
+            />
+            <div className="grid grid-cols-3 gap-2">
+              <Input
+                placeholder="Devise"
+                value={plan.currency || '€'}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, currency: e.target.value }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+              <Input
+                type="number"
+                placeholder="Prix"
+                value={plan.price}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, price: parseFloat(e.target.value) || 0 }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+              <Input
+                placeholder="Période"
+                value={plan.period || ''}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, period: e.target.value }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-gray-500">Fonctionnalités (une par ligne)</label>
+              <textarea
+                value={plan.features.join('\n')}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, features: e.target.value.split('\n').filter(Boolean) }
+                  onUpdate({ plans: newPlans })
+                }}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                placeholder="Texte du bouton"
+                value={plan.buttonText || ''}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, buttonText: e.target.value }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+              <Input
+                placeholder="Badge"
+                value={plan.badge || ''}
+                onChange={(e) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, badge: e.target.value }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Mise en avant</span>
+              <Switch
+                checked={plan.highlighted || false}
+                onCheckedChange={(checked) => {
+                  const newPlans = [...plans]
+                  newPlans[index] = { ...plan, highlighted: checked }
+                  onUpdate({ plans: newPlans })
+                }}
+              />
+            </div>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onUpdate({
+            plans: [...plans, {
+              name: '',
+              price: 0,
+              features: [],
+              highlighted: false
+            }]
+          })}
+          className="w-full"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter une formule
+        </Button>
       </div>
     </div>
   )

@@ -656,6 +656,127 @@ function getDefaultContent(type: string): Record<string, unknown> {
       style: 'solid',
       color: '#e5e7eb',
       width: 1
+    },
+    'custom-form': {
+      title: 'Formulaire de contact',
+      description: 'Remplissez le formulaire ci-dessous',
+      fields: [
+        { id: 'name', type: 'text', label: 'Nom', placeholder: 'Votre nom', required: true, width: 'half' },
+        { id: 'email', type: 'email', label: 'Email', placeholder: 'votre@email.com', required: true, width: 'half' },
+        { id: 'message', type: 'textarea', label: 'Message', placeholder: 'Votre message...', required: true, width: 'full' }
+      ],
+      submitText: 'Envoyer',
+      successMessage: 'Merci ! Votre message a été envoyé.',
+      buttonColor: '#000000',
+      buttonTextColor: '#ffffff'
+    },
+    button: {
+      text: 'Cliquez ici',
+      link: '#',
+      style: 'solid',
+      size: 'medium',
+      alignment: 'center',
+      fullWidth: false,
+      backgroundColor: '#000000',
+      textColor: '#ffffff',
+      borderRadius: 8,
+      openInNewTab: false
+    },
+    'accordion-tabs': {
+      title: '',
+      mode: 'accordion',
+      items: [
+        { title: 'Section 1', content: '<p>Contenu de la section 1</p>' },
+        { title: 'Section 2', content: '<p>Contenu de la section 2</p>' }
+      ],
+      allowMultiple: false,
+      defaultOpen: 0
+    },
+    features: {
+      title: 'Pourquoi nous choisir',
+      subtitle: 'Découvrez nos avantages',
+      items: [
+        { icon: 'truck', title: 'Livraison rapide', description: 'Livraison en 24-48h partout en France' },
+        { icon: 'shield', title: 'Paiement sécurisé', description: 'Vos données sont protégées' },
+        { icon: 'headphones', title: 'Support 24/7', description: 'Une équipe à votre écoute' }
+      ],
+      columns: 3,
+      layout: 'cards',
+      iconColor: '#000000',
+      iconSize: 'medium'
+    },
+    'social-links': {
+      title: 'Suivez-nous',
+      links: [
+        { platform: 'instagram', url: 'https://instagram.com' },
+        { platform: 'facebook', url: 'https://facebook.com' },
+        { platform: 'twitter', url: 'https://twitter.com' }
+      ],
+      style: 'icons',
+      size: 'medium',
+      alignment: 'center',
+      color: 'brand'
+    },
+    map: {
+      title: 'Notre adresse',
+      address: '1 rue de la Paix, 75001 Paris',
+      latitude: 48.8566,
+      longitude: 2.3522,
+      zoom: 15,
+      height: 400,
+      showMarker: true,
+      mapStyle: 'roadmap'
+    },
+    counter: {
+      title: 'Nos chiffres',
+      items: [
+        { value: 10000, suffix: '+', label: 'Clients satisfaits' },
+        { value: 500, suffix: '+', label: 'Produits' },
+        { value: 99, suffix: '%', label: 'Satisfaction' },
+        { value: 24, suffix: '/7', label: 'Support' }
+      ],
+      columns: 4,
+      style: 'default',
+      valueColor: '#000000'
+    },
+    pricing: {
+      title: 'Nos formules',
+      subtitle: 'Choisissez la formule adaptée à vos besoins',
+      plans: [
+        {
+          name: 'Starter',
+          description: 'Pour débuter',
+          price: 9,
+          currency: '€',
+          period: 'mois',
+          features: ['Fonctionnalité 1', 'Fonctionnalité 2', 'Support email'],
+          buttonText: 'Choisir',
+          highlighted: false
+        },
+        {
+          name: 'Pro',
+          description: 'Le plus populaire',
+          price: 29,
+          currency: '€',
+          period: 'mois',
+          features: ['Tout Starter', 'Fonctionnalité 3', 'Fonctionnalité 4', 'Support prioritaire'],
+          buttonText: 'Choisir',
+          highlighted: true,
+          badge: 'Populaire'
+        },
+        {
+          name: 'Enterprise',
+          description: 'Pour les pros',
+          price: 99,
+          currency: '€',
+          period: 'mois',
+          features: ['Tout Pro', 'Fonctionnalité 5', 'API accès', 'Support dédié'],
+          buttonText: 'Contacter',
+          highlighted: false
+        }
+      ],
+      columns: 3,
+      style: 'cards'
     }
   }
 

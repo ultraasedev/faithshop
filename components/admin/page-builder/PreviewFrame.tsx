@@ -21,6 +21,14 @@ import { ContactFormPreview } from './blocks/ContactFormBlock'
 import { ColumnsPreview } from './blocks/ColumnsBlock'
 import { SpacerPreview } from './blocks/SpacerBlock'
 import { DividerPreview } from './blocks/DividerBlock'
+import { CustomFormPreview } from './blocks/CustomFormBlock'
+import { ButtonPreview } from './blocks/ButtonBlock'
+import { AccordionTabsPreview } from './blocks/AccordionTabsBlock'
+import { FeaturesPreview } from './blocks/FeaturesBlock'
+import { SocialLinksPreview } from './blocks/SocialLinksBlock'
+import { MapPreview } from './blocks/MapBlock'
+import { CounterPreview } from './blocks/CounterBlock'
+import { PricingPreview } from './blocks/PricingBlock'
 
 interface PreviewFrameProps {
   blocks: PageBlock[]
@@ -57,9 +65,18 @@ export function PreviewFrame({
       faq: FAQPreview,
       newsletter: NewsletterPreview,
       'contact-form': ContactFormPreview,
+      contact: ContactFormPreview,
       columns: ColumnsPreview,
       spacer: SpacerPreview,
       divider: DividerPreview,
+      'custom-form': CustomFormPreview,
+      button: ButtonPreview,
+      'accordion-tabs': AccordionTabsPreview,
+      features: FeaturesPreview,
+      'social-links': SocialLinksPreview,
+      map: MapPreview,
+      counter: CounterPreview,
+      pricing: PricingPreview,
     }
     return previews[type]
   }
@@ -126,8 +143,8 @@ export function PreviewFrame({
           {/* Page Content */}
           <div className="min-h-full">
             {blocks.map((block) => {
-              // Check visibility
-              const isVisible = block.settings.visibility?.[viewMode] ?? true
+              // Check visibility - add optional chaining for settings
+              const isVisible = block.settings?.visibility?.[viewMode] ?? true
               if (!isVisible) return null
 
               const BlockPreview = getBlockPreview(block.type)
@@ -137,14 +154,14 @@ export function PreviewFrame({
                 <div
                   key={block.id}
                   style={{
-                    paddingTop: block.settings.padding?.top || 0,
-                    paddingBottom: block.settings.padding?.bottom || 0,
-                    paddingLeft: block.settings.padding?.left || 0,
-                    paddingRight: block.settings.padding?.right || 0,
-                    marginTop: block.settings.margin?.top || 0,
-                    marginBottom: block.settings.margin?.bottom || 0,
-                    backgroundColor: block.settings.backgroundColor || undefined,
-                    color: block.settings.textColor || undefined,
+                    paddingTop: block.settings?.padding?.top || 0,
+                    paddingBottom: block.settings?.padding?.bottom || 0,
+                    paddingLeft: block.settings?.padding?.left || 0,
+                    paddingRight: block.settings?.padding?.right || 0,
+                    marginTop: block.settings?.margin?.top || 0,
+                    marginBottom: block.settings?.margin?.bottom || 0,
+                    backgroundColor: block.settings?.backgroundColor || undefined,
+                    color: block.settings?.textColor || undefined,
                   }}
                 >
                   <BlockPreview

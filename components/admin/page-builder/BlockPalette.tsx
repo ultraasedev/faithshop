@@ -16,7 +16,15 @@ import {
   Star,
   ShoppingBag,
   ArrowRight,
-  Layout
+  Layout,
+  FormInput,
+  MousePointer,
+  PanelTop,
+  LayoutGrid,
+  Share2,
+  MapPin,
+  Hash,
+  CreditCard
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -134,6 +142,66 @@ const blockTypes: BlockType[] = [
     category: 'engagement',
     description: 'Formulaire de contact'
   },
+
+  // Formulaires
+  {
+    type: 'custom-form',
+    label: 'Formulaire',
+    icon: FormInput,
+    category: 'forms',
+    description: 'Formulaire personnalisé avec champs'
+  },
+  {
+    type: 'button',
+    label: 'Bouton',
+    icon: MousePointer,
+    category: 'content',
+    description: 'Bouton avec lien personnalisé'
+  },
+
+  // Avancé
+  {
+    type: 'accordion-tabs',
+    label: 'Accordéon/Tabs',
+    icon: PanelTop,
+    category: 'advanced',
+    description: 'Contenu en accordéon ou onglets'
+  },
+  {
+    type: 'features',
+    label: 'Fonctionnalités',
+    icon: LayoutGrid,
+    category: 'advanced',
+    description: 'Grille de fonctionnalités avec icônes'
+  },
+  {
+    type: 'social-links',
+    label: 'Réseaux sociaux',
+    icon: Share2,
+    category: 'advanced',
+    description: 'Liens vers réseaux sociaux'
+  },
+  {
+    type: 'map',
+    label: 'Carte',
+    icon: MapPin,
+    category: 'advanced',
+    description: 'Carte de localisation'
+  },
+  {
+    type: 'counter',
+    label: 'Compteurs',
+    icon: Hash,
+    category: 'advanced',
+    description: 'Statistiques et chiffres clés'
+  },
+  {
+    type: 'pricing',
+    label: 'Tarification',
+    icon: CreditCard,
+    category: 'advanced',
+    description: 'Tableaux de prix'
+  },
 ]
 
 const categories = [
@@ -141,6 +209,8 @@ const categories = [
   { id: 'content', label: 'Contenu' },
   { id: 'commerce', label: 'Commerce' },
   { id: 'engagement', label: 'Engagement' },
+  { id: 'forms', label: 'Formulaires' },
+  { id: 'advanced', label: 'Avancé' },
 ]
 
 function DraggableBlock({ block }: { block: BlockType }) {

@@ -85,7 +85,6 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
     {
       title: 'Configuration',
       items: [
-        { name: 'Utilisateurs', href: '/admin/users', icon: Users },
         { name: 'Équipe', href: '/admin/staff', icon: UserCog, requireSuperAdmin: true },
         { name: 'Paramètres', href: '/admin/settings', icon: Settings },
       ]

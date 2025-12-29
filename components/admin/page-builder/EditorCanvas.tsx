@@ -29,6 +29,14 @@ import { ContactFormPreview } from './blocks/ContactFormBlock'
 import { ColumnsPreview } from './blocks/ColumnsBlock'
 import { SpacerPreview } from './blocks/SpacerBlock'
 import { DividerPreview } from './blocks/DividerBlock'
+import { CustomFormPreview } from './blocks/CustomFormBlock'
+import { ButtonPreview } from './blocks/ButtonBlock'
+import { AccordionTabsPreview } from './blocks/AccordionTabsBlock'
+import { FeaturesPreview } from './blocks/FeaturesBlock'
+import { SocialLinksPreview } from './blocks/SocialLinksBlock'
+import { MapPreview } from './blocks/MapBlock'
+import { CounterPreview } from './blocks/CounterBlock'
+import { PricingPreview } from './blocks/PricingBlock'
 
 interface EditorCanvasProps {
   blocks: PageBlock[]
@@ -259,6 +267,14 @@ function getBlockPreview(type: string) {
     columns: ColumnsPreview,
     spacer: SpacerPreview,
     divider: DividerPreview,
+    'custom-form': CustomFormPreview,
+    button: ButtonPreview,
+    'accordion-tabs': AccordionTabsPreview,
+    features: FeaturesPreview,
+    'social-links': SocialLinksPreview,
+    map: MapPreview,
+    counter: CounterPreview,
+    pricing: PricingPreview,
   }
 
   return previews[type] || DefaultBlockPreview
@@ -288,10 +304,18 @@ function getBlockLabel(type: string): string {
     faq: 'FAQ',
     newsletter: 'Newsletter',
     'contact-form': 'Contact',
-    'contact': 'Contact', // Alias
+    'contact': 'Contact',
     columns: 'Colonnes',
     spacer: 'Espace',
     divider: 'Séparateur',
+    'custom-form': 'Formulaire',
+    button: 'Bouton',
+    'accordion-tabs': 'Accordéon/Tabs',
+    features: 'Fonctionnalités',
+    'social-links': 'Réseaux sociaux',
+    map: 'Carte',
+    counter: 'Compteurs',
+    pricing: 'Tarification',
   }
 
   return labels[type] || type
