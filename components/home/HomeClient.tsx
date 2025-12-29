@@ -120,9 +120,9 @@ export default function HomeClient({
               index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
             )}
           >
-            {/* Background Media */}
+            {/* Background Media - pointer-events-none to allow nav button clicks */}
             <div className={cn(
-              "absolute inset-0 transition-transform duration-6000 ease-linear",
+              "absolute inset-0 transition-transform duration-6000 ease-linear pointer-events-none",
               index === currentSlide && !slide.isVideo ? "scale-105" : "scale-100"
             )}>
               {slide.isVideo ? (
@@ -160,8 +160,8 @@ export default function HomeClient({
               </div>
             )}
             
-            {/* Content Overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 pb-12 pt-20">
+            {/* Content Overlay - pointer-events-none to allow clicks on nav buttons */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 pb-12 pt-20 pointer-events-none">
               <div className="max-w-4xl mx-auto space-y-6">
                 <span className="inline-block text-white/80 text-xs md:text-sm font-bold uppercase tracking-[0.2em] animate-fade-in-up">
                   {slide.subtitle}

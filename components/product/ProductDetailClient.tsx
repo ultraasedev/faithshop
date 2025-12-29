@@ -161,8 +161,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 {(currentImage.endsWith('.mp4') || currentImage.endsWith('.webm')) ? (
                   <video
                     src={currentImage}
-                    className="w-full h-full object-cover"
-                    controls
+                    className="w-full h-full object-cover pointer-events-none"
                     autoPlay
                     muted
                     loop
@@ -172,7 +171,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     src={currentImage}
                     alt={`${product.name} - ${selectedColor}`}
                     fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
                     priority
                   />
                 )}
