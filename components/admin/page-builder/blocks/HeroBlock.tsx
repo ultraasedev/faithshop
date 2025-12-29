@@ -11,6 +11,10 @@ interface HeroContent {
   alignment?: 'left' | 'center' | 'right'
   overlay?: boolean
   overlayOpacity?: number
+  // Legacy field names
+  image?: string
+  ctaText?: string
+  ctaLink?: string
 }
 
 interface HeroBlockPreviewProps {
@@ -19,16 +23,16 @@ interface HeroBlockPreviewProps {
 }
 
 export function HeroBlockPreview({ content, viewMode }: HeroBlockPreviewProps) {
-  const {
-    title = 'Titre principal',
-    subtitle = 'Sous-titre accrocheur',
-    buttonText = 'Découvrir',
-    buttonLink = '#',
-    backgroundImage = '',
-    alignment = 'center',
-    overlay = true,
-    overlayOpacity = 50
-  } = content as HeroContent
+  const c = content as HeroContent
+  // Support both new and legacy field names
+  const title = c.title || 'Titre principal'
+  const subtitle = c.subtitle || 'Sous-titre accrocheur'
+  const buttonText = c.buttonText || c.ctaText || 'Découvrir'
+  const buttonLink = c.buttonLink || c.ctaLink || '#'
+  const backgroundImage = c.backgroundImage || c.image || ''
+  const alignment = c.alignment || 'center'
+  const overlay = c.overlay ?? true
+  const overlayOpacity = c.overlayOpacity ?? 50
 
   return (
     <div
