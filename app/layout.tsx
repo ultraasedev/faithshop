@@ -104,6 +104,22 @@ export default async function RootLayout({
   return (
     <html lang="fr" className={`${inter.variable} ${playfair.variable}`} suppressHydrationWarning>
       <head>
+        {/* Global error handler - catches JS errors before React loads */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__jsErrors = [];
+              window.onerror = function(msg, url, line, col) {
+                window.__jsErrors.push({msg:msg, url:url, line:line});
+                console.error('JS ERROR:', msg, url, line);
+              };
+              window.addEventListener('unhandledrejection', function(e) {
+                window.__jsErrors.push({msg:'Promise: '+e.reason});
+                console.error('PROMISE ERROR:', e.reason);
+              });
+            `
+          }}
+        />
         {/* Prevent theme flash - must be first */}
         <script
           dangerouslySetInnerHTML={{
