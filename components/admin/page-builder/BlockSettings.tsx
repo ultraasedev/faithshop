@@ -33,6 +33,13 @@ export function BlockSettings({
   collections,
   products
 }: BlockSettingsProps) {
+  // Ensure settings always has default values
+  const settings = block.settings || {
+    padding: { top: 0, bottom: 0, left: 0, right: 0 },
+    margin: { top: 0, bottom: 0 },
+    visibility: { desktop: true, tablet: true, mobile: true }
+  }
+
   const updateContent = (updates: Record<string, unknown>) => {
     onUpdate({
       content: { ...block.content, ...updates }
@@ -41,7 +48,7 @@ export function BlockSettings({
 
   const updateSettings = (updates: Partial<PageBlock['settings']>) => {
     onUpdate({
-      settings: { ...block.settings, ...updates }
+      settings: { ...settings, ...updates }
     })
   }
 
@@ -86,14 +93,14 @@ export function BlockSettings({
                     </label>
                     <Input
                       type="number"
-                      value={block.settings.padding?.[side as keyof typeof block.settings.padding] || 0}
+                      value={settings.padding?.[side as keyof typeof settings.padding] || 0}
                       onChange={(e) => updateSettings({
                         padding: {
-                          ...block.settings.padding,
-                          top: block.settings.padding?.top || 0,
-                          bottom: block.settings.padding?.bottom || 0,
-                          left: block.settings.padding?.left || 0,
-                          right: block.settings.padding?.right || 0,
+                          ...settings.padding,
+                          top: settings.padding?.top || 0,
+                          bottom: settings.padding?.bottom || 0,
+                          left: settings.padding?.left || 0,
+                          right: settings.padding?.right || 0,
                           [side]: parseInt(e.target.value) || 0
                         }
                       })}
@@ -114,12 +121,12 @@ export function BlockSettings({
                     </label>
                     <Input
                       type="number"
-                      value={block.settings.margin?.[side as keyof typeof block.settings.margin] || 0}
+                      value={settings.margin?.[side as keyof typeof settings.margin] || 0}
                       onChange={(e) => updateSettings({
                         margin: {
-                          ...block.settings.margin,
-                          top: block.settings.margin?.top || 0,
-                          bottom: block.settings.margin?.bottom || 0,
+                          ...settings.margin,
+                          top: settings.margin?.top || 0,
+                          bottom: settings.margin?.bottom || 0,
                           [side]: parseInt(e.target.value) || 0
                         }
                       })}
@@ -135,12 +142,12 @@ export function BlockSettings({
               <div className="flex gap-2">
                 <Input
                   type="color"
-                  value={block.settings.backgroundColor || '#ffffff'}
+                  value={settings.backgroundColor || '#ffffff'}
                   onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
                   className="w-12 h-10 p-1"
                 />
                 <Input
-                  value={block.settings.backgroundColor || ''}
+                  value={settings.backgroundColor || ''}
                   onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
                   placeholder="Transparent"
                 />
@@ -153,12 +160,12 @@ export function BlockSettings({
               <div className="flex gap-2">
                 <Input
                   type="color"
-                  value={block.settings.textColor || '#000000'}
+                  value={settings.textColor || '#000000'}
                   onChange={(e) => updateSettings({ textColor: e.target.value })}
                   className="w-12 h-10 p-1"
                 />
                 <Input
-                  value={block.settings.textColor || ''}
+                  value={settings.textColor || ''}
                   onChange={(e) => updateSettings({ textColor: e.target.value })}
                   placeholder="Par défaut"
                 />
@@ -176,13 +183,13 @@ export function BlockSettings({
                     {device === 'desktop' ? 'Ordinateur' : device === 'tablet' ? 'Tablette' : 'Mobile'}
                   </span>
                   <Switch
-                    checked={block.settings.visibility?.[device as keyof typeof block.settings.visibility] ?? true}
+                    checked={settings.visibility?.[device as keyof typeof settings.visibility] ?? true}
                     onCheckedChange={(checked) => updateSettings({
                       visibility: {
-                        ...block.settings.visibility,
-                        desktop: block.settings.visibility?.desktop ?? true,
-                        tablet: block.settings.visibility?.tablet ?? true,
-                        mobile: block.settings.visibility?.mobile ?? true,
+                        ...settings.visibility,
+                        desktop: settings.visibility?.desktop ?? true,
+                        tablet: settings.visibility?.tablet ?? true,
+                        mobile: settings.visibility?.mobile ?? true,
                         [device]: checked
                       }
                     })}

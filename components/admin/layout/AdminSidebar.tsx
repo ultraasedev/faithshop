@@ -26,7 +26,8 @@ import {
   Image,
   Navigation,
   TicketCheck,
-  RotateCcw
+  RotateCcw,
+  Share2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -85,6 +86,7 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
     {
       title: 'Configuration',
       items: [
+        { name: 'Intégrations', href: '/admin/integrations', icon: Share2 },
         { name: 'Équipe', href: '/admin/staff', icon: UserCog, requireSuperAdmin: true },
         { name: 'Paramètres', href: '/admin/settings', icon: Settings },
       ]

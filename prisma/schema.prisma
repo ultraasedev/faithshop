@@ -307,6 +307,9 @@ model Product {
   // Recommandations
   recommendations       ProductRecommendation[] @relation("MainProduct")
   recommendedBy         ProductRecommendation[] @relation("RecommendedProduct")
+
+  // Social Commerce
+  socialSyncs           SocialProductSync[]
 }
 
 // Variantes de produits avancées
@@ -440,6 +443,9 @@ model Order {
   discountUsages DiscountUsage[]
   refunds        Refund[]
   returns        Return[]
+
+  // Social Commerce
+  socialOrders   SocialOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1125,4 +1131,87 @@ model PageVersion {
   createdAt DateTime @default(now())
 
   @@index([pageId])
+}
+
+// ==================== SOCIAL COMMERCE ====================
+
+// Connexions OAuth aux plateformes sociales (TikTok Shop, Meta/Facebook/Instagram)
+model SocialConnection {
+  id            String    @id @default(cuid())
+  provider      String    @unique // 'tiktok_shop', 'meta'
+  accessToken   String    @db.Text
+  refreshToken  String?   @db.Text
+  expiresAt     DateTime?
+
+  // Infos du compte connecté
+  accountId     String?   // ID du compte sur la plateforme
+  accountName   String?   // Nom du compte/shop
+  shopId        String?   // TikTok Shop ID
+  catalogId     String?   // Meta Catalog ID
+  pageId        String?   // Facebook Page ID
+
+  isActive      Boolean   @default(true)
+  lastSyncAt    DateTime?
+  syncEnabled   Boolean   @default(true)
+  config        String?   @db.Text // JSON pour configs supplémentaires
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Synchronisation des produits vers les plateformes sociales
+model SocialProductSync {
+  id            String    @id @default(cuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  provider      String    // 'tiktok_shop', 'meta'
+  externalId    String    // ID du produit sur la plateforme externe
+
+  syncStatus    String    @default("pending") // pending, synced, error
+  lastSyncedAt  DateTime?
+  errorMessage  String?   @db.Text
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([productId, provider])
+  @@index([provider])
+  @@index([syncStatus])
+}
+
+// Commandes reçues des plateformes sociales
+model SocialOrder {
+  id              String   @id @default(cuid())
+  provider        String   // 'tiktok_shop', 'meta'
+  externalOrderId String   @unique // ID de la commande sur la plateforme
+
+  // Lien optionnel vers une commande locale
+  orderId         String?
+  order           Order?   @relation(fields: [orderId], references: [id])
+
+  // Infos client
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+
+  // Adresse de livraison
+  shippingAddress String?  @db.Text
+
+  // Montants
+  totalAmount     Decimal  @db.Decimal(10, 2)
+  currency        String   @default("EUR")
+
+  // Statut
+  status          String   // pending, confirmed, shipped, delivered, cancelled, refunded
+
+  // Données brutes de la plateforme
+  rawData         String   @db.Text // JSON complet de la commande
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([provider])
+  @@index([status])
+  @@index([createdAt])
 }
