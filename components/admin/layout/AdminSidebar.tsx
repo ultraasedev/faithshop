@@ -27,7 +27,8 @@ import {
   Navigation,
   TicketCheck,
   RotateCcw,
-  Share2
+  Share2,
+  PanelBottom
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -78,7 +79,8 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
     {
       title: 'Contenu',
       items: [
-        { name: 'Pages', href: '/admin/pages', icon: FileText },
+        { name: 'Pages & Blocs', href: '/admin/pages', icon: FileText },
+        { name: 'Footer', href: '/admin/footer', icon: PanelBottom },
         { name: 'Médiathèque', href: '/admin/media', icon: Image },
         { name: 'Menus', href: '/admin/menus', icon: Navigation },
       ]

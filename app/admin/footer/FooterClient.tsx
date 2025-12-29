@@ -1,0 +1,331 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Plus, Trash2, Save, GripVertical, ExternalLink } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// Social media platforms with their official brand colors
+const socialPlatforms = [
+  { id: 'instagram', name: 'Instagram', color: '#E4405F', placeholder: 'https://instagram.com/votrecompte' },
+  { id: 'facebook', name: 'Facebook', color: '#1877F2', placeholder: 'https://facebook.com/votrecompte' },
+  { id: 'twitter', name: 'X (Twitter)', color: '#000000', placeholder: 'https://x.com/votrecompte' },
+  { id: 'tiktok', name: 'TikTok', color: '#000000', placeholder: 'https://tiktok.com/@votrecompte' },
+  { id: 'youtube', name: 'YouTube', color: '#FF0000', placeholder: 'https://youtube.com/@votrecompte' },
+  { id: 'pinterest', name: 'Pinterest', color: '#BD081C', placeholder: 'https://pinterest.com/votrecompte' },
+  { id: 'linkedin', name: 'LinkedIn', color: '#0A66C2', placeholder: 'https://linkedin.com/company/votrecompte' },
+  { id: 'snapchat', name: 'Snapchat', color: '#FFFC00', placeholder: 'https://snapchat.com/add/votrecompte' },
+  { id: 'threads', name: 'Threads', color: '#000000', placeholder: 'https://threads.net/@votrecompte' },
+  { id: 'whatsapp', name: 'WhatsApp', color: '#25D366', placeholder: 'https://wa.me/33600000000' },
+]
+
+// SVG icons for each platform (official brand icons)
+const SocialIcon = ({ platform, className }: { platform: string; className?: string }) => {
+  const icons: Record<string, JSX.Element> = {
+    instagram: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+      </svg>
+    ),
+    facebook: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+      </svg>
+    ),
+    twitter: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+    tiktok: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+      </svg>
+    ),
+    youtube: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+      </svg>
+    ),
+    pinterest: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.889-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.359-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12 24c6.627 0 12-5.373 12-12 0-6.628-5.373-12-12-12z"/>
+      </svg>
+    ),
+    linkedin: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    ),
+    snapchat: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.401.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/>
+      </svg>
+    ),
+    threads: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.589 12c.027 3.086.718 5.496 2.057 7.164 1.43 1.783 3.631 2.698 6.54 2.717 2.623-.02 4.358-.631 5.8-2.045 1.647-1.613 1.618-3.593 1.09-4.798-.31-.71-.873-1.3-1.634-1.75-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.752-2.96-.065-1.182.408-2.256 1.33-3.022.88-.73 2.082-1.18 3.48-1.304.997-.089 1.963-.05 2.893.118-.19-.787-.472-1.382-.876-1.78-.538-.53-1.323-.798-2.332-.798h-.048c-.748.005-1.679.207-2.417.802l-1.262-1.612c1.078-.846 2.404-1.299 3.695-1.308h.064c1.558 0 2.81.505 3.715 1.502.765.843 1.267 2.007 1.49 3.466.652.234 1.235.52 1.74.864.89.607 1.592 1.39 2.087 2.328.616 1.169.79 2.642.476 4.031-.525 2.322-2.09 4.13-4.67 5.396-1.93.947-4.274 1.428-6.973 1.428h-.005zm.09-8.385c-.964.086-1.784.347-2.374.756-.503.348-.75.81-.713 1.332.037.53.327.96.839 1.244.56.31 1.313.46 2.091.418 1.123-.06 2.027-.463 2.615-1.166.476-.569.752-1.327.823-2.26-.718-.158-1.502-.232-2.28-.232-.336 0-.67.018-1 .053v-.145z"/>
+      </svg>
+    ),
+    whatsapp: (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+    ),
+  }
+
+  return icons[platform] || null
+}
+
+interface SocialLink {
+  platform: string
+  url: string
+}
+
+interface FooterSettings {
+  copyright: string
+  socialLinks: SocialLink[]
+}
+
+interface FooterClientProps {
+  initialSettings: FooterSettings
+}
+
+export function FooterClient({ initialSettings }: FooterClientProps) {
+  const router = useRouter()
+  const [settings, setSettings] = useState<FooterSettings>(initialSettings)
+  const [isSaving, setIsSaving] = useState(false)
+  const [newPlatform, setNewPlatform] = useState('')
+
+  const handleAddSocial = () => {
+    if (!newPlatform) return
+
+    // Check if platform already exists
+    if (settings.socialLinks.find(l => l.platform === newPlatform)) {
+      return
+    }
+
+    setSettings({
+      ...settings,
+      socialLinks: [...settings.socialLinks, { platform: newPlatform, url: '' }]
+    })
+    setNewPlatform('')
+  }
+
+  const handleRemoveSocial = (index: number) => {
+    setSettings({
+      ...settings,
+      socialLinks: settings.socialLinks.filter((_, i) => i !== index)
+    })
+  }
+
+  const handleUpdateSocialUrl = (index: number, url: string) => {
+    const newLinks = [...settings.socialLinks]
+    newLinks[index].url = url
+    setSettings({ ...settings, socialLinks: newLinks })
+  }
+
+  const handleSave = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/admin/footer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      })
+
+      if (res.ok) {
+        router.refresh()
+      }
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const getPlatformInfo = (platformId: string) => {
+    return socialPlatforms.find(p => p.id === platformId)
+  }
+
+  const availablePlatforms = socialPlatforms.filter(
+    p => !settings.socialLinks.find(l => l.platform === p.id)
+  )
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Footer</h1>
+          <p className="mt-1 text-gray-500 dark:text-gray-400">
+            Gérez le contenu du pied de page et vos réseaux sociaux
+          </p>
+        </div>
+        <Button onClick={handleSave} disabled={isSaving}>
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+        </Button>
+      </div>
+
+      {/* Copyright */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Copyright</CardTitle>
+          <CardDescription>
+            Texte affiché en bas du footer. Utilisez {'{year}'} pour afficher l'année en cours.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Input
+            value={settings.copyright}
+            onChange={(e) => setSettings({ ...settings, copyright: e.target.value })}
+            placeholder="© {year} Faith Shop. Tous droits réservés."
+          />
+        </CardContent>
+      </Card>
+
+      {/* Social Links */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Réseaux Sociaux</CardTitle>
+          <CardDescription>
+            Ajoutez vos liens vers vos réseaux sociaux. Ils seront affichés dans le footer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Existing links */}
+          {settings.socialLinks.length > 0 ? (
+            <div className="space-y-3">
+              {settings.socialLinks.map((link, index) => {
+                const platform = getPlatformInfo(link.platform)
+                return (
+                  <div
+                    key={link.platform}
+                    className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50"
+                  >
+                    {/* Platform icon */}
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white flex-shrink-0"
+                      style={{ backgroundColor: platform?.color || '#666' }}
+                    >
+                      <SocialIcon platform={link.platform} className="w-5 h-5" />
+                    </div>
+
+                    {/* Platform name & input */}
+                    <div className="flex-1 space-y-1">
+                      <Label className="text-sm font-medium">{platform?.name}</Label>
+                      <Input
+                        value={link.url}
+                        onChange={(e) => handleUpdateSocialUrl(index, e.target.value)}
+                        placeholder={platform?.placeholder}
+                        className="bg-white dark:bg-gray-900"
+                      />
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {link.url && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(link.url, '_blank')}
+                          title="Ouvrir le lien"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSocial(index)}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Aucun réseau social configuré
+            </div>
+          )}
+
+          {/* Add new platform */}
+          {availablePlatforms.length > 0 && (
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Select value={newPlatform} onValueChange={setNewPlatform}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Sélectionner un réseau social" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availablePlatforms.map((platform) => (
+                    <SelectItem key={platform.id} value={platform.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-5 h-5 rounded flex items-center justify-center text-white"
+                          style={{ backgroundColor: platform.color }}
+                        >
+                          <SocialIcon platform={platform.id} className="w-3 h-3" />
+                        </div>
+                        {platform.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAddSocial} disabled={!newPlatform}>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Aperçu</CardTitle>
+          <CardDescription>
+            Voici comment les icônes s'afficheront dans le footer
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center gap-4 py-6 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            {settings.socialLinks.length > 0 ? (
+              settings.socialLinks.map((link) => {
+                const platform = getPlatformInfo(link.platform)
+                return (
+                  <a
+                    key={link.platform}
+                    href={link.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                    title={platform?.name}
+                  >
+                    <SocialIcon platform={link.platform} className="w-6 h-6" />
+                  </a>
+                )
+              })
+            ) : (
+              <span className="text-gray-400">Ajoutez des réseaux sociaux pour voir l'aperçu</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
