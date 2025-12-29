@@ -255,6 +255,7 @@ function getBlockPreview(type: string) {
     faq: FAQPreview,
     newsletter: NewsletterPreview,
     'contact-form': ContactFormPreview,
+    'contact': ContactFormPreview, // Alias
     columns: ColumnsPreview,
     spacer: SpacerPreview,
     divider: DividerPreview,
@@ -287,6 +288,7 @@ function getBlockLabel(type: string): string {
     faq: 'FAQ',
     newsletter: 'Newsletter',
     'contact-form': 'Contact',
+    'contact': 'Contact', // Alias
     columns: 'Colonnes',
     spacer: 'Espace',
     divider: 'Séparateur',
