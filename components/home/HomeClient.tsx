@@ -6,7 +6,7 @@ import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck, ChevronLeft, ChevronRi
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 
 interface Slide {
@@ -42,51 +42,81 @@ export default function HomeClient({
   const [isMuted, setIsMuted] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Parse slides from JSON or use legacy single slide
-  const parsedSlides: Slide[] = (() => {
+  // Parse slides from JSON or use legacy single slide - memoized to avoid recalculation
+  const slides = useMemo(() => {
+    let parsedSlides: Slide[] = []
+
     if (heroSlides) {
       try {
         const parsed = JSON.parse(heroSlides)
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed
+          parsedSlides = parsed
         }
-      } catch {
-        // Fall through to legacy
+      } catch (e) {
+        console.error('Failed to parse heroSlides:', e)
       }
     }
-    // Legacy single slide format
-    return [{
-      id: '1',
-      image: heroImage || '/hero-bg.png',
-      title: heroTitle || "L'Élégance de la Foi",
-      subtitle: heroSubtitle || 'Collection Hiver 2025',
-      ctaText: heroCtaText || 'Découvrir',
-      ctaLink: heroCtaLink || '/shop'
-    }]
-  })()
 
-  const slides = parsedSlides.map(slide => ({
-    id: slide.id,
-    image: slide.image || '/hero-bg.png',
-    subtitle: slide.subtitle || 'Collection Hiver 2025',
-    title: slide.title || "L'Élégance de la Foi",
-    description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
-    cta: slide.ctaText || 'Découvrir',
-    link: slide.ctaLink || '/shop',
-    isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm')
-  }))
+    // Legacy single slide format if no slides parsed
+    if (parsedSlides.length === 0) {
+      parsedSlides = [{
+        id: '1',
+        image: heroImage || '/hero-bg.png',
+        title: heroTitle || "L'Élégance de la Foi",
+        subtitle: heroSubtitle || 'Collection Hiver 2025',
+        ctaText: heroCtaText || 'Découvrir',
+        ctaLink: heroCtaLink || '/shop'
+      }]
+    }
+
+    return parsedSlides.map(slide => ({
+      id: slide.id,
+      image: slide.image || '/hero-bg.png',
+      subtitle: slide.subtitle || 'Collection Hiver 2025',
+      title: slide.title || "L'Élégance de la Foi",
+      description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
+      cta: slide.ctaText || 'Découvrir',
+      link: slide.ctaLink || '/shop',
+      isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm')
+    }))
+  }, [heroSlides, heroImage, heroTitle, heroSubtitle, heroCtaText, heroCtaLink])
+
+  const slidesCount = slides.length
 
   // Auto-play du carrousel (désactivé s'il n'y a qu'un slide)
   useEffect(() => {
-    if (slides.length <= 1) return
+    if (slidesCount <= 1) return
+    console.log('Starting auto-play timer, slides:', slidesCount)
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
+      setCurrentSlide((prev) => {
+        const next = (prev + 1) % slidesCount
+        console.log('Auto-slide:', prev, '->', next)
+        return next
+      })
     }, 6000)
-    return () => clearInterval(timer)
-  }, [slides.length])
+    return () => {
+      console.log('Clearing auto-play timer')
+      clearInterval(timer)
+    }
+  }, [slidesCount])
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
-  const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
+  const nextSlide = () => {
+    console.log('Next slide clicked, current:', currentSlide, 'total:', slidesCount)
+    setCurrentSlide((prev) => {
+      const next = (prev + 1) % slidesCount
+      console.log('Changing to:', next)
+      return next
+    })
+  }
+
+  const prevSlide = () => {
+    console.log('Prev slide clicked, current:', currentSlide, 'total:', slidesCount)
+    setCurrentSlide((prev) => {
+      const next = prev === 0 ? slidesCount - 1 : prev - 1
+      console.log('Changing to:', next)
+      return next
+    })
+  }
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -184,15 +214,24 @@ export default function HomeClient({
           </div>
         ))}
 
+        {/* Debug indicator - remove after testing */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-black/70 text-white px-4 py-2 rounded-full text-sm font-mono">
+          Slide {currentSlide + 1} / {slidesCount}
+        </div>
+
         {/* Carousel Controls (only if multiple slides) */}
-        {slides.length > 1 && (
+        {slidesCount > 1 && (
           <>
             <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
               {slides.map((_, index) => (
                 <button
                   key={index}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    console.log('Dot clicked:', index)
+                    setCurrentSlide(index)
+                  }}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300 cursor-pointer",
                     index === currentSlide ? "bg-white w-12" : "bg-white/40 w-8 hover:bg-white/60"
