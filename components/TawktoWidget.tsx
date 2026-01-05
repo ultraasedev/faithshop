@@ -1,15 +1,68 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Script from 'next/script'
+
+declare global {
+  interface Window {
+    Tawk_API?: {
+      hideWidget?: () => void
+      showWidget?: () => void
+      onLoad?: () => void
+    }
+    Tawk_LoadStart?: Date
+  }
+}
 
 export function TawktoWidget() {
   const pathname = usePathname()
+  const [tawkLoaded, setTawkLoaded] = useState(false)
 
-  // Don't show on admin pages
-  if (pathname?.startsWith('/admin')) {
-    return null
-  }
+  const isAdminPage = pathname?.startsWith('/admin')
+
+  // Handle widget visibility based on route
+  useEffect(() => {
+    if (!tawkLoaded) return
+
+    const updateVisibility = () => {
+      if (window.Tawk_API) {
+        if (isAdminPage) {
+          window.Tawk_API.hideWidget?.()
+        } else {
+          window.Tawk_API.showWidget?.()
+        }
+      }
+    }
+
+    // Try immediately
+    updateVisibility()
+
+    // Also try after a short delay in case Tawk isn't ready
+    const timeout = setTimeout(updateVisibility, 1000)
+
+    return () => clearTimeout(timeout)
+  }, [pathname, tawkLoaded, isAdminPage])
+
+  // Set up Tawk onLoad callback
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.Tawk_API = window.Tawk_API || {}
+      const originalOnLoad = window.Tawk_API.onLoad
+
+      window.Tawk_API.onLoad = () => {
+        setTawkLoaded(true)
+        // Hide immediately if on admin page
+        if (isAdminPage && window.Tawk_API?.hideWidget) {
+          window.Tawk_API.hideWidget()
+        }
+        // Call original onLoad if it existed
+        if (originalOnLoad) {
+          originalOnLoad()
+        }
+      }
+    }
+  }, [isAdminPage])
 
   return (
     <Script
