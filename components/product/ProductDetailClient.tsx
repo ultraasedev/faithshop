@@ -36,9 +36,19 @@ interface ProductDetailClientProps {
 }
 
 // Type for unified gallery items (images + videos)
-type GalleryItem =
-  | { type: 'image'; url: string }
-  | { type: 'video'; url: string; videoType: string; thumbnail?: string | null }
+interface ImageItem {
+  mediaType: 'image'
+  url: string
+}
+
+interface VideoItem {
+  mediaType: 'video'
+  url: string
+  videoType: string
+  thumbnail?: string | null
+}
+
+type GalleryItem = ImageItem | VideoItem
 
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
@@ -52,32 +62,37 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   // Combine images and videos into a single gallery
   const galleryItems: GalleryItem[] = [
-    ...product.images.map(url => ({ type: 'image' as const, url })),
-    ...(product.videos || []).map(video => ({
-      type: 'video' as const,
+    ...product.images.map((url): ImageItem => ({ mediaType: 'image', url })),
+    ...(product.videos || []).map((video): VideoItem => ({
+      mediaType: 'video',
       url: video.url,
       videoType: video.type,
       thumbnail: video.thumbnail
     }))
   ]
 
-  // Current media item based on selected index
-  const currentMedia = galleryItems[selectedMediaIndex] || galleryItems[0] || { type: 'image', url: '/logo2-nobg.png' }
+  // Fallback if no media
+  const defaultItem: ImageItem = { mediaType: 'image', url: '/logo2-nobg.png' }
+  const currentMedia = galleryItems[selectedMediaIndex] || galleryItems[0] || defaultItem
+
   // For cart, use first image
   const cartImage = product.images[0] || '/logo2-nobg.png'
 
+  // Total media count
+  const totalMedia = galleryItems.length
+
   const goToPrevMedia = useCallback(() => {
-    setSelectedMediaIndex(prev => (prev > 0 ? prev - 1 : galleryItems.length - 1))
-  }, [galleryItems.length])
+    setSelectedMediaIndex(prev => (prev > 0 ? prev - 1 : totalMedia - 1))
+  }, [totalMedia])
 
   const goToNextMedia = useCallback(() => {
-    setSelectedMediaIndex(prev => (prev < galleryItems.length - 1 ? prev + 1 : 0))
-  }, [galleryItems.length])
+    setSelectedMediaIndex(prev => (prev < totalMedia - 1 ? prev + 1 : 0))
+  }, [totalMedia])
 
   // Native touch event handlers for proper swipe on mobile
   useEffect(() => {
     const container = imageContainerRef.current
-    if (!container || galleryItems.length <= 1) return
+    if (!container || totalMedia <= 1) return
 
     let touchStartX = 0
     let touchStartY = 0
@@ -113,7 +128,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       if (distance > minSwipeDistance) {
         // Swipe left - next media
         setSelectedMediaIndex(prev =>
-          prev < galleryItems.length - 1 ? prev + 1 : prev
+          prev < totalMedia - 1 ? prev + 1 : prev
         )
       } else if (distance < -minSwipeDistance) {
         // Swipe right - previous media
@@ -130,7 +145,19 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [galleryItems.length])
+  }, [totalMedia])
+
+  // Helper to render YouTube embed
+  const getYouTubeId = (url: string): string => {
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : url
+  }
+
+  // Helper to render Vimeo embed
+  const getVimeoId = (url: string): string => {
+    const match = url.match(/vimeo\.com\/(\d+)/)
+    return match ? match[1] : url.split('/').pop() || ''
+  }
 
   const handleAddToCart = () => {
     addItem({
@@ -183,75 +210,81 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               {/* Main Media with Swipe */}
               <div
                 ref={imageContainerRef}
-                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group cursor-grab active:cursor-grabbing"
+                className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
               >
-                {currentMedia.type === 'video' ? (
+                {currentMedia.mediaType === 'video' ? (
+                  // Video rendering
                   currentMedia.videoType === 'youtube' ? (
                     <iframe
-                      src={`https://www.youtube.com/embed/${currentMedia.url.split('v=')[1]?.split('&')[0] || currentMedia.url.split('/').pop()}`}
+                      src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0`}
                       className="w-full h-full"
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title="Vidéo YouTube"
                     />
                   ) : currentMedia.videoType === 'vimeo' ? (
                     <iframe
-                      src={`https://player.vimeo.com/video/${currentMedia.url.split('/').pop()}`}
+                      src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}`}
                       className="w-full h-full"
                       allowFullScreen
+                      title="Vidéo Vimeo"
                     />
                   ) : (
+                    // Uploaded video
                     <video
+                      key={currentMedia.url}
                       src={currentMedia.url}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-black"
                       controls
-                      autoPlay
-                      muted
-                      loop
+                      playsInline
+                      preload="metadata"
                     />
                   )
                 ) : (
+                  // Image rendering
                   <Image
                     src={currentMedia.url}
                     alt={`${product.name} - ${selectedColor}`}
                     fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
                     priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 )}
 
-                {/* Navigation Arrows - visible on mobile and hover on desktop */}
-                {galleryItems.length > 1 && (
+                {/* Navigation Arrows - always visible when multiple items */}
+                {totalMedia > 1 && (
                   <>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToPrevMedia(); }}
-                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all"
+                      onClick={goToPrevMedia}
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
                       aria-label="Média précédent"
                     >
-                      <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
+                      <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToNextMedia(); }}
-                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all"
+                      onClick={goToNextMedia}
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
                       aria-label="Média suivant"
                     >
-                      <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
+                      <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
 
                     {/* Dots Navigation */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-                      {galleryItems.map((_, idx) => (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-black/30 px-3 py-2 rounded-full">
+                      {galleryItems.map((item, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(idx); }}
-                          className={`w-3 h-3 rounded-full transition-all ${
+                          onClick={() => setSelectedMediaIndex(idx)}
+                          className={`w-2.5 h-2.5 rounded-full transition-all ${
                             idx === selectedMediaIndex
                               ? 'bg-white scale-125'
-                              : 'bg-white/50 hover:bg-white/70'
+                              : 'bg-white/50 hover:bg-white/80'
                           }`}
-                          aria-label={`Voir média ${idx + 1}`}
+                          aria-label={`Voir ${item.mediaType === 'video' ? 'vidéo' : 'image'} ${idx + 1}`}
                         />
                       ))}
                     </div>
@@ -260,49 +293,54 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               </div>
 
               {/* Thumbnails */}
-              <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {galleryItems.map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedMediaIndex(idx)}
-                    className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
-                      selectedMediaIndex === idx
-                        ? 'ring-2 ring-foreground ring-offset-2'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    {item.type === 'video' ? (
-                      <>
-                        {item.thumbnail ? (
-                          <Image
-                            src={item.thumbnail}
-                            alt={`Vidéo ${idx + 1}`}
-                            fill
-                            sizes="(max-width: 768px) 25vw, 150px"
-                            className="object-cover pointer-events-none"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                            <Play className="w-8 h-8 text-white" />
+              {totalMedia > 1 && (
+                <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                  {galleryItems.map((item, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setSelectedMediaIndex(idx)}
+                      className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
+                        selectedMediaIndex === idx
+                          ? 'ring-2 ring-foreground ring-offset-2'
+                          : 'opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      {item.mediaType === 'video' ? (
+                        <>
+                          {item.thumbnail ? (
+                            <Image
+                              src={item.thumbnail}
+                              alt={`Vidéo ${idx + 1}`}
+                              fill
+                              sizes="(max-width: 768px) 25vw, 150px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+                              <Play className="w-8 h-8 text-white/70" />
+                            </div>
+                          )}
+                          {/* Play overlay for video thumbnails */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+                              <Play className="w-5 h-5 text-black ml-0.5" fill="currentColor" />
+                            </div>
                           </div>
-                        )}
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                          <Play className="w-6 h-6 text-white" />
-                        </div>
-                      </>
-                    ) : (
-                      <Image
-                        src={item.url}
-                        alt={`Vue ${idx + 1}`}
-                        fill
-                        sizes="(max-width: 768px) 25vw, 150px"
-                        className="object-cover pointer-events-none"
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
+                        </>
+                      ) : (
+                        <Image
+                          src={item.url}
+                          alt={`Vue ${idx + 1}`}
+                          fill
+                          sizes="(max-width: 768px) 25vw, 150px"
+                          className="object-cover"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Product Info */}
