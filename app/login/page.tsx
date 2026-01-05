@@ -7,7 +7,7 @@ import Link from 'next/link'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 function LoginForm() {
@@ -17,12 +17,15 @@ function LoginForm() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
     try {
       const result = await signIn('credentials', {
@@ -33,6 +36,7 @@ function LoginForm() {
       })
 
       if (result?.error) {
+        setError('Email ou mot de passe incorrect')
         toast.error('Email ou mot de passe incorrect')
         setLoading(false)
         return
@@ -60,8 +64,9 @@ function LoginForm() {
 
       router.push(redirectUrl)
       router.refresh()
-    } catch (error) {
-      console.error('Login error:', error)
+    } catch (err) {
+      console.error('Login error:', err)
+      setError('Une erreur est survenue lors de la connexion')
       toast.error('Une erreur est survenue')
       setLoading(false)
     }
@@ -75,6 +80,11 @@ function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        {error && (
+          <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
+            {error}
+          </div>
+        )}
         <div className="space-y-4">
           <div>
             <label htmlFor="email" className="sr-only">Adresse Email</label>
@@ -90,19 +100,31 @@ function LoginForm() {
               placeholder="Adresse Email"
             />
           </div>
-          <div>
+          <div className="relative">
             <label htmlFor="password" className="sr-only">Mot de passe</label>
             <input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none relative block w-full px-3 py-3 border border-border placeholder-muted-foreground text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground sm:text-sm bg-transparent"
+              className="appearance-none relative block w-full px-3 py-3 pr-10 border border-border placeholder-muted-foreground text-foreground focus:outline-none focus:ring-1 focus:ring-foreground focus:border-foreground sm:text-sm bg-transparent"
               placeholder="Mot de passe"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+              tabIndex={-1}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
 
