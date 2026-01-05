@@ -14,15 +14,20 @@ declare global {
   }
 }
 
+// Pages où le chat doit être caché
+const HIDDEN_PATHS = ['/admin', '/login', '/forgot-password', '/reset-password']
+
 export function TawktoWidget() {
   const pathname = usePathname()
-  const isAdminPage = pathname?.startsWith('/admin')
+
+  // Check if current page should hide the widget
+  const shouldHide = HIDDEN_PATHS.some(path => pathname?.startsWith(path))
 
   // Handle widget visibility based on route
   useEffect(() => {
     const updateVisibility = () => {
       if (window.Tawk_API) {
-        if (isAdminPage) {
+        if (shouldHide) {
           window.Tawk_API.hideWidget?.()
         } else {
           window.Tawk_API.showWidget?.()
@@ -35,13 +40,15 @@ export function TawktoWidget() {
     const t1 = setTimeout(updateVisibility, 500)
     const t2 = setTimeout(updateVisibility, 1500)
     const t3 = setTimeout(updateVisibility, 3000)
+    const t4 = setTimeout(updateVisibility, 5000)
 
     return () => {
       clearTimeout(t1)
       clearTimeout(t2)
       clearTimeout(t3)
+      clearTimeout(t4)
     }
-  }, [isAdminPage])
+  }, [pathname, shouldHide])
 
   return (
     <Script

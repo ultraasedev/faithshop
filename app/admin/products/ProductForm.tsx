@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useDropzone } from 'react-dropzone'
+import { upload } from '@vercel/blob/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -344,14 +345,14 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     setVideos(prev => prev.filter(v => v.id !== id))
   }
 
-  // Video upload with retry mechanism
+  // Video upload using Vercel Blob client-side upload (bypasses 4.5MB limit)
   const handleVideoUpload = async (file: File, maxRetries = 3) => {
     setUploadingVideo(true)
     setVideoUploadProgress(0)
 
-    // Vérifier la taille max (100MB)
-    if (file.size > 100 * 1024 * 1024) {
-      toast.error('Fichier trop volumineux (max 100MB). Veuillez compresser votre vidéo.')
+    // Vérifier la taille max (500MB - Vercel Blob limit)
+    if (file.size > 500 * 1024 * 1024) {
+      toast.error('Fichier trop volumineux (max 500MB). Veuillez compresser votre vidéo.')
       setUploadingVideo(false)
       return
     }
@@ -365,56 +366,28 @@ export function ProductForm({ product, collections }: ProductFormProps) {
           setVideoUploadProgress(0)
         }
 
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('type', 'product')
-
-        const xhr = new XMLHttpRequest()
-
-        await new Promise<void>((resolve, reject) => {
-          xhr.upload.addEventListener('progress', (event) => {
-            if (event.lengthComputable) {
-              const progress = Math.round((event.loaded / event.total) * 100)
-              setVideoUploadProgress(progress)
-            }
-          })
-
-          xhr.addEventListener('load', () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve()
-            } else {
-              try {
-                const errorData = JSON.parse(xhr.responseText)
-                reject(new Error(errorData.error || 'Upload failed'))
-              } catch {
-                reject(new Error('Upload failed'))
-              }
-            }
-          })
-
-          xhr.addEventListener('error', () => reject(new Error('Erreur réseau')))
-          xhr.addEventListener('abort', () => reject(new Error('Upload annulé')))
-
-          xhr.open('POST', '/api/admin/upload-video')
-          xhr.send(formData)
+        // Use Vercel Blob client-side upload
+        const blob = await upload(file.name, file, {
+          access: 'public',
+          handleUploadUrl: '/api/admin/upload-video',
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round(progressEvent.percentage)
+            setVideoUploadProgress(progress)
+          },
         })
 
-        const result = JSON.parse(xhr.responseText)
-
-        if (result.success) {
-          const video: ProductVideo = {
-            id: crypto.randomUUID(),
-            type: 'upload',
-            url: result.url,
-            title: file.name,
-            size: file.size
-          }
-          setVideos(prev => [...prev, video])
-          toast.success('Vidéo uploadée avec succès')
-          return // Success, exit the retry loop
-        } else {
-          throw new Error(result.error)
+        const video: ProductVideo = {
+          id: crypto.randomUUID(),
+          type: 'upload',
+          url: blob.url,
+          title: file.name,
+          size: file.size
         }
+        setVideos(prev => [...prev, video])
+        toast.success('Vidéo uploadée avec succès')
+        setUploadingVideo(false)
+        setVideoUploadProgress(0)
+        return // Success, exit the retry loop
       } catch (error: any) {
         lastError = error
         console.warn(`Video upload attempt ${attempt}/${maxRetries} failed:`, error.message)
@@ -448,7 +421,7 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     accept: {
       'video/*': ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.ogg']
     },
-    maxSize: 100 * 1024 * 1024, // 100MB
+    maxSize: 500 * 1024 * 1024, // 500MB (Vercel Blob limit)
     multiple: false,
     disabled: uploadingVideo
   })
@@ -1061,7 +1034,7 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                         Glissez une vidéo ici ou cliquez pour sélectionner
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        MP4, WebM, MOV, AVI, MKV (max 100MB)
+                        MP4, WebM, MOV, AVI, MKV (max 500MB)
                       </p>
                     </>
                   )}
