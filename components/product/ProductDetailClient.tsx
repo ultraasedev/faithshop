@@ -218,7 +218,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     key={idx}
                     className="absolute inset-0 transition-transform duration-500 ease-out"
                     style={{
-                      transform: `translateX(${(idx - selectedMediaIndex) * 100}%)`
+                      transform: `translateX(${(idx - selectedMediaIndex) * 100}%)`,
+                      pointerEvents: idx === selectedMediaIndex ? 'auto' : 'none'
                     }}
                   >
                     {item.mediaType === 'video' ? (
