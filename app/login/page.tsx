@@ -79,7 +79,8 @@ function LoginForm() {
         <p className="mt-2 text-muted-foreground">Heureux de vous revoir.</p>
       </div>
 
-      <form onSubmit={handleSubmit} method="post" action="" className="mt-8 space-y-6">
+      {/* No name attributes = form cannot submit data via HTML */}
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {error && (
           <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
             {error}
@@ -90,7 +91,6 @@ function LoginForm() {
             <label htmlFor="email" className="sr-only">Adresse Email</label>
             <input
               id="email"
-              name="email"
               type="email"
               autoComplete="email"
               required
@@ -104,7 +104,6 @@ function LoginForm() {
             <label htmlFor="password" className="sr-only">Mot de passe</label>
             <input
               id="password"
-              name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
@@ -132,7 +131,6 @@ function LoginForm() {
           <div className="flex items-center">
             <input
               id="remember-me"
-              name="remember-me"
               type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
