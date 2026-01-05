@@ -212,61 +212,55 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 ref={imageContainerRef}
                 className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
               >
-                {/* Sliding container */}
-                <div
-                  className="flex h-full transition-transform duration-500 ease-out"
-                  style={{
-                    width: `${totalMedia * 100}%`,
-                    transform: `translateX(-${selectedMediaIndex * (100 / totalMedia)}%)`
-                  }}
-                >
-                  {galleryItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="relative h-full flex-shrink-0"
-                      style={{ width: `${100 / totalMedia}%` }}
-                    >
-                      {item.mediaType === 'video' ? (
-                        // Video rendering
-                        item.videoType === 'youtube' ? (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
-                            className="w-full h-full"
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            title="Vidéo YouTube"
-                          />
-                        ) : item.videoType === 'vimeo' ? (
-                          <iframe
-                            src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
-                            className="w-full h-full"
-                            allowFullScreen
-                            title="Vidéo Vimeo"
-                          />
-                        ) : (
-                          // Uploaded video
-                          <video
-                            src={item.url}
-                            className="w-full h-full object-contain bg-black"
-                            controls
-                            playsInline
-                            preload="metadata"
-                          />
-                        )
-                      ) : (
-                        // Image rendering
-                        <Image
-                          src={item.url}
-                          alt={`${product.name} - vue ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          priority={idx === 0}
-                          sizes="(max-width: 768px) 100vw, 50vw"
+                {/* Each slide is absolutely positioned and slides in/out */}
+                {galleryItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="absolute inset-0 transition-transform duration-500 ease-out"
+                    style={{
+                      transform: `translateX(${(idx - selectedMediaIndex) * 100}%)`
+                    }}
+                  >
+                    {item.mediaType === 'video' ? (
+                      // Video rendering
+                      item.videoType === 'youtube' ? (
+                        <iframe
+                          src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
+                          className="w-full h-full"
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          title="Vidéo YouTube"
                         />
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      ) : item.videoType === 'vimeo' ? (
+                        <iframe
+                          src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
+                          className="w-full h-full"
+                          allowFullScreen
+                          title="Vidéo Vimeo"
+                        />
+                      ) : (
+                        // Uploaded video
+                        <video
+                          src={item.url}
+                          className="w-full h-full object-contain bg-black"
+                          controls
+                          playsInline
+                          preload="metadata"
+                        />
+                      )
+                    ) : (
+                      // Image rendering
+                      <Image
+                        src={item.url}
+                        alt={`${product.name} - vue ${idx + 1}`}
+                        fill
+                        className="object-cover"
+                        priority={idx === 0}
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                      />
+                    )}
+                  </div>
+                ))}
 
                 {/* Navigation Arrows - always visible when multiple items */}
                 {totalMedia > 1 && (
