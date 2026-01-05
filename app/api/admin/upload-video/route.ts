@@ -24,15 +24,24 @@ export async function POST(request: NextRequest) {
     const session = await auth()
 
     if (!session?.user || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+      console.log('Video upload auth failed:', { hasUser: !!session?.user, role: session?.user?.role })
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
+    // Check if BLOB token is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN is not configured')
+      return NextResponse.json({ error: 'Configuration serveur manquante (BLOB token)' }, { status: 500 })
+    }
+
     const body = await request.json() as HandleUploadBody
+    console.log('Video upload request type:', body.type)
 
     const jsonResponse = await handleUpload({
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
+        console.log('Generating token for:', pathname)
         // Validate file extension
         const extension = pathname.split('.').pop()?.toLowerCase()
         const validExtensions = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogg']
@@ -57,9 +66,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(jsonResponse)
   } catch (error: any) {
-    console.error('Video upload error:', error)
+    console.error('Video upload error:', error?.message, error?.stack)
+
+    // Return specific status code based on error
+    const status = error?.message?.includes('401') ? 401
+      : error?.message?.includes('403') ? 403
+      : 400
+
     return NextResponse.json({
       error: error?.message || 'Erreur lors de l\'upload',
-    }, { status: 400 })
+    }, { status })
   }
 }
