@@ -207,50 +207,66 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             
             {/* Gallery */}
             <div className="flex flex-col gap-4">
-              {/* Main Media with Swipe */}
+              {/* Main Media with Slide Animation */}
               <div
                 ref={imageContainerRef}
                 className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group"
               >
-                {currentMedia.mediaType === 'video' ? (
-                  // Video rendering
-                  currentMedia.videoType === 'youtube' ? (
-                    <iframe
-                      src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0`}
-                      className="w-full h-full"
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      title="Vidéo YouTube"
-                    />
-                  ) : currentMedia.videoType === 'vimeo' ? (
-                    <iframe
-                      src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}`}
-                      className="w-full h-full"
-                      allowFullScreen
-                      title="Vidéo Vimeo"
-                    />
-                  ) : (
-                    // Uploaded video
-                    <video
-                      key={currentMedia.url}
-                      src={currentMedia.url}
-                      className="w-full h-full object-contain bg-black"
-                      controls
-                      playsInline
-                      preload="metadata"
-                    />
-                  )
-                ) : (
-                  // Image rendering
-                  <Image
-                    src={currentMedia.url}
-                    alt={`${product.name} - ${selectedColor}`}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    priority
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                )}
+                {/* Sliding container */}
+                <div
+                  className="flex h-full transition-transform duration-500 ease-out"
+                  style={{
+                    width: `${totalMedia * 100}%`,
+                    transform: `translateX(-${selectedMediaIndex * (100 / totalMedia)}%)`
+                  }}
+                >
+                  {galleryItems.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="relative h-full flex-shrink-0"
+                      style={{ width: `${100 / totalMedia}%` }}
+                    >
+                      {item.mediaType === 'video' ? (
+                        // Video rendering
+                        item.videoType === 'youtube' ? (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            title="Vidéo YouTube"
+                          />
+                        ) : item.videoType === 'vimeo' ? (
+                          <iframe
+                            src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                            title="Vidéo Vimeo"
+                          />
+                        ) : (
+                          // Uploaded video
+                          <video
+                            src={item.url}
+                            className="w-full h-full object-contain bg-black"
+                            controls
+                            playsInline
+                            preload="metadata"
+                          />
+                        )
+                      ) : (
+                        // Image rendering
+                        <Image
+                          src={item.url}
+                          alt={`${product.name} - vue ${idx + 1}`}
+                          fill
+                          className="object-cover"
+                          priority={idx === 0}
+                          sizes="(max-width: 768px) 100vw, 50vw"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
 
                 {/* Navigation Arrows - always visible when multiple items */}
                 {totalMedia > 1 && (
