@@ -3,13 +3,21 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { toast } from 'sonner'
+
+interface ProductVideo {
+  id: string
+  type: string // 'upload' | 'youtube' | 'vimeo'
+  url: string
+  thumbnail?: string | null
+  title?: string | null
+}
 
 interface Product {
   id: string
@@ -19,38 +27,57 @@ interface Product {
   images: string[]
   colors: string[]
   sizes: string[]
-  reviews?: any[] // On pourra typer mieux plus tard
+  videos?: ProductVideo[]
+  reviews?: any[]
 }
 
 interface ProductDetailClientProps {
   product: Product
 }
 
+// Type for unified gallery items (images + videos)
+type GalleryItem =
+  | { type: 'image'; url: string }
+  | { type: 'video'; url: string; videoType: string; thumbnail?: string | null }
+
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0)
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
   const addItem = useCart((state) => state.addItem)
 
   const reviewsRef = useRef<HTMLDivElement>(null)
   const imageContainerRef = useRef<HTMLDivElement>(null)
 
-  // Image courante basée sur l'index sélectionné
-  const currentImage = product.images[selectedImageIndex] || product.images[0] || '/logo2-nobg.png'
+  // Combine images and videos into a single gallery
+  const galleryItems: GalleryItem[] = [
+    ...product.images.map(url => ({ type: 'image' as const, url })),
+    ...(product.videos || []).map(video => ({
+      type: 'video' as const,
+      url: video.url,
+      videoType: video.type,
+      thumbnail: video.thumbnail
+    }))
+  ]
 
-  const goToPrevImage = useCallback(() => {
-    setSelectedImageIndex(prev => (prev > 0 ? prev - 1 : product.images.length - 1))
-  }, [product.images.length])
+  // Current media item based on selected index
+  const currentMedia = galleryItems[selectedMediaIndex] || galleryItems[0] || { type: 'image', url: '/logo2-nobg.png' }
+  // For cart, use first image
+  const cartImage = product.images[0] || '/logo2-nobg.png'
 
-  const goToNextImage = useCallback(() => {
-    setSelectedImageIndex(prev => (prev < product.images.length - 1 ? prev + 1 : 0))
-  }, [product.images.length])
+  const goToPrevMedia = useCallback(() => {
+    setSelectedMediaIndex(prev => (prev > 0 ? prev - 1 : galleryItems.length - 1))
+  }, [galleryItems.length])
+
+  const goToNextMedia = useCallback(() => {
+    setSelectedMediaIndex(prev => (prev < galleryItems.length - 1 ? prev + 1 : 0))
+  }, [galleryItems.length])
 
   // Native touch event handlers for proper swipe on mobile
   useEffect(() => {
     const container = imageContainerRef.current
-    if (!container || product.images.length <= 1) return
+    if (!container || galleryItems.length <= 1) return
 
     let touchStartX = 0
     let touchStartY = 0
@@ -84,13 +111,13 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       const distance = touchStartX - touchEndX
 
       if (distance > minSwipeDistance) {
-        // Swipe left - next image
-        setSelectedImageIndex(prev =>
-          prev < product.images.length - 1 ? prev + 1 : prev
+        // Swipe left - next media
+        setSelectedMediaIndex(prev =>
+          prev < galleryItems.length - 1 ? prev + 1 : prev
         )
       } else if (distance < -minSwipeDistance) {
-        // Swipe right - previous image
-        setSelectedImageIndex(prev => prev > 0 ? prev - 1 : prev)
+        // Swipe right - previous media
+        setSelectedMediaIndex(prev => prev > 0 ? prev - 1 : prev)
       }
     }
 
@@ -103,7 +130,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [product.images.length])
+  }, [galleryItems.length])
 
   const handleAddToCart = () => {
     addItem({
@@ -111,7 +138,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: currentImage,
+      image: cartImage,
       quantity: 1,
       size: selectedSize,
       color: selectedColor
@@ -153,22 +180,38 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             
             {/* Gallery */}
             <div className="flex flex-col gap-4">
-              {/* Main Image with Swipe */}
+              {/* Main Media with Swipe */}
               <div
                 ref={imageContainerRef}
                 className="relative aspect-[3/4] overflow-hidden bg-secondary w-full group cursor-grab active:cursor-grabbing"
               >
-                {(currentImage.endsWith('.mp4') || currentImage.endsWith('.webm')) ? (
-                  <video
-                    src={currentImage}
-                    className="w-full h-full object-cover pointer-events-none"
-                    autoPlay
-                    muted
-                    loop
-                  />
+                {currentMedia.type === 'video' ? (
+                  currentMedia.videoType === 'youtube' ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${currentMedia.url.split('v=')[1]?.split('&')[0] || currentMedia.url.split('/').pop()}`}
+                      className="w-full h-full"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    />
+                  ) : currentMedia.videoType === 'vimeo' ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${currentMedia.url.split('/').pop()}`}
+                      className="w-full h-full"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      src={currentMedia.url}
+                      className="w-full h-full object-cover"
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                    />
+                  )
                 ) : (
                   <Image
-                    src={currentImage}
+                    src={currentMedia.url}
                     alt={`${product.name} - ${selectedColor}`}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
@@ -177,38 +220,38 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 )}
 
                 {/* Navigation Arrows - visible on mobile and hover on desktop */}
-                {product.images.length > 1 && (
+                {galleryItems.length > 1 && (
                   <>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToPrevImage(); }}
+                      onClick={(e) => { e.stopPropagation(); goToPrevMedia(); }}
                       className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all"
-                      aria-label="Image précédente"
+                      aria-label="Média précédent"
                     >
                       <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
+                      onClick={(e) => { e.stopPropagation(); goToNextMedia(); }}
                       className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all"
-                      aria-label="Image suivante"
+                      aria-label="Média suivant"
                     >
                       <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 pointer-events-none" />
                     </button>
 
                     {/* Dots Navigation */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
-                      {product.images.map((_, idx) => (
+                      {galleryItems.map((_, idx) => (
                         <button
                           key={idx}
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(idx); }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(idx); }}
                           className={`w-3 h-3 rounded-full transition-all ${
-                            idx === selectedImageIndex
+                            idx === selectedMediaIndex
                               ? 'bg-white scale-125'
                               : 'bg-white/50 hover:bg-white/70'
                           }`}
-                          aria-label={`Voir image ${idx + 1}`}
+                          aria-label={`Voir média ${idx + 1}`}
                         />
                       ))}
                     </div>
@@ -218,24 +261,45 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
               {/* Thumbnails */}
               <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {product.images.map((img, idx) => (
+                {galleryItems.map((item, idx) => (
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setSelectedImageIndex(idx)}
+                    onClick={() => setSelectedMediaIndex(idx)}
                     className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
-                      selectedImageIndex === idx
+                      selectedMediaIndex === idx
                         ? 'ring-2 ring-foreground ring-offset-2'
                         : 'opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <Image
-                      src={img}
-                      alt={`Vue ${idx + 1}`}
-                      fill
-                      sizes="(max-width: 768px) 25vw, 150px"
-                      className="object-cover pointer-events-none"
-                    />
+                    {item.type === 'video' ? (
+                      <>
+                        {item.thumbnail ? (
+                          <Image
+                            src={item.thumbnail}
+                            alt={`Vidéo ${idx + 1}`}
+                            fill
+                            sizes="(max-width: 768px) 25vw, 150px"
+                            className="object-cover pointer-events-none"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                            <Play className="w-8 h-8 text-white" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play className="w-6 h-6 text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <Image
+                        src={item.url}
+                        alt={`Vue ${idx + 1}`}
+                        fill
+                        sizes="(max-width: 768px) 25vw, 150px"
+                        className="object-cover pointer-events-none"
+                      />
+                    )}
                   </button>
                 ))}
               </div>

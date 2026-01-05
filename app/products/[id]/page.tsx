@@ -60,7 +60,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
-      reviews: true
+      reviews: true,
+      videos: {
+        orderBy: { sortOrder: 'asc' }
+      }
     }
   })
 
@@ -77,6 +80,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     images: product.images || [],
     colors: product.colors || [],
     sizes: product.sizes || [],
+    videos: (product.videos || []).map(video => ({
+      id: video.id,
+      type: video.type,
+      url: video.url,
+      thumbnail: video.thumbnail,
+      title: video.title
+    })),
     reviews: (product.reviews || []).map(review => ({
       id: review.id,
       rating: review.rating,
