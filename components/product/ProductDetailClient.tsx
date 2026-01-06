@@ -239,8 +239,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   <>
                     <button
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); handlePrev(); }}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrev(); }}
+                      onClick={handlePrev}
                       style={{
                         position: 'absolute',
                         left: '16px',
@@ -260,8 +259,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
                     <button
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); handleNext(); }}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNext(); }}
+                      onClick={handleNext}
                       style={{
                         position: 'absolute',
                         right: '16px',
@@ -301,8 +299,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       <button
                         key={idx}
                         type="button"
-                        onMouseDown={(e) => { e.preventDefault(); handleDotClick(idx); }}
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDotClick(idx); }}
+                        onClick={() => setCurrentIndex(idx)}
                         style={{
                           width: '10px',
                           height: '10px',
@@ -332,8 +329,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     <button
                       key={media.id}
                       type="button"
-                      onMouseDown={(e) => { e.preventDefault(); handleThumbnailClick(idx); }}
-                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleThumbnailClick(idx); }}
+                      onClick={() => setCurrentIndex(idx)}
                       style={{
                         position: 'relative',
                         aspectRatio: '1',
