@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import Header from '@/components/layout/Header'
@@ -139,7 +138,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   currentMedia.videoType === 'youtube' ? (
                     <iframe
                       src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0`}
-                      className="absolute inset-0 w-full h-full"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       title="YouTube video"
@@ -147,7 +146,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   ) : currentMedia.videoType === 'vimeo' ? (
                     <iframe
                       src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}`}
-                      className="absolute inset-0 w-full h-full"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
                       allowFullScreen
                       title="Vimeo video"
                     />
@@ -155,20 +154,24 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     <video
                       key={currentMedia.url}
                       src={currentMedia.url}
-                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: 'black' }}
                       controls
                       playsInline
                     />
                   )
                 ) : (
-                  // IMAGE
-                  <Image
+                  // IMAGE - pointer-events none so buttons work
+                  <img
                     src={currentMedia.url}
                     alt={product.name}
-                    fill
-                    className="object-cover"
-                    priority
-                    sizes="(max-width: 768px) 100vw, 50vw"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      pointerEvents: 'none',
+                    }}
                   />
                 )}
 
@@ -292,12 +295,16 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                           <Play style={{ width: '24px', height: '24px', color: 'white' }} />
                         </div>
                       ) : (
-                        <Image
+                        <img
                           src={media.url}
                           alt={`Thumbnail ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="100px"
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
                         />
                       )}
                     </button>
