@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -49,9 +49,28 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false)
 
   const addItem = useCart((state) => state.addItem)
   const reviewsRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Auto-play video when arriving on video slide
+  useEffect(() => {
+    const currentMedia = allMedia[currentIndex]
+    if (currentMedia?.type === 'video' && currentMedia?.videoType === 'upload') {
+      // Small delay to ensure video element is mounted
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.play()
+          setIsVideoPlaying(true)
+        }
+      }, 100)
+    } else {
+      // Reset playing state when leaving video slide
+      setIsVideoPlaying(false)
+    }
+  }, [currentIndex, allMedia])
 
   const totalItems = allMedia.length || 1
   const currentMedia = allMedia[currentIndex] || { type: 'image' as const, url: '/logo2-nobg.png', id: 'default' }
@@ -169,18 +188,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         cursor: 'pointer',
                         transition: 'opacity 0.3s ease-in-out',
                       }}
-                      onClick={(e) => {
-                        const video = e.currentTarget.querySelector('video')
-                        if (video) {
-                          if (video.paused) {
-                            video.play()
+                      onClick={() => {
+                        if (videoRef.current) {
+                          if (videoRef.current.paused) {
+                            videoRef.current.play()
+                            setIsVideoPlaying(true)
                           } else {
-                            video.pause()
+                            videoRef.current.pause()
+                            setIsVideoPlaying(false)
                           }
                         }
                       }}
                     >
                       <video
+                        ref={videoRef}
                         key={currentMedia.url}
                         src={currentMedia.url}
                         style={{
@@ -193,28 +214,30 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         loop
                         playsInline
                       />
-                      {/* Play overlay hint */}
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        pointerEvents: 'none',
-                      }}>
+                      {/* Play overlay hint - hidden when video is playing */}
+                      {!isVideoPlaying && (
                         <div style={{
-                          width: '80px',
-                          height: '80px',
-                          borderRadius: '50%',
-                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          position: 'absolute',
+                          inset: 0,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          opacity: 0.8,
+                          pointerEvents: 'none',
                         }}>
-                          <Play style={{ width: '40px', height: '40px', color: 'white', marginLeft: '4px' }} />
+                          <div style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0.8,
+                          }}>
+                            <Play style={{ width: '40px', height: '40px', color: 'white', marginLeft: '4px' }} />
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )
                 ) : (
