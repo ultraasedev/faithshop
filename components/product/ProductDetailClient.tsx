@@ -128,6 +128,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
             {/* ===================== GALLERY ===================== */}
             <div className="flex flex-col gap-4">
+              {/* DEBUG - à retirer après */}
+              <div style={{ background: 'yellow', padding: '10px', color: 'black', fontWeight: 'bold' }}>
+                DEBUG: totalItems={totalItems}, currentIndex={currentIndex}, images={product.images.length}, videos={(product.videos || []).length}
+                <button
+                  onClick={() => alert('React fonctionne! Index: ' + currentIndex)}
+                  style={{ marginLeft: '10px', padding: '5px 10px', background: 'red', color: 'white', cursor: 'pointer' }}
+                >
+                  TEST CLICK
+                </button>
+              </div>
+
               {/* Main display */}
               <div
                 className="relative w-full bg-gray-100"
