@@ -178,7 +178,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       title="Vimeo video"
                     />
                   ) : (
-                    // Uploaded video - click to play/pause, muted, no controls
+                    // Uploaded video - click/tap to play/pause, muted, no controls
                     <div
                       style={{
                         position: 'absolute',
@@ -188,7 +188,22 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         cursor: 'pointer',
                         transition: 'opacity 0.3s ease-in-out',
                       }}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        if (videoRef.current) {
+                          if (videoRef.current.paused) {
+                            videoRef.current.play()
+                            setIsVideoPlaying(true)
+                          } else {
+                            videoRef.current.pause()
+                            setIsVideoPlaying(false)
+                          }
+                        }
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
                         if (videoRef.current) {
                           if (videoRef.current.paused) {
                             videoRef.current.play()
@@ -209,6 +224,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                           height: '100%',
                           objectFit: 'contain',
                           backgroundColor: 'black',
+                          pointerEvents: 'none',
                         }}
                         muted
                         loop
