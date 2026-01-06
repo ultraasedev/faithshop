@@ -63,12 +63,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   // Embla Carousel
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false })
 
+  // Debug: Log when emblaApi is ready
+  useEffect(() => {
+    console.log('[Gallery] emblaApi ready:', !!emblaApi)
+    console.log('[Gallery] galleryItems:', galleryItems.length)
+  }, [emblaApi, galleryItems.length])
+
   // Sync Embla with selected index
   useEffect(() => {
     if (!emblaApi) return
 
     const onSelect = () => {
-      setSelectedMediaIndex(emblaApi.selectedScrollSnap())
+      const index = emblaApi.selectedScrollSnap()
+      console.log('[Gallery] Embla selected:', index)
+      setSelectedMediaIndex(index)
     }
 
     emblaApi.on('select', onSelect)
@@ -79,14 +87,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   // Scroll to slide when thumbnail is clicked
   const scrollTo = useCallback((index: number) => {
+    console.log('[Gallery] scrollTo called:', index, 'emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollTo(index)
   }, [emblaApi])
 
   const scrollPrev = useCallback(() => {
+    console.log('[Gallery] scrollPrev called, emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollPrev()
   }, [emblaApi])
 
   const scrollNext = useCallback(() => {
+    console.log('[Gallery] scrollNext called, emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollNext()
   }, [emblaApi])
 
