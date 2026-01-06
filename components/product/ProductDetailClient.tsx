@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 
 interface ProductVideo {
   id: string
-  type: string // 'upload' | 'youtube' | 'vimeo'
+  type: string
   url: string
   thumbnail?: string | null
   title?: string | null
@@ -28,122 +28,97 @@ interface Product {
   colors: string[]
   sizes: string[]
   videos?: ProductVideo[]
-  reviews?: any[]
+  reviews?: Array<{
+    id: string
+    rating: number
+    text: string
+    author: string
+    date: string
+  }>
 }
 
 interface ProductDetailClientProps {
   product: Product
 }
 
-// Type for unified gallery items (images + videos)
-interface ImageItem {
-  mediaType: 'image'
-  url: string
-}
-
-interface VideoItem {
-  mediaType: 'video'
-  url: string
-  videoType: string
-  thumbnail?: string | null
-}
-
-type GalleryItem = ImageItem | VideoItem
-
 export default function ProductDetailClient({ product }: ProductDetailClientProps) {
-  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
-  const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
-  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0)
-  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
-  const addItem = useCart((state) => state.addItem)
-
-  const reviewsRef = useRef<HTMLDivElement>(null)
-
-  // Combine images and videos into a single gallery
-  const galleryItems: GalleryItem[] = [
-    ...product.images.map((url): ImageItem => ({ mediaType: 'image', url })),
-    ...(product.videos || []).map((video): VideoItem => ({
-      mediaType: 'video',
-      url: video.url,
-      videoType: video.type,
-      thumbnail: video.thumbnail
-    }))
+  // All media items: images first, then videos
+  const allMedia = [
+    ...product.images.map((url, i) => ({ type: 'image' as const, url, id: `img-${i}` })),
+    ...(product.videos || []).map((v) => ({ type: 'video' as const, url: v.url, videoType: v.type, thumbnail: v.thumbnail, id: v.id }))
   ]
 
-  const totalMedia = galleryItems.length || 1
-  const hasMedia = galleryItems.length > 0
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M')
+  const [selectedColor, setSelectedColor] = useState(product.colors[0] || 'Unique')
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false)
 
-  // Simple navigation functions
-  const goToSlide = (index: number) => {
-    if (index >= 0 && index < totalMedia) {
-      setSelectedMediaIndex(index)
-    }
+  const addItem = useCart((state) => state.addItem)
+  const reviewsRef = useRef<HTMLDivElement>(null)
+
+  const totalItems = allMedia.length || 1
+  const currentMedia = allMedia[currentIndex] || { type: 'image' as const, url: '/logo2-nobg.png', id: 'default' }
+
+  // Navigation handlers
+  function handlePrev() {
+    setCurrentIndex((prev) => (prev === 0 ? totalItems - 1 : prev - 1))
   }
 
-  const goToPrev = () => {
-    setSelectedMediaIndex(prev => (prev > 0 ? prev - 1 : totalMedia - 1))
+  function handleNext() {
+    setCurrentIndex((prev) => (prev === totalItems - 1 ? 0 : prev + 1))
   }
 
-  const goToNext = () => {
-    setSelectedMediaIndex(prev => (prev < totalMedia - 1 ? prev + 1 : 0))
+  function handleDotClick(index: number) {
+    setCurrentIndex(index)
   }
 
-  // Fallback if no media
-  const defaultItem: ImageItem = { mediaType: 'image', url: '/logo2-nobg.png' }
-
-  // For cart, use first image
-  const cartImage = product.images[0] || '/logo2-nobg.png'
-
-  // Helper to render YouTube embed
-  const getYouTubeId = (url: string): string => {
-    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
-    return match ? match[1] : url
+  function handleThumbnailClick(index: number) {
+    setCurrentIndex(index)
   }
 
-  // Helper to render Vimeo embed
-  const getVimeoId = (url: string): string => {
-    const match = url.match(/vimeo\.com\/(\d+)/)
-    return match ? match[1] : url.split('/').pop() || ''
-  }
-
-  const handleAddToCart = () => {
+  // Cart handler
+  function handleAddToCart() {
     addItem({
       id: `${product.id}-${selectedSize}-${selectedColor}`,
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: cartImage,
+      image: product.images[0] || '/logo2-nobg.png',
       quantity: 1,
       size: selectedSize,
       color: selectedColor
     })
-    
+
     toast.success(`${product.name} ajouté au panier`, {
       description: `${selectedColor} - Taille ${selectedSize}`,
-      action: {
-        label: 'Voir le panier',
-        onClick: () => document.querySelector<HTMLElement>('[data-cart-trigger]')?.click()
-      }
     })
 
-    // Ouvrir le panier automatiquement
     setTimeout(() => {
-       const trigger = document.querySelector('[data-cart-trigger="true"]') as HTMLElement
-       trigger?.click()
+      const trigger = document.querySelector('[data-cart-trigger="true"]') as HTMLElement
+      trigger?.click()
     }, 100)
   }
 
-  const scrollToReviews = () => {
+  function scrollToReviews() {
     reviewsRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // Vraies reviews de la DB
+  // Reviews
   const reviews = product.reviews || []
-
-  // Calculer la vraie moyenne des avis
   const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0
+
+  // YouTube/Vimeo helpers
+  function getYouTubeId(url: string): string {
+    const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/)
+    return match ? match[1] : url
+  }
+
+  function getVimeoId(url: string): string {
+    const match = url.match(/vimeo\.com\/(\d+)/)
+    return match ? match[1] : url.split('/').pop() || ''
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -151,64 +126,44 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
       <main className="flex-1 pt-32">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
-            
-            {/* Simple Gallery - No Embla */}
+
+            {/* ===================== GALLERY ===================== */}
             <div className="flex flex-col gap-4">
-              {/* Main Image/Video Display */}
-              <div className="relative aspect-[3/4] bg-secondary w-full">
-                {hasMedia ? (
-                  (() => {
-                    const currentItem = galleryItems[selectedMediaIndex]
-                    if (currentItem.mediaType === 'video') {
-                      // Video rendering
-                      if (currentItem.videoType === 'youtube') {
-                        return (
-                          <iframe
-                            src={`https://www.youtube.com/embed/${getYouTubeId(currentItem.url)}?rel=0`}
-                            className="w-full h-full"
-                            allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            title="Vidéo YouTube"
-                          />
-                        )
-                      } else if (currentItem.videoType === 'vimeo') {
-                        return (
-                          <iframe
-                            src={`https://player.vimeo.com/video/${getVimeoId(currentItem.url)}`}
-                            className="w-full h-full"
-                            allowFullScreen
-                            title="Vidéo Vimeo"
-                          />
-                        )
-                      } else {
-                        // Uploaded video
-                        return (
-                          <video
-                            key={currentItem.url}
-                            src={currentItem.url}
-                            className="w-full h-full object-contain bg-black"
-                            controls
-                            playsInline
-                          />
-                        )
-                      }
-                    } else {
-                      // Image rendering
-                      return (
-                        <Image
-                          src={currentItem.url}
-                          alt={`${product.name} - vue ${selectedMediaIndex + 1}`}
-                          fill
-                          className="object-cover"
-                          priority={selectedMediaIndex === 0}
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                      )
-                    }
-                  })()
+              {/* Main display */}
+              <div
+                className="relative w-full bg-gray-100"
+                style={{ aspectRatio: '3/4' }}
+              >
+                {currentMedia.type === 'video' ? (
+                  // VIDEO
+                  currentMedia.videoType === 'youtube' ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0`}
+                      className="absolute inset-0 w-full h-full"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title="YouTube video"
+                    />
+                  ) : currentMedia.videoType === 'vimeo' ? (
+                    <iframe
+                      src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}`}
+                      className="absolute inset-0 w-full h-full"
+                      allowFullScreen
+                      title="Vimeo video"
+                    />
+                  ) : (
+                    <video
+                      key={currentMedia.url}
+                      src={currentMedia.url}
+                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      controls
+                      playsInline
+                    />
+                  )
                 ) : (
+                  // IMAGE
                   <Image
-                    src={defaultItem.url}
+                    src={currentMedia.url}
                     alt={product.name}
                     fill
                     className="object-cover"
@@ -217,89 +172,132 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   />
                 )}
 
-                {/* Navigation Arrows */}
-                {totalMedia > 1 && (
+                {/* Arrow buttons */}
+                {totalItems > 1 && (
                   <>
                     <button
                       type="button"
-                      onClick={goToPrev}
-                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
-                      aria-label="Média précédent"
+                      onClick={handlePrev}
+                      style={{
+                        position: 'absolute',
+                        left: '16px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 50,
+                        padding: '12px',
+                        borderRadius: '9999px',
+                        backgroundColor: 'rgba(255,255,255,0.95)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        cursor: 'pointer',
+                        border: 'none',
+                      }}
                     >
-                      <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={goToNext}
-                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
-                      aria-label="Média suivant"
-                    >
-                      <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                      <ChevronLeft style={{ width: '24px', height: '24px', color: 'black' }} />
                     </button>
 
-                    {/* Dots Navigation */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-black/30 px-3 py-2 rounded-full">
-                      {galleryItems.map((item, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => goToSlide(idx)}
-                          className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            idx === selectedMediaIndex
-                              ? 'bg-white scale-125'
-                              : 'bg-white/50 hover:bg-white/80'
-                          }`}
-                          aria-label={`Voir ${item.mediaType === 'video' ? 'vidéo' : 'image'} ${idx + 1}`}
-                        />
-                      ))}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      style={{
+                        position: 'absolute',
+                        right: '16px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 50,
+                        padding: '12px',
+                        borderRadius: '9999px',
+                        backgroundColor: 'rgba(255,255,255,0.95)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        cursor: 'pointer',
+                        border: 'none',
+                      }}
+                    >
+                      <ChevronRight style={{ width: '24px', height: '24px', color: 'black' }} />
+                    </button>
                   </>
+                )}
+
+                {/* Dots */}
+                {totalItems > 1 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '16px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      zIndex: 50,
+                      display: 'flex',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      borderRadius: '9999px',
+                    }}
+                  >
+                    {allMedia.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleDotClick(idx)}
+                        style={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          backgroundColor: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.5)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          transform: idx === currentIndex ? 'scale(1.2)' : 'scale(1)',
+                          transition: 'all 0.2s',
+                        }}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
 
               {/* Thumbnails */}
-              {totalMedia > 1 && (
-                <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                  {galleryItems.map((item, idx) => (
+              {totalItems > 1 && (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '8px',
+                  }}
+                >
+                  {allMedia.map((media, idx) => (
                     <button
-                      key={idx}
+                      key={media.id}
                       type="button"
-                      onClick={() => goToSlide(idx)}
-                      className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
-                        selectedMediaIndex === idx
-                          ? 'ring-2 ring-foreground ring-offset-2'
-                          : 'opacity-70 hover:opacity-100'
-                      }`}
+                      onClick={() => handleThumbnailClick(idx)}
+                      style={{
+                        position: 'relative',
+                        aspectRatio: '1',
+                        overflow: 'hidden',
+                        border: idx === currentIndex ? '2px solid black' : '2px solid transparent',
+                        opacity: idx === currentIndex ? 1 : 0.7,
+                        cursor: 'pointer',
+                        backgroundColor: '#f3f4f6',
+                      }}
                     >
-                      {item.mediaType === 'video' ? (
-                        <>
-                          {item.thumbnail ? (
-                            <Image
-                              src={item.thumbnail}
-                              alt={`Vidéo ${idx + 1}`}
-                              fill
-                              sizes="(max-width: 768px) 25vw, 150px"
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gray-900 flex items-center justify-center">
-                              <Play className="w-8 h-8 text-white/70" />
-                            </div>
-                          )}
-                          {/* Play overlay for video thumbnails */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-                              <Play className="w-5 h-5 text-black ml-0.5" fill="currentColor" />
-                            </div>
-                          </div>
-                        </>
+                      {media.type === 'video' ? (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: '#1f2937',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Play style={{ width: '24px', height: '24px', color: 'white' }} />
+                        </div>
                       ) : (
                         <Image
-                          src={item.url}
-                          alt={`Vue ${idx + 1}`}
+                          src={media.url}
+                          alt={`Thumbnail ${idx + 1}`}
                           fill
-                          sizes="(max-width: 768px) 25vw, 150px"
                           className="object-cover"
+                          sizes="100px"
                         />
                       )}
                     </button>
@@ -307,6 +305,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               )}
             </div>
+            {/* ===================== END GALLERY ===================== */}
 
             {/* Product Info */}
             <div className="flex flex-col">
@@ -321,7 +320,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                           <Star key={i} className={`w-4 h-4 ${i < Math.round(averageRating) ? 'fill-current' : 'text-muted-foreground/30'}`} />
                         ))}
                       </div>
-                      <span className="text-muted-foreground text-sm ml-2 group-hover:underline decoration-primary/50 underline-offset-4 transition-all">
+                      <span className="text-muted-foreground text-sm ml-2 group-hover:underline">
                         ({reviews.length} avis)
                       </span>
                     </button>
@@ -334,21 +333,22 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </p>
               </div>
 
-              {/* Countdown pré-commande supprimé - remplacé par ShippingBanner en haut de page */}
-
               <div className="space-y-10 mb-10">
                 {/* Colors */}
                 {product.colors.length > 0 && (
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">Couleur : <span className="text-foreground">{selectedColor}</span></label>
+                    <label className="block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground mb-4">
+                      Couleur : <span className="text-foreground">{selectedColor}</span>
+                    </label>
                     <div className="flex gap-4 flex-wrap">
                       {product.colors.map((color) => (
                         <button
                           key={color}
+                          type="button"
                           onClick={() => setSelectedColor(color)}
                           className={`h-12 px-6 border transition-all duration-300 ${
-                            selectedColor === color 
-                              ? 'border-foreground bg-foreground text-background shadow-lg' 
+                            selectedColor === color
+                              ? 'border-foreground bg-foreground text-background shadow-lg'
                               : 'border-border hover:border-foreground/50'
                           }`}
                         >
@@ -363,8 +363,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 {product.sizes.length > 0 && (
                   <div>
                     <div className="flex justify-between mb-4 items-center">
-                      <label className="block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Taille : <span className="text-foreground">{selectedSize}</span></label>
-                      <button 
+                      <label className="block text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                        Taille : <span className="text-foreground">{selectedSize}</span>
+                      </label>
+                      <button
+                        type="button"
                         onClick={() => setIsSizeGuideOpen(true)}
                         className="flex items-center gap-2 text-xs uppercase tracking-widest border-b border-transparent hover:border-foreground transition-all pb-0.5"
                       >
@@ -375,10 +378,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       {product.sizes.map((size) => (
                         <button
                           key={size}
+                          type="button"
                           onClick={() => setSelectedSize(size)}
                           className={`h-14 flex items-center justify-center border text-sm transition-all duration-200 ${
-                            selectedSize === size 
-                              ? 'border-foreground bg-foreground text-background shadow-md' 
+                            selectedSize === size
+                              ? 'border-foreground bg-foreground text-background shadow-md'
                               : 'border-border hover:border-foreground'
                           }`}
                         >
@@ -390,12 +394,10 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 )}
               </div>
 
-              {/* Pre-order Countdown supprimé - remplacé par ShippingBanner en haut de page */}
-
-              {/* Premium Add to Cart Button */}
-              <Button 
-                size="lg" 
-                className="w-full h-16 rounded-none text-base uppercase tracking-[0.2em] font-bold mb-10 bg-foreground text-background hover:bg-foreground/90 transition-all duration-300 shadow-xl hover:shadow-2xl relative overflow-hidden group" 
+              {/* Add to Cart Button */}
+              <Button
+                size="lg"
+                className="w-full h-16 rounded-none text-base uppercase tracking-[0.2em] font-bold mb-10 bg-foreground text-background hover:bg-foreground/90 transition-all duration-300 shadow-xl hover:shadow-2xl relative overflow-hidden group"
                 onClick={handleAddToCart}
               >
                 <span className="relative z-10 flex items-center gap-3">
@@ -419,7 +421,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               </div>
 
-              {/* Bandeau Pré-commande */}
+              {/* Pre-order banner */}
               <div className="mt-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg p-4 shadow-lg">
                 <div className="flex items-center gap-3 text-white">
                   <Truck className="w-6 h-6 flex-shrink-0" />
@@ -467,7 +469,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     </div>
                     <span className="text-xs text-muted-foreground uppercase tracking-wider">{review.date}</span>
                   </div>
-                  <h3 className="font-serif text-lg mb-4">" {review.text} "</h3>
+                  <h3 className="font-serif text-lg mb-4">&quot; {review.text} &quot;</h3>
                   <div className="flex items-center gap-3 mt-auto pt-4 border-t border-border/50">
                     <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center font-bold text-xs">
                       {review.author.charAt(0)}
@@ -481,7 +483,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
               ))}
             </div>
 
-            {/* Formulaire d'avis */}
+            {/* Review form */}
             <div className="mt-16 max-w-2xl mx-auto bg-secondary/20 p-8 text-center">
               <h3 className="font-serif text-xl mb-4">Vous avez acheté ce produit ?</h3>
               <p className="text-muted-foreground mb-6">Partagez votre expérience avec la communauté.</p>
@@ -501,7 +503,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
         </div>
 
-        {/* Premium Size Guide Sheet */}
+        {/* Size Guide Sheet */}
         <Sheet open={isSizeGuideOpen} onOpenChange={setIsSizeGuideOpen}>
           <SheetContent className="w-full sm:max-w-lg overflow-y-auto p-0 border-l border-border">
             <div className="p-8 h-full flex flex-col">
@@ -509,17 +511,17 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 <SheetTitle className="font-serif text-3xl">Guide des Tailles</SheetTitle>
                 <p className="text-muted-foreground mt-2">Trouvez la coupe parfaite pour votre style.</p>
               </SheetHeader>
-              
+
               <div className="space-y-10 flex-1">
                 <div className="bg-secondary/20 p-6 border border-border/50">
                   <h3 className="font-bold uppercase tracking-widest text-sm mb-4 flex items-center gap-2">
                     <Check className="w-4 h-4 text-primary" /> Coupe Oversize
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Nos vêtements sont conçus pour être portés amples. Pour un effet "boxfit" tendance, prenez votre taille habituelle. Pour un rendu plus ajusté, prenez une taille en dessous.
+                    Nos vêtements sont conçus pour être portés amples. Pour un effet &quot;boxfit&quot; tendance, prenez votre taille habituelle. Pour un rendu plus ajusté, prenez une taille en dessous.
                   </p>
                 </div>
-                
+
                 <div>
                   <table className="w-full text-sm">
                     <thead>
@@ -553,23 +555,21 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <div className="aspect-square bg-secondary/30 flex items-center justify-center mb-2">
-                        {/* Placeholder visuel */}
                         <div className="w-16 h-1 border-b-2 border-dashed border-foreground relative">
                            <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs">Largeur</div>
                         </div>
                       </div>
                       <p className="font-bold text-sm">Poitrine</p>
-                      <p className="text-xs text-muted-foreground">Mesurez à plat d'une aisselle à l'autre.</p>
+                      <p className="text-xs text-muted-foreground">Mesurez à plat d&apos;une aisselle à l&apos;autre.</p>
                     </div>
                     <div className="space-y-2">
                       <div className="aspect-square bg-secondary/30 flex items-center justify-center mb-2">
-                         {/* Placeholder visuel */}
                          <div className="h-16 w-1 border-r-2 border-dashed border-foreground relative">
                            <div className="absolute top-1/2 -left-8 -translate-y-1/2 text-xs">Haut</div>
                         </div>
                       </div>
                       <p className="font-bold text-sm">Longueur</p>
-                      <p className="text-xs text-muted-foreground">Du point le plus haut de l'épaule jusqu'en bas.</p>
+                      <p className="text-xs text-muted-foreground">Du point le plus haut de l&apos;épaule jusqu&apos;en bas.</p>
                     </div>
                   </div>
                 </div>
