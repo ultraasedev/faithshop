@@ -3,8 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
-import Header from '@/components/layout/Header'
-import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/lib/store/cart'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -127,8 +125,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <Header />
-      <main className="flex-1 pt-32">
+      {/* Header retiré temporairement pour debug */}
+      <main className="flex-1 pt-8">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
 
@@ -606,7 +604,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           </SheetContent>
         </Sheet>
       </main>
-      <Footer />
+      {/* Footer retiré temporairement pour debug */}
     </div>
   )
 }
