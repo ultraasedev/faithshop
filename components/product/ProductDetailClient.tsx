@@ -63,10 +63,26 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   // Embla Carousel
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false })
 
-  // Debug: Log when emblaApi is ready
+  // Combine images and videos into a single gallery - MUST be before Embla effects
+  const galleryItems: GalleryItem[] = [
+    ...product.images.map((url): ImageItem => ({ mediaType: 'image', url })),
+    ...(product.videos || []).map((video): VideoItem => ({
+      mediaType: 'video',
+      url: video.url,
+      videoType: video.type,
+      thumbnail: video.thumbnail
+    }))
+  ]
+
+  const totalMedia = galleryItems.length || 1
+  const hasMedia = galleryItems.length > 0
+
+  // Reinit Embla when slides change
   useEffect(() => {
-    console.log('[Gallery] emblaApi ready:', !!emblaApi)
-    console.log('[Gallery] galleryItems:', galleryItems.length)
+    if (emblaApi) {
+      console.log('[Gallery] Reinitialized with', galleryItems.length, 'items')
+      emblaApi.reInit()
+    }
   }, [emblaApi, galleryItems.length])
 
   // Sync Embla with selected index
@@ -80,6 +96,9 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     }
 
     emblaApi.on('select', onSelect)
+    // Call once to sync initial state
+    onSelect()
+
     return () => {
       emblaApi.off('select', onSelect)
     }
@@ -101,26 +120,11 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
     if (emblaApi) emblaApi.scrollNext()
   }, [emblaApi])
 
-  // Combine images and videos into a single gallery
-  const galleryItems: GalleryItem[] = [
-    ...product.images.map((url): ImageItem => ({ mediaType: 'image', url })),
-    ...(product.videos || []).map((video): VideoItem => ({
-      mediaType: 'video',
-      url: video.url,
-      videoType: video.type,
-      thumbnail: video.thumbnail
-    }))
-  ]
-
   // Fallback if no media
   const defaultItem: ImageItem = { mediaType: 'image', url: '/logo2-nobg.png' }
-  const hasMedia = galleryItems.length > 0
 
   // For cart, use first image
   const cartImage = product.images[0] || '/logo2-nobg.png'
-
-  // Total media count
-  const totalMedia = galleryItems.length || 1
 
   // Helper to render YouTube embed
   const getYouTubeId = (url: string): string => {
