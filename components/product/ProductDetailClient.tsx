@@ -126,37 +126,99 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
             <div className="flex flex-col gap-4">
               {/* Main display */}
               <div
-                className="relative w-full bg-gray-100"
+                className="relative w-full bg-gray-100 overflow-hidden"
                 style={{ aspectRatio: '3/4' }}
               >
                 {currentMedia.type === 'video' ? (
-                  // VIDEO
+                  // VIDEO - simple play/pause, no controls, muted
                   currentMedia.videoType === 'youtube' ? (
                     <iframe
-                      src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0`}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                      src={`https://www.youtube.com/embed/${getYouTubeId(currentMedia.url)}?rel=0&controls=0&modestbranding=1`}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        transition: 'opacity 0.3s ease-in-out',
+                      }}
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       title="YouTube video"
                     />
                   ) : currentMedia.videoType === 'vimeo' ? (
                     <iframe
-                      src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}`}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+                      src={`https://player.vimeo.com/video/${getVimeoId(currentMedia.url)}?controls=0`}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        transition: 'opacity 0.3s ease-in-out',
+                      }}
                       allowFullScreen
                       title="Vimeo video"
                     />
                   ) : (
-                    <video
-                      key={currentMedia.url}
-                      src={currentMedia.url}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', backgroundColor: 'black' }}
-                      controls
-                      playsInline
-                    />
+                    // Uploaded video - click to play/pause, muted, no controls
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        cursor: 'pointer',
+                        transition: 'opacity 0.3s ease-in-out',
+                      }}
+                      onClick={(e) => {
+                        const video = e.currentTarget.querySelector('video')
+                        if (video) {
+                          if (video.paused) {
+                            video.play()
+                          } else {
+                            video.pause()
+                          }
+                        }
+                      }}
+                    >
+                      <video
+                        key={currentMedia.url}
+                        src={currentMedia.url}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          backgroundColor: 'black',
+                        }}
+                        muted
+                        loop
+                        playsInline
+                      />
+                      {/* Play overlay hint */}
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                      }}>
+                        <div style={{
+                          width: '80px',
+                          height: '80px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.8,
+                        }}>
+                          <Play style={{ width: '40px', height: '40px', color: 'white', marginLeft: '4px' }} />
+                        </div>
+                      </div>
+                    </div>
                   )
                 ) : (
-                  // IMAGE - pointer-events none so buttons work
+                  // IMAGE with fade transition
                   <img
                     src={currentMedia.url}
                     alt={product.name}
@@ -167,6 +229,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       height: '100%',
                       objectFit: 'cover',
                       pointerEvents: 'none',
+                      transition: 'opacity 0.3s ease-in-out',
                     }}
                   />
                 )}
@@ -282,18 +345,52 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       }}
                     >
                       {media.type === 'video' ? (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            backgroundColor: '#1f2937',
+                        // Video thumbnail - show video frame with play icon overlay
+                        <>
+                          {media.videoType === 'upload' ? (
+                            <video
+                              src={media.url}
+                              style={{
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                              }}
+                              muted
+                              preload="metadata"
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: '#1f2937',
+                              }}
+                            />
+                          )}
+                          {/* Play icon overlay */}
+                          <div style={{
+                            position: 'absolute',
+                            inset: 0,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                          }}
-                        >
-                          <Play style={{ width: '24px', height: '24px', color: 'white' }} />
-                        </div>
+                            backgroundColor: 'rgba(0,0,0,0.3)',
+                          }}>
+                            <div style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(255,255,255,0.9)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}>
+                              <Play style={{ width: '16px', height: '16px', color: 'black', marginLeft: '2px' }} />
+                            </div>
+                          </div>
+                        </>
                       ) : (
                         <img
                           src={media.url}
