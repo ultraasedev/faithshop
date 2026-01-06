@@ -1,9 +1,8 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import useEmblaCarousel from 'embla-carousel-react'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
@@ -60,10 +59,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const reviewsRef = useRef<HTMLDivElement>(null)
 
-  // Embla Carousel
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false })
-
-  // Combine images and videos into a single gallery - MUST be before Embla effects
+  // Combine images and videos into a single gallery
   const galleryItems: GalleryItem[] = [
     ...product.images.map((url): ImageItem => ({ mediaType: 'image', url })),
     ...(product.videos || []).map((video): VideoItem => ({
@@ -77,34 +73,20 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const totalMedia = galleryItems.length || 1
   const hasMedia = galleryItems.length > 0
 
-  // Sync Embla with selected index
-  useEffect(() => {
-    if (!emblaApi) return
-
-    const onSelect = () => {
-      setSelectedMediaIndex(emblaApi.selectedScrollSnap())
+  // Simple navigation functions
+  const goToSlide = (index: number) => {
+    if (index >= 0 && index < totalMedia) {
+      setSelectedMediaIndex(index)
     }
+  }
 
-    emblaApi.on('select', onSelect)
-    onSelect()
+  const goToPrev = () => {
+    setSelectedMediaIndex(prev => (prev > 0 ? prev - 1 : totalMedia - 1))
+  }
 
-    return () => {
-      emblaApi.off('select', onSelect)
-    }
-  }, [emblaApi])
-
-  // Scroll to slide when thumbnail is clicked
-  const scrollTo = useCallback((index: number) => {
-    if (emblaApi) emblaApi.scrollTo(index)
-  }, [emblaApi])
-
-  const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev()
-  }, [emblaApi])
-
-  const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext()
-  }, [emblaApi])
+  const goToNext = () => {
+    setSelectedMediaIndex(prev => (prev < totalMedia - 1 ? prev + 1 : 0))
+  }
 
   // Fallback if no media
   const defaultItem: ImageItem = { mediaType: 'image', url: '/logo2-nobg.png' }
@@ -170,84 +152,77 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
             
-            {/* Gallery with Embla Carousel */}
+            {/* Simple Gallery - No Embla */}
             <div className="flex flex-col gap-4">
-              {/* Main Carousel */}
-              <div className="relative aspect-[3/4] bg-secondary w-full group">
-                {/* Embla Viewport */}
-                <div className="overflow-hidden h-full" ref={emblaRef}>
-                  <div className="flex h-full">
-                    {hasMedia ? galleryItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="relative flex-[0_0_100%] min-w-0 h-full"
-                      >
-                        {item.mediaType === 'video' ? (
-                          // Only render video/iframe when it's the active slide to prevent too many WebMediaPlayers
-                          idx === selectedMediaIndex ? (
-                            item.videoType === 'youtube' ? (
-                              <iframe
-                                src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
-                                className="w-full h-full"
-                                allowFullScreen
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                title="Vidéo YouTube"
-                              />
-                            ) : item.videoType === 'vimeo' ? (
-                              <iframe
-                                src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
-                                className="w-full h-full"
-                                allowFullScreen
-                                title="Vidéo Vimeo"
-                              />
-                            ) : (
-                              // Uploaded video
-                              <video
-                                src={item.url}
-                                className="w-full h-full object-contain bg-black"
-                                controls
-                                playsInline
-                              />
-                            )
-                          ) : (
-                            // Show thumbnail/placeholder for non-active video slides
-                            <div className="w-full h-full bg-black flex items-center justify-center">
-                              <Play className="w-16 h-16 text-white/70" />
-                            </div>
-                          )
-                        ) : (
-                          // Image rendering
-                          <Image
-                            src={item.url}
-                            alt={`${product.name} - vue ${idx + 1}`}
-                            fill
-                            className="object-cover"
-                            priority={idx === 0}
-                            sizes="(max-width: 768px) 100vw, 50vw"
+              {/* Main Image/Video Display */}
+              <div className="relative aspect-[3/4] bg-secondary w-full">
+                {hasMedia ? (
+                  (() => {
+                    const currentItem = galleryItems[selectedMediaIndex]
+                    if (currentItem.mediaType === 'video') {
+                      // Video rendering
+                      if (currentItem.videoType === 'youtube') {
+                        return (
+                          <iframe
+                            src={`https://www.youtube.com/embed/${getYouTubeId(currentItem.url)}?rel=0`}
+                            className="w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            title="Vidéo YouTube"
                           />
-                        )}
-                      </div>
-                    )) : (
-                      <div className="relative flex-[0_0_100%] min-w-0 h-full">
+                        )
+                      } else if (currentItem.videoType === 'vimeo') {
+                        return (
+                          <iframe
+                            src={`https://player.vimeo.com/video/${getVimeoId(currentItem.url)}`}
+                            className="w-full h-full"
+                            allowFullScreen
+                            title="Vidéo Vimeo"
+                          />
+                        )
+                      } else {
+                        // Uploaded video
+                        return (
+                          <video
+                            key={currentItem.url}
+                            src={currentItem.url}
+                            className="w-full h-full object-contain bg-black"
+                            controls
+                            playsInline
+                          />
+                        )
+                      }
+                    } else {
+                      // Image rendering
+                      return (
                         <Image
-                          src={defaultItem.url}
-                          alt={product.name}
+                          src={currentItem.url}
+                          alt={`${product.name} - vue ${selectedMediaIndex + 1}`}
                           fill
                           className="object-cover"
-                          priority
+                          priority={selectedMediaIndex === 0}
                           sizes="(max-width: 768px) 100vw, 50vw"
                         />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                      )
+                    }
+                  })()
+                ) : (
+                  <Image
+                    src={defaultItem.url}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                )}
 
                 {/* Navigation Arrows */}
                 {totalMedia > 1 && (
                   <>
                     <button
                       type="button"
-                      onClick={scrollPrev}
+                      onClick={goToPrev}
                       className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
                       aria-label="Média précédent"
                     >
@@ -255,7 +230,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     </button>
                     <button
                       type="button"
-                      onClick={scrollNext}
+                      onClick={goToNext}
                       className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 p-2 sm:p-3 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-all hover:scale-110"
                       aria-label="Média suivant"
                     >
@@ -268,7 +243,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         <button
                           key={idx}
                           type="button"
-                          onClick={() => scrollTo(idx)}
+                          onClick={() => goToSlide(idx)}
                           className={`w-2.5 h-2.5 rounded-full transition-all ${
                             idx === selectedMediaIndex
                               ? 'bg-white scale-125'
@@ -289,7 +264,7 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => scrollTo(idx)}
+                      onClick={() => goToSlide(idx)}
                       className={`relative aspect-square bg-secondary/30 overflow-hidden transition-all duration-200 ${
                         selectedMediaIndex === idx
                           ? 'ring-2 ring-foreground ring-offset-2'
