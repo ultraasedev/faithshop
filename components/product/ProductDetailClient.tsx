@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -55,12 +55,6 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const totalItems = allMedia.length || 1
   const currentMedia = allMedia[currentIndex] || { type: 'image' as const, url: '/logo2-nobg.png', id: 'default' }
-
-  // Test si React hydrate correctement
-  useEffect(() => {
-    console.log('🟢 REACT HYDRATED - Component mounted on client')
-    alert('React hydraté! Le composant fonctionne.')
-  }, [])
 
   // Navigation handlers
   function handlePrev() {
@@ -124,25 +118,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Header retiré temporairement pour debug */}
-      <main className="flex-1 pt-8">
+      <main className="flex-1 pt-32">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-20">
           <div className="grid gap-12 lg:grid-cols-2 lg:gap-20">
 
             {/* ===================== GALLERY ===================== */}
             <div className="flex flex-col gap-4">
-              {/* DEBUG - à retirer après */}
-              <div style={{ background: 'yellow', padding: '10px', color: 'black', fontWeight: 'bold' }}>
-                DEBUG: totalItems={totalItems}, currentIndex={currentIndex}, images={product.images.length}, videos={(product.videos || []).length}
-                <button
-                  onClick={() => alert('React fonctionne! Index: ' + currentIndex)}
-                  style={{ marginLeft: '10px', padding: '5px 10px', background: 'red', color: 'white', cursor: 'pointer' }}
-                >
-                  TEST CLICK
-                </button>
-              </div>
-
               {/* Main display */}
               <div
                 className="relative w-full bg-gray-100"
@@ -604,7 +585,5 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
           </SheetContent>
         </Sheet>
       </main>
-      {/* Footer retiré temporairement pour debug */}
-    </div>
   )
 }

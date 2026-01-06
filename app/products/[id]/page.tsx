@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import { prisma } from '@/lib/prisma'
 import ProductDetailClient from '@/components/product/ProductDetailClient'
+import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 
 interface ProductPageProps {
   params: Promise<{
@@ -96,6 +98,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
     }))
   }
 
-  return <ProductDetailClient product={productJson} />
+  return (
+    <div className="flex min-h-screen flex-col bg-background">
+      <Header />
+      <ProductDetailClient product={productJson} />
+      <Footer />
+    </div>
+  )
 }
 
