@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { Star, Truck, ShieldCheck, RefreshCw, Ruler, ArrowRight, Check, ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import Header from '@/components/layout/Header'
@@ -57,6 +57,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   const totalItems = allMedia.length || 1
   const currentMedia = allMedia[currentIndex] || { type: 'image' as const, url: '/logo2-nobg.png', id: 'default' }
+
+  // Test si React hydrate correctement
+  useEffect(() => {
+    console.log('🟢 REACT HYDRATED - Component mounted on client')
+    alert('React hydraté! Le composant fonctionne.')
+  }, [])
 
   // Navigation handlers
   function handlePrev() {
