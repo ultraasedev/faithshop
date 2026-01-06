@@ -77,26 +77,15 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
   const totalMedia = galleryItems.length || 1
   const hasMedia = galleryItems.length > 0
 
-  // Reinit Embla when slides change
-  useEffect(() => {
-    if (emblaApi) {
-      console.log('[Gallery] Reinitialized with', galleryItems.length, 'items')
-      emblaApi.reInit()
-    }
-  }, [emblaApi, galleryItems.length])
-
   // Sync Embla with selected index
   useEffect(() => {
     if (!emblaApi) return
 
     const onSelect = () => {
-      const index = emblaApi.selectedScrollSnap()
-      console.log('[Gallery] Embla selected:', index)
-      setSelectedMediaIndex(index)
+      setSelectedMediaIndex(emblaApi.selectedScrollSnap())
     }
 
     emblaApi.on('select', onSelect)
-    // Call once to sync initial state
     onSelect()
 
     return () => {
@@ -106,17 +95,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
   // Scroll to slide when thumbnail is clicked
   const scrollTo = useCallback((index: number) => {
-    console.log('[Gallery] scrollTo called:', index, 'emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollTo(index)
   }, [emblaApi])
 
   const scrollPrev = useCallback(() => {
-    console.log('[Gallery] scrollPrev called, emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollPrev()
   }, [emblaApi])
 
   const scrollNext = useCallback(() => {
-    console.log('[Gallery] scrollNext called, emblaApi:', !!emblaApi)
     if (emblaApi) emblaApi.scrollNext()
   }, [emblaApi])
 
@@ -197,31 +183,37 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                         className="relative flex-[0_0_100%] min-w-0 h-full"
                       >
                         {item.mediaType === 'video' ? (
-                          // Video rendering
-                          item.videoType === 'youtube' ? (
-                            <iframe
-                              src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
-                              className="w-full h-full"
-                              allowFullScreen
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              title="Vidéo YouTube"
-                            />
-                          ) : item.videoType === 'vimeo' ? (
-                            <iframe
-                              src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
-                              className="w-full h-full"
-                              allowFullScreen
-                              title="Vidéo Vimeo"
-                            />
+                          // Only render video/iframe when it's the active slide to prevent too many WebMediaPlayers
+                          idx === selectedMediaIndex ? (
+                            item.videoType === 'youtube' ? (
+                              <iframe
+                                src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}?rel=0`}
+                                className="w-full h-full"
+                                allowFullScreen
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                title="Vidéo YouTube"
+                              />
+                            ) : item.videoType === 'vimeo' ? (
+                              <iframe
+                                src={`https://player.vimeo.com/video/${getVimeoId(item.url)}`}
+                                className="w-full h-full"
+                                allowFullScreen
+                                title="Vidéo Vimeo"
+                              />
+                            ) : (
+                              // Uploaded video
+                              <video
+                                src={item.url}
+                                className="w-full h-full object-contain bg-black"
+                                controls
+                                playsInline
+                              />
+                            )
                           ) : (
-                            // Uploaded video
-                            <video
-                              src={item.url}
-                              className="w-full h-full object-contain bg-black"
-                              controls
-                              playsInline
-                              preload="metadata"
-                            />
+                            // Show thumbnail/placeholder for non-active video slides
+                            <div className="w-full h-full bg-black flex items-center justify-center">
+                              <Play className="w-16 h-16 text-white/70" />
+                            </div>
                           )
                         ) : (
                           // Image rendering
