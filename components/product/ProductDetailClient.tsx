@@ -179,68 +179,55 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     />
                   ) : (
                     // Uploaded video - click/tap to play/pause, muted, no controls
-                    <div
-                      style={{
-                        position: 'absolute',
-                        inset: 0,
-                        width: '100%',
-                        height: '100%',
-                        cursor: 'pointer',
-                        transition: 'opacity 0.3s ease-in-out',
-                      }}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (videoRef.current) {
-                          if (videoRef.current.paused) {
-                            videoRef.current.play()
-                            setIsVideoPlaying(true)
-                          } else {
-                            videoRef.current.pause()
-                            setIsVideoPlaying(false)
-                          }
-                        }
-                      }}
-                      onTouchEnd={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        if (videoRef.current) {
-                          if (videoRef.current.paused) {
-                            videoRef.current.play()
-                            setIsVideoPlaying(true)
-                          } else {
-                            videoRef.current.pause()
-                            setIsVideoPlaying(false)
-                          }
-                        }
-                      }}
-                    >
+                    <>
                       <video
                         ref={videoRef}
                         key={currentMedia.url}
                         src={currentMedia.url}
                         style={{
+                          position: 'absolute',
+                          inset: 0,
                           width: '100%',
                           height: '100%',
                           objectFit: 'contain',
                           backgroundColor: 'black',
-                          pointerEvents: 'none',
                         }}
                         muted
                         loop
                         playsInline
                       />
-                      {/* Play overlay hint - hidden when video is playing */}
-                      {!isVideoPlaying && (
-                        <div style={{
+                      {/* Clickable overlay for play/pause */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (videoRef.current) {
+                            if (videoRef.current.paused) {
+                              videoRef.current.play()
+                              setIsVideoPlaying(true)
+                            } else {
+                              videoRef.current.pause()
+                              setIsVideoPlaying(false)
+                            }
+                          }
+                        }}
+                        style={{
                           position: 'absolute',
                           inset: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          pointerEvents: 'none',
-                        }}>
+                          width: '100%',
+                          height: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          zIndex: 10,
+                        }}
+                      >
+                        {/* Play icon - hidden when video is playing */}
+                        {!isVideoPlaying && (
                           <div style={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
                             width: '80px',
                             height: '80px',
                             borderRadius: '50%',
@@ -248,13 +235,12 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            opacity: 0.8,
                           }}>
                             <Play style={{ width: '40px', height: '40px', color: 'white', marginLeft: '4px' }} />
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </button>
+                    </>
                   )
                 ) : (
                   // IMAGE with fade transition
