@@ -191,13 +191,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                   <>
                     <button
                       type="button"
-                      onClick={handlePrev}
+                      onMouseDown={(e) => { e.preventDefault(); handlePrev(); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handlePrev(); }}
                       style={{
                         position: 'absolute',
                         left: '16px',
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        zIndex: 50,
+                        zIndex: 9999,
                         padding: '12px',
                         borderRadius: '9999px',
                         backgroundColor: 'rgba(255,255,255,0.95)',
@@ -211,13 +212,14 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
 
                     <button
                       type="button"
-                      onClick={handleNext}
+                      onMouseDown={(e) => { e.preventDefault(); handleNext(); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleNext(); }}
                       style={{
                         position: 'absolute',
                         right: '16px',
                         top: '50%',
                         transform: 'translateY(-50%)',
-                        zIndex: 50,
+                        zIndex: 9999,
                         padding: '12px',
                         borderRadius: '9999px',
                         backgroundColor: 'rgba(255,255,255,0.95)',
@@ -251,7 +253,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => handleDotClick(idx)}
+                        onMouseDown={(e) => { e.preventDefault(); handleDotClick(idx); }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDotClick(idx); }}
                         style={{
                           width: '10px',
                           height: '10px',
@@ -281,7 +284,8 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                     <button
                       key={media.id}
                       type="button"
-                      onClick={() => handleThumbnailClick(idx)}
+                      onMouseDown={(e) => { e.preventDefault(); handleThumbnailClick(idx); }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleThumbnailClick(idx); }}
                       style={{
                         position: 'relative',
                         aspectRatio: '1',
