@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Mondial Relay - Burgundy/red branding -->
+  <rect width="200" height="60" rx="8" fill="#8B1A32"/>
+  <circle cx="26" cy="30" r="10" fill="#fff"/>
+  <circle cx="26" cy="27" r="4" fill="#8B1A32"/>
+  <path d="M20 35c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#8B1A32"/>
+  <text x="44" y="29" font-family="Arial, sans-serif" font-weight="bold" font-size="13" fill="#FFFFFF">Mondial</text>
+  <text x="44" y="43" font-family="Arial, sans-serif" font-weight="bold" font-size="13" fill="#FFFFFF">Relay</text>
+</svg>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,7 +24,14 @@ import {
   Globe,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  PackageCheck,
+  CheckCircle2,
+  XCircle,
+  Eye,
+  EyeOff,
+  Key,
+  Scale
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -74,6 +82,23 @@ interface SiteConfig {
     abandonedCartDelay: number
     reviewReminder: boolean
     reviewReminderDelay: number
+  }
+  carriers: {
+    laposteApiKey: string
+    colissimoContractNumber: string
+    colissimoPassword: string
+    mondialRelayEnseigne: string
+    mondialRelayPrivateKey: string
+  }
+  legal: {
+    companyName: string
+    address: string
+    city: string
+    zip: string
+    country: string
+    siret: string
+    tvaNumber: string
+    rcs: string
   }
 }
 
@@ -127,7 +152,9 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
     { id: 'seo', label: 'SEO', icon: Search },
     { id: 'shipping', label: 'Livraison', icon: Truck },
     { id: 'checkout', label: 'Paiement', icon: CreditCard },
-    { id: 'notifications', label: 'Notifications', icon: Bell }
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'carriers', label: 'Transporteurs', icon: PackageCheck },
+    { id: 'legal', label: 'Mentions légales', icon: Scale }
   ]
 
   return (
@@ -524,6 +551,99 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
           </Card>
         </TabsContent>
 
+        {/* Carriers Settings */}
+        <TabsContent value="carriers" className="mt-6 space-y-6">
+          <CarriersSettings config={config} updateConfig={updateConfig} />
+        </TabsContent>
+
+        {/* Legal Settings */}
+        <TabsContent value="legal" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Scale className="h-5 w-5" />
+                Informations légales
+              </CardTitle>
+              <CardDescription>
+                Ces informations apparaissent sur les bons de commande, bons de livraison et factures PDF envoyés aux clients.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Raison sociale</Label>
+                  <Input
+                    value={config.legal.companyName}
+                    onChange={(e) => updateConfig('legal', 'companyName', e.target.value)}
+                    placeholder="Faith Shop SAS"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>N° SIRET</Label>
+                  <Input
+                    value={config.legal.siret}
+                    onChange={(e) => updateConfig('legal', 'siret', e.target.value)}
+                    placeholder="123 456 789 00012"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Adresse du siège</Label>
+                <Input
+                  value={config.legal.address}
+                  onChange={(e) => updateConfig('legal', 'address', e.target.value)}
+                  placeholder="1 rue du Commerce"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Code postal</Label>
+                  <Input
+                    value={config.legal.zip}
+                    onChange={(e) => updateConfig('legal', 'zip', e.target.value)}
+                    placeholder="75001"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Ville</Label>
+                  <Input
+                    value={config.legal.city}
+                    onChange={(e) => updateConfig('legal', 'city', e.target.value)}
+                    placeholder="Paris"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Pays</Label>
+                  <Input
+                    value={config.legal.country}
+                    onChange={(e) => updateConfig('legal', 'country', e.target.value)}
+                    placeholder="France"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>N° TVA Intracommunautaire</Label>
+                  <Input
+                    value={config.legal.tvaNumber}
+                    onChange={(e) => updateConfig('legal', 'tvaNumber', e.target.value)}
+                    placeholder="FR 12 345678901"
+                  />
+                  <p className="text-xs text-muted-foreground">Laissez vide si micro-entreprise non assujettie à la TVA</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>RCS</Label>
+                  <Input
+                    value={config.legal.rcs}
+                    onChange={(e) => updateConfig('legal', 'rcs', e.target.value)}
+                    placeholder="RCS Paris 123 456 789"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Notifications Settings */}
         <TabsContent value="notifications" className="mt-6 space-y-6">
           <Card>
@@ -616,5 +736,210 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
         </div>
       )}
     </div>
+  )
+}
+
+// --- Carriers Settings Sub-Component ---
+
+function CarriersSettings({
+  config,
+  updateConfig
+}: {
+  config: SiteConfig
+  updateConfig: <K extends keyof SiteConfig>(section: K, key: keyof SiteConfig[K], value: SiteConfig[K][keyof SiteConfig[K]]) => void
+}) {
+  const [testing, setTesting] = useState<string | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; error?: string }>>({})
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
+
+  const togglePassword = (field: string) => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }))
+  }
+
+  const testLaPosteConnection = async () => {
+    if (!config.carriers.laposteApiKey.trim()) return
+    setTesting('laposte')
+    try {
+      const res = await fetch('/api/admin/carriers/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carrier: 'laposte', apiKey: config.carriers.laposteApiKey })
+      })
+      const result = await res.json()
+      setTestResults(prev => ({ ...prev, laposte: result }))
+    } catch {
+      setTestResults(prev => ({ ...prev, laposte: { ok: false, error: 'Erreur réseau' } }))
+    } finally {
+      setTesting(null)
+    }
+  }
+
+  return (
+    <>
+      {/* La Poste - Tracking API */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <div className="flex gap-2">
+              <Image src="/logos/colissimo.svg" alt="Colissimo" width={80} height={24} className="object-contain" />
+              <Image src="/logos/chronopost.svg" alt="Chronopost" width={80} height={24} className="object-contain" />
+            </div>
+            Suivi automatique
+          </CardTitle>
+          <CardDescription>
+            Tracking automatique via l'API La Poste Suivi v2. Gratuit.
+            Créez un compte sur{' '}
+            <a href="https://developer.laposte.fr" target="_blank" rel="noopener noreferrer" className="underline text-blue-600">
+              developer.laposte.fr
+            </a>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              Clé API (X-Okapi-Key)
+            </Label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type={showPasswords['laposteApiKey'] ? 'text' : 'password'}
+                  value={config.carriers.laposteApiKey}
+                  onChange={(e) => updateConfig('carriers', 'laposteApiKey', e.target.value)}
+                  placeholder="Votre clé API La Poste..."
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePassword('laposteApiKey')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPasswords['laposteApiKey'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button
+                variant="outline"
+                onClick={testLaPosteConnection}
+                disabled={testing === 'laposte' || !config.carriers.laposteApiKey.trim()}
+              >
+                {testing === 'laposte' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Tester'
+                )}
+              </Button>
+            </div>
+            {testResults.laposte && (
+              <div className={cn(
+                'flex items-center gap-2 text-sm p-2 rounded',
+                testResults.laposte.ok
+                  ? 'text-green-700 bg-green-50 dark:bg-green-950/30 dark:text-green-400'
+                  : 'text-red-700 bg-red-50 dark:bg-red-950/30 dark:text-red-400'
+              )}>
+                {testResults.laposte.ok ? (
+                  <><CheckCircle2 className="h-4 w-4" /> Connexion réussie</>
+                ) : (
+                  <><XCircle className="h-4 w-4" /> {testResults.laposte.error}</>
+                )}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">
+            Cette clé permet le suivi automatique des colis Colissimo et Chronopost. Le cron s'exécute toutes les 4h.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Colissimo - Label API */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Image src="/logos/colissimo.svg" alt="Colissimo" width={100} height={30} className="object-contain" />
+            Étiquettes
+          </CardTitle>
+          <CardDescription>
+            Génération d'étiquettes via l'API Colissimo. Nécessite un contrat professionnel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Numéro de contrat</Label>
+              <Input
+                value={config.carriers.colissimoContractNumber}
+                onChange={(e) => updateConfig('carriers', 'colissimoContractNumber', e.target.value)}
+                placeholder="123456"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mot de passe</Label>
+              <div className="relative">
+                <Input
+                  type={showPasswords['colissimoPassword'] ? 'text' : 'password'}
+                  value={config.carriers.colissimoPassword}
+                  onChange={(e) => updateConfig('carriers', 'colissimoPassword', e.target.value)}
+                  placeholder="Mot de passe API Colissimo"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePassword('colissimoPassword')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPasswords['colissimoPassword'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            Permet de générer des étiquettes Colissimo directement depuis la page commande.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Mondial Relay */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3">
+            <Image src="/logos/mondial-relay.svg" alt="Mondial Relay" width={100} height={30} className="object-contain" />
+            Étiquettes & Points Relais
+          </CardTitle>
+          <CardDescription>
+            Étiquettes et recherche de points relais. Nécessite un contrat professionnel.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Code enseigne</Label>
+              <Input
+                value={config.carriers.mondialRelayEnseigne}
+                onChange={(e) => updateConfig('carriers', 'mondialRelayEnseigne', e.target.value)}
+                placeholder="BDTEST"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Clé privée</Label>
+              <div className="relative">
+                <Input
+                  type={showPasswords['mondialRelayKey'] ? 'text' : 'password'}
+                  value={config.carriers.mondialRelayPrivateKey}
+                  onChange={(e) => updateConfig('carriers', 'mondialRelayPrivateKey', e.target.value)}
+                  placeholder="Clé secrète Mondial Relay"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePassword('mondialRelayKey')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPasswords['mondialRelayKey'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500">
+            Permet la création d'étiquettes Mondial Relay et la recherche de points relais au checkout.
+          </p>
+        </CardContent>
+      </Card>
+    </>
   )
 }

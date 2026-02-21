@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Loader2, Save, Image as ImageIcon, Upload, Plus, Trash2, ChevronLeft, ChevronRight, GripVertical } from 'lucide-react'
+import { Loader2, Save, Image as ImageIcon, Upload, Plus, Trash2, ChevronLeft, ChevronRight, GripVertical, Instagram } from 'lucide-react'
 
 interface Slide {
   id: string
@@ -17,6 +17,12 @@ interface Slide {
   subtitle: string
   ctaText: string
   ctaLink: string
+}
+
+interface InstaPost {
+  id: string
+  image: string
+  url: string
 }
 
 const createEmptySlide = (): Slide => ({
@@ -35,6 +41,8 @@ export default function HomepageEditorPage() {
   const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null)
   const [slides, setSlides] = useState<Slide[]>([createEmptySlide()])
   const [previewIndex, setPreviewIndex] = useState(0)
+  const [instaPosts, setInstaPosts] = useState<InstaPost[]>([])
+  const [uploadingInstaId, setUploadingInstaId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchConfig()
@@ -76,6 +84,16 @@ export default function HomepageEditorPage() {
             ctaLink: data.home_hero_cta_link || '/shop'
           }])
         }
+
+        // Load Instagram posts
+        if (data.home_instagram_posts) {
+          try {
+            const parsed = JSON.parse(data.home_instagram_posts)
+            if (Array.isArray(parsed)) {
+              setInstaPosts(parsed)
+            }
+          } catch {}
+        }
       }
     } catch (error) {
       console.error('Failed to fetch config:', error)
@@ -92,12 +110,12 @@ export default function HomepageEditorPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           home_hero_slides: JSON.stringify(slides),
-          // Keep legacy fields for backwards compatibility
           home_hero_image: slides[0]?.image || '',
           home_hero_title: slides[0]?.title || '',
           home_hero_subtitle: slides[0]?.subtitle || '',
           home_hero_cta_text: slides[0]?.ctaText || '',
-          home_hero_cta_link: slides[0]?.ctaLink || ''
+          home_hero_cta_link: slides[0]?.ctaLink || '',
+          home_instagram_posts: JSON.stringify(instaPosts.filter(p => p.image))
         })
       })
 
@@ -162,6 +180,42 @@ export default function HomepageEditorPage() {
 
   const updateSlide = (id: string, field: keyof Slide, value: string) => {
     setSlides(slides.map(s => s.id === id ? { ...s, [field]: value } : s))
+  }
+
+  // Instagram post helpers
+  const addInstaPost = () => {
+    setInstaPosts([...instaPosts, { id: crypto.randomUUID(), image: '', url: '' }])
+  }
+
+  const removeInstaPost = (id: string) => {
+    setInstaPosts(instaPosts.filter(p => p.id !== id))
+  }
+
+  const updateInstaPost = (id: string, field: keyof InstaPost, value: string) => {
+    setInstaPosts(instaPosts.map(p => p.id === id ? { ...p, [field]: value } : p))
+  }
+
+  const handleInstaImageUpload = async (postId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingInstaId(postId)
+    try {
+      const res = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}&folder=instagram`, {
+        method: 'POST',
+        body: file
+      })
+      if (res.ok) {
+        const data = await res.json()
+        updateInstaPost(postId, 'image', data.url)
+        toast.success('Image uploadée')
+      } else {
+        toast.error('Erreur lors de l\'upload')
+      }
+    } catch {
+      toast.error('Erreur lors de l\'upload')
+    } finally {
+      setUploadingInstaId(null)
+    }
   }
 
   const moveSlide = (fromIndex: number, toIndex: number) => {
@@ -409,6 +463,117 @@ export default function HomepageEditorPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Instagram Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Instagram className="w-5 h-5" />
+              Section Instagram
+            </CardTitle>
+            <CardDescription>
+              Ajoutez vos plus beaux posts/reels. Uploadez une capture ou l'image du post + le lien vers le post original.
+              La section ne s'affiche que si Instagram est configuré dans Footer &gt; Réseaux sociaux.
+            </CardDescription>
+          </div>
+          <Button onClick={addInstaPost} variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Ajouter un post
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {instaPosts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Aucun post Instagram. Cliquez sur "Ajouter un post" pour commencer.
+            </div>
+          ) : (
+            <>
+              {/* Preview grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {instaPosts.map(post => (
+                  <div key={post.id} className="relative aspect-square bg-secondary rounded-lg overflow-hidden">
+                    {post.image ? (
+                      <Image src={post.image} alt="" fill className="object-cover" />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Post list */}
+              <div className="space-y-3">
+                {instaPosts.map((post, index) => (
+                  <div key={post.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                    {/* Thumbnail */}
+                    <div className="relative w-16 h-16 bg-secondary rounded overflow-hidden flex-shrink-0">
+                      {post.image ? (
+                        <Image src={post.image} alt="" fill className="object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Post {index + 1}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeInstaPost(post.id)}
+                          className="ml-auto text-destructive hover:text-destructive h-7 px-2"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      {/* Image upload */}
+                      <div className="flex gap-2">
+                        <Input
+                          value={post.image}
+                          onChange={(e) => updateInstaPost(post.id, 'image', e.target.value)}
+                          placeholder="URL de l'image ou uploadez"
+                          className="flex-1 h-8 text-sm"
+                        />
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleInstaImageUpload(post.id, e)}
+                            className="hidden"
+                          />
+                          <Button variant="outline" size="sm" asChild disabled={uploadingInstaId === post.id}>
+                            <span className="h-8">
+                              {uploadingInstaId === post.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Upload className="w-3 h-3" />
+                              )}
+                            </span>
+                          </Button>
+                        </label>
+                      </div>
+
+                      {/* Post URL */}
+                      <Input
+                        value={post.url}
+                        onChange={(e) => updateInstaPost(post.id, 'url', e.target.value)}
+                        placeholder="https://www.instagram.com/p/... (lien vers le post)"
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

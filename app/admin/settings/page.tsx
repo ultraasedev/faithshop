@@ -63,6 +63,23 @@ export default async function SettingsPage() {
       abandonedCartDelay: 24,
       reviewReminder: true,
       reviewReminderDelay: 7
+    },
+    carriers: {
+      laposteApiKey: '',
+      colissimoContractNumber: '',
+      colissimoPassword: '',
+      mondialRelayEnseigne: '',
+      mondialRelayPrivateKey: ''
+    },
+    legal: {
+      companyName: '',
+      address: '',
+      city: '',
+      zip: '',
+      country: 'France',
+      siret: '',
+      tvaNumber: '',
+      rcs: ''
     }
   }
 

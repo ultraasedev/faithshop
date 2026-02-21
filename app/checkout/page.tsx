@@ -222,7 +222,10 @@ export default function CheckoutPage() {
 
                 {clientSecret ? (
                   <Elements options={options} stripe={stripePromise}>
-                    <CheckoutForm />
+                    <CheckoutForm
+                      shippingConfig={shippingConfig}
+                      totalPrice={totalPrice}
+                    />
                   </Elements>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

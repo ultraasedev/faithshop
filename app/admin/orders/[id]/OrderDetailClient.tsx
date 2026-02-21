@@ -66,11 +66,11 @@ const orderStatuses = [
 ]
 
 const shippingCarriers = [
-  { value: 'colissimo', label: 'Colissimo', trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois?code=' },
-  { value: 'chronopost', label: 'Chronopost', trackingUrl: 'https://www.chronopost.fr/tracking-no-cms/suivi-page?liession=' },
-  { value: 'ups', label: 'UPS', trackingUrl: 'https://www.ups.com/track?tracknum=' },
-  { value: 'dhl', label: 'DHL', trackingUrl: 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=' },
-  { value: 'mondialrelay', label: 'Mondial Relay', trackingUrl: 'https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=' },
+  { value: 'colissimo', label: 'Colissimo', logo: '/logos/colissimo.svg', trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois?code=' },
+  { value: 'chronopost', label: 'Chronopost', logo: '/logos/chronopost.svg', trackingUrl: 'https://www.chronopost.fr/tracking-no-cms/suivi-page?liession=' },
+  { value: 'ups', label: 'UPS', logo: null, trackingUrl: 'https://www.ups.com/track?tracknum=' },
+  { value: 'dhl', label: 'DHL', logo: null, trackingUrl: 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=' },
+  { value: 'mondialrelay', label: 'Mondial Relay', logo: '/logos/mondial-relay.svg', trackingUrl: 'https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=' },
 ]
 
 export function OrderDetailClient({ order }: OrderDetailClientProps) {
@@ -97,6 +97,19 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
   // Admin note
   const [adminNote, setAdminNote] = useState(order.adminNote || '')
   const [savingNote, setSavingNote] = useState(false)
+
+  // Tracking refresh
+  const [refreshingTracking, setRefreshingTracking] = useState(false)
+
+  // Label generation
+  const [generatingLabel, setGeneratingLabel] = useState(false)
+  const [labelWeight, setLabelWeight] = useState(order.shipping?.weightKg?.toString() || '0.5')
+
+  // Mondial Relay
+  const [deliveryMode, setDeliveryMode] = useState<'relay' | 'home'>('relay')
+  const [relayPoints, setRelayPoints] = useState<any[]>([])
+  const [selectedRelayPoint, setSelectedRelayPoint] = useState<string>('')
+  const [searchingRelayPoints, setSearchingRelayPoints] = useState(false)
 
   // Confirmation dialog for delivered status
   const [deliverConfirmOpen, setDeliverConfirmOpen] = useState(false)
@@ -230,6 +243,100 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast.success('Copié dans le presse-papier')
+  }
+
+  const refreshTracking = async () => {
+    if (!order.shipping?.trackingNumber) {
+      toast.error('Aucun numéro de suivi à rafraîchir')
+      return
+    }
+    setRefreshingTracking(true)
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}/track`, {
+        method: 'POST'
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors du rafraîchissement')
+      }
+      const data = await response.json()
+      if (data.newEventsCount > 0) {
+        toast.success(`${data.newEventsCount} nouvel(s) événement(s) ajouté(s)`)
+      } else {
+        toast.info('Aucun nouvel événement')
+      }
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors du rafraîchissement du tracking')
+    } finally {
+      setRefreshingTracking(false)
+    }
+  }
+
+  const generateShippingLabel = async () => {
+    if (!carrier) {
+      toast.error('Veuillez sélectionner un transporteur')
+      return
+    }
+    const w = parseFloat(labelWeight)
+    if (!w || w <= 0) {
+      toast.error('Veuillez saisir un poids valide')
+      return
+    }
+    setGeneratingLabel(true)
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}/generate-label`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carrier: carrier.toLowerCase(),
+          weight: w,
+          ...(carrier.toLowerCase() === 'mondialrelay' && {
+            deliveryMode,
+            relayPointId: deliveryMode === 'relay' ? selectedRelayPoint : undefined
+          })
+        })
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur lors de la génération')
+      }
+      const data = await response.json()
+      toast.success(`Étiquette générée ! N° suivi: ${data.trackingNumber}`)
+      setTrackingNumber(data.trackingNumber)
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la génération de l\'étiquette')
+    } finally {
+      setGeneratingLabel(false)
+    }
+  }
+
+  const searchRelayPointsHandler = async () => {
+    const zipCode = order.shippingZip
+    if (!zipCode) {
+      toast.error('Pas de code postal sur la commande')
+      return
+    }
+    setSearchingRelayPoints(true)
+    try {
+      const response = await fetch(
+        `/api/admin/orders/${order.id}/relay-points?zipCode=${zipCode}&country=${order.shippingCountry || 'FR'}`
+      )
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Erreur de recherche')
+      }
+      const data = await response.json()
+      setRelayPoints(data.relayPoints || [])
+      if (data.relayPoints?.length === 0) {
+        toast.info('Aucun point relais trouvé')
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la recherche')
+    } finally {
+      setSearchingRelayPoints(false)
+    }
   }
 
   const totalRefunded = order.refunds.reduce((sum: number, r: any) => sum + r.amount, 0)
@@ -452,8 +559,17 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
 
           {/* Shipping */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Expédition</CardTitle>
+              {carrier && shippingCarriers.find(c => c.value === carrier)?.logo && (
+                <Image
+                  src={shippingCarriers.find(c => c.value === carrier)!.logo!}
+                  alt={shippingCarriers.find(c => c.value === carrier)!.label}
+                  width={100}
+                  height={30}
+                  className="object-contain"
+                />
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -466,7 +582,14 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                     <SelectContent>
                       {shippingCarriers.map((c) => (
                         <SelectItem key={c.value} value={c.value}>
-                          {c.label}
+                          <span className="flex items-center gap-2">
+                            {c.logo ? (
+                              <Image src={c.logo} alt={c.label} width={60} height={20} className="object-contain" />
+                            ) : (
+                              <Truck className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            {c.label}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -489,14 +612,147 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
                   onChange={(e) => setEstimatedDelivery(e.target.value)}
                 />
               </div>
-              <Button onClick={updateShipping} disabled={updating}>
-                {updating ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 mr-2" />
+              <div className="flex gap-2">
+                <Button onClick={updateShipping} disabled={updating}>
+                  {updating ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Mettre à jour et notifier le client
+                </Button>
+                {order.shipping?.trackingNumber && ['colissimo', 'chronopost'].includes(carrier.toLowerCase()) && (
+                  <Button
+                    variant="outline"
+                    onClick={refreshTracking}
+                    disabled={refreshingTracking}
+                  >
+                    {refreshingTracking ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                    )}
+                    Rafraîchir le suivi
+                  </Button>
                 )}
-                Mettre à jour et notifier le client
-              </Button>
+              </div>
+
+              {/* Label Generation */}
+              {carrier && ['colissimo', 'mondialrelay'].includes(carrier.toLowerCase()) && !order.shipping?.labelUrl && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
+                  <h4 className="font-medium text-sm">Générer une étiquette {carrier === 'colissimo' ? 'Colissimo' : 'Mondial Relay'}</h4>
+
+                  {/* Mondial Relay: delivery mode + relay points */}
+                  {carrier.toLowerCase() === 'mondialrelay' && (
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Button
+                          variant={deliveryMode === 'relay' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDeliveryMode('relay')}
+                        >
+                          Point Relais
+                        </Button>
+                        <Button
+                          variant={deliveryMode === 'home' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setDeliveryMode('home')}
+                        >
+                          Domicile
+                        </Button>
+                      </div>
+
+                      {deliveryMode === 'relay' && (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={searchRelayPointsHandler}
+                              disabled={searchingRelayPoints}
+                            >
+                              {searchingRelayPoints ? (
+                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                              ) : (
+                                <MapPin className="h-4 w-4 mr-1" />
+                              )}
+                              Chercher points relais ({order.shippingZip})
+                            </Button>
+                          </div>
+                          {relayPoints.length > 0 && (
+                            <Select value={selectedRelayPoint} onValueChange={setSelectedRelayPoint}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choisir un point relais" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {relayPoints.map((rp: any) => (
+                                  <SelectItem key={rp.id} value={rp.id}>
+                                    {rp.name} - {rp.address}, {rp.zipCode} {rp.city}
+                                    {rp.distance ? ` (${rp.distance}m)` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-end gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Poids (kg)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        max="30"
+                        value={labelWeight}
+                        onChange={(e) => setLabelWeight(e.target.value)}
+                        className="w-24"
+                      />
+                    </div>
+                    <Button
+                      onClick={generateShippingLabel}
+                      disabled={generatingLabel || (carrier.toLowerCase() === 'mondialrelay' && deliveryMode === 'relay' && !selectedRelayPoint)}
+                      variant="secondary"
+                    >
+                      {generatingLabel ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileText className="h-4 w-4 mr-2" />
+                      )}
+                      Générer l'étiquette
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Label download + Tracking link */}
+              <div className="flex flex-wrap gap-4">
+                {order.shipping?.labelUrl && (
+                  <a
+                    href={order.shipping.labelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-green-600 hover:underline font-medium"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Télécharger l'étiquette PDF
+                  </a>
+                )}
+                {order.shipping?.trackingUrl && (
+                  <a
+                    href={order.shipping.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Voir le suivi sur le site du transporteur
+                  </a>
+                )}
+              </div>
 
               {/* Shipping Timeline */}
               {order.shipping?.events?.length > 0 && (

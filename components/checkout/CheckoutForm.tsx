@@ -11,9 +11,18 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { User, Mail, Phone } from 'lucide-react'
+import { User, Mail, Phone, Truck } from 'lucide-react'
+import DeliveryOptions, { type DeliverySelection } from './DeliveryOptions'
 
-export default function CheckoutForm() {
+interface CheckoutFormProps {
+  shippingConfig?: {
+    freeShippingThreshold: number
+    standardShippingPrice: number
+  }
+  totalPrice?: number
+}
+
+export default function CheckoutForm({ shippingConfig, totalPrice = 0 }: CheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
 
@@ -27,6 +36,14 @@ export default function CheckoutForm() {
     email: '',
     phone: ''
   })
+
+  // Delivery selection
+  const [deliverySelection, setDeliverySelection] = useState<DeliverySelection>({
+    carrier: 'colissimo',
+    mode: 'home'
+  })
+  const [shippingZipCode, setShippingZipCode] = useState('')
+  const [shippingCountry, setShippingCountry] = useState('FR')
 
   useEffect(() => {
     if (!stripe) {
@@ -194,8 +211,33 @@ export default function CheckoutForm() {
               }
             }
           }}
+          onChange={(event) => {
+            if (event.complete) {
+              const address = event.value.address
+              if (address.postal_code) setShippingZipCode(address.postal_code)
+              if (address.country) setShippingCountry(address.country)
+            }
+          }}
         />
       </div>
+
+      {/* Mode de livraison */}
+      {shippingZipCode && shippingConfig && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Truck className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-medium">Mode de livraison</h3>
+          </div>
+          <DeliveryOptions
+            shippingZipCode={shippingZipCode}
+            shippingCountry={shippingCountry}
+            onSelect={setDeliverySelection}
+            standardPrice={shippingConfig.standardShippingPrice}
+            freeShippingThreshold={shippingConfig.freeShippingThreshold}
+            totalPrice={totalPrice}
+          />
+        </div>
+      )}
 
       {/* Méthode de paiement */}
       <div className="space-y-4">

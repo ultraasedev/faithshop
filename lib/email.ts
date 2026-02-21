@@ -64,8 +64,15 @@ const emailLayout = (content: string) => `
 </html>
 `
 
-// Fonction d'envoi générique
-async function sendEmail(to: string, subject: string, html: string) {
+// Type pour les pièces jointes
+interface EmailAttachment {
+  filename: string
+  content: Buffer
+  contentType?: string
+}
+
+// Fonction d'envoi générique (avec support pièces jointes)
+async function sendEmail(to: string, subject: string, html: string, attachments?: EmailAttachment[]) {
   try {
     // Vérifier la configuration SMTP avant d'essayer d'envoyer
     if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
@@ -82,6 +89,11 @@ async function sendEmail(to: string, subject: string, html: string) {
       to,
       subject,
       html,
+      attachments: attachments?.map(a => ({
+        filename: a.filename,
+        content: a.content,
+        contentType: a.contentType || 'application/pdf'
+      }))
     })
 
     console.log('Email sent:', info.messageId)
@@ -253,7 +265,34 @@ export async function sendOrderConfirmationEmail(
     </div>
   `
 
-  return sendEmail(to, `Commande #${orderNumber} confirmée - Faith Shop`, emailLayout(content))
+  // Générer le bon de commande PDF
+  let attachments: EmailAttachment[] = []
+  try {
+    const { generateOrderConfirmationPDF } = await import('@/lib/pdf/documents')
+    // Parse l'adresse pour extraire les composants
+    const addressParts = orderDetails.shippingAddress.split(', ')
+    const pdfBuffer = await generateOrderConfirmationPDF({
+      orderNumber,
+      createdAt: new Date(),
+      customerName: name,
+      customerEmail: to,
+      shippingAddress: addressParts[0] || orderDetails.shippingAddress,
+      shippingCity: addressParts.length > 2 ? addressParts[addressParts.length - 2] : '',
+      shippingZip: addressParts.length > 2 ? addressParts[addressParts.length - 3]?.match(/\d{5}/)?.[0] || '' : '',
+      shippingCountry: addressParts[addressParts.length - 1] || 'FR',
+      items: orderDetails.items,
+      subtotal: orderDetails.subtotal,
+      shippingCost: orderDetails.shipping,
+      discountAmount: 0,
+      taxAmount: 0,
+      total: orderDetails.total
+    })
+    attachments = [{ filename: `bon-de-commande-${orderNumber}.pdf`, content: pdfBuffer }]
+  } catch (pdfErr) {
+    console.error('[Email] Erreur génération PDF bon de commande:', pdfErr)
+  }
+
+  return sendEmail(to, `Commande #${orderNumber} confirmée - Faith Shop`, emailLayout(content), attachments)
 }
 
 // Email d'expédition
@@ -297,7 +336,55 @@ export async function sendShippingEmail(
     </div>
   `
 
-  return sendEmail(to, `Ta commande #${orderNumber} est en route !`, emailLayout(content))
+  // Générer le bon de livraison PDF
+  let attachments: EmailAttachment[] = []
+  try {
+    const { generateDeliveryNotePDF } = await import('@/lib/pdf/documents')
+    const { prisma } = await import('@/lib/prisma')
+
+    const order = await prisma.order.findFirst({
+      where: { orderNumber },
+      include: { items: true }
+    })
+
+    if (order) {
+      const pdfBuffer = await generateDeliveryNotePDF(
+        {
+          orderNumber,
+          createdAt: order.createdAt,
+          customerName: name,
+          customerEmail: to,
+          shippingAddress: order.shippingAddress,
+          shippingCity: order.shippingCity,
+          shippingZip: order.shippingZip,
+          shippingCountry: order.shippingCountry,
+          items: order.items.map(i => ({
+            name: i.productName,
+            quantity: i.quantity,
+            price: Number(i.price),
+            color: i.color || undefined,
+            size: i.size || undefined
+          })),
+          subtotal: Number(order.subtotal),
+          shippingCost: Number(order.shippingCost),
+          discountAmount: Number(order.discountAmount),
+          taxAmount: Number(order.taxAmount),
+          total: Number(order.total)
+        },
+        {
+          carrier,
+          trackingNumber,
+          trackingUrl,
+          shippedAt: new Date()
+        }
+      )
+      attachments = [{ filename: `bon-de-livraison-${orderNumber}.pdf`, content: pdfBuffer }]
+    }
+  } catch (pdfErr) {
+    console.error('[Email] Erreur génération PDF bon de livraison:', pdfErr)
+  }
+
+  return sendEmail(to, `Ta commande #${orderNumber} est en route !`, emailLayout(content), attachments)
 }
 
 // Email de remboursement
@@ -382,7 +469,54 @@ export async function sendDeliveryConfirmationEmail(
     </div>
   `
 
-  return sendEmail(to, `Ta commande #${orderNumber} a été livrée !`, emailLayout(content))
+  // Générer la facture PDF
+  let attachments: EmailAttachment[] = []
+  try {
+    const { generateInvoicePDF } = await import('@/lib/pdf/documents')
+    const { prisma } = await import('@/lib/prisma')
+
+    const order = await prisma.order.findFirst({
+      where: { orderNumber },
+      include: { items: true }
+    })
+
+    if (order) {
+      const pdfBuffer = await generateInvoicePDF(
+        {
+          orderNumber,
+          createdAt: order.createdAt,
+          customerName: name,
+          customerEmail: to,
+          shippingAddress: order.shippingAddress,
+          shippingCity: order.shippingCity,
+          shippingZip: order.shippingZip,
+          shippingCountry: order.shippingCountry,
+          billingAddress: order.billingAddress || undefined,
+          billingCity: order.billingCity || undefined,
+          billingZip: order.billingZip || undefined,
+          billingCountry: order.billingCountry || undefined,
+          items: order.items.map(i => ({
+            name: i.productName,
+            quantity: i.quantity,
+            price: Number(i.price),
+            color: i.color || undefined,
+            size: i.size || undefined
+          })),
+          subtotal: Number(order.subtotal),
+          shippingCost: Number(order.shippingCost),
+          discountAmount: Number(order.discountAmount),
+          taxAmount: Number(order.taxAmount),
+          total: Number(order.total)
+        },
+        new Date()
+      )
+      attachments = [{ filename: `facture-${orderNumber}.pdf`, content: pdfBuffer }]
+    }
+  } catch (pdfErr) {
+    console.error('[Email] Erreur génération PDF facture:', pdfErr)
+  }
+
+  return sendEmail(to, `Ta commande #${orderNumber} a été livrée !`, emailLayout(content), attachments)
 }
 
 // Email de création de compte staff
@@ -525,4 +659,172 @@ export async function sendReturnRequestEmail(
   `
 
   return sendEmail(to, `Demande de retour #${returnNumber} reçue`, emailLayout(content))
+}
+
+// =============================================
+// EMAILS ADMIN - Notifications pour le gérant
+// =============================================
+
+/**
+ * Récupère l'email admin depuis la config ou env
+ */
+async function getAdminEmail(): Promise<string | null> {
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const config = await prisma.siteConfig.findUnique({ where: { key: 'general.email' } })
+    return config?.value || process.env.ADMIN_EMAIL || null
+  } catch {
+    return process.env.ADMIN_EMAIL || null
+  }
+}
+
+/**
+ * Email admin : nouvelle commande reçue
+ */
+export async function sendAdminNewOrderEmail(
+  orderNumber: string,
+  customerName: string,
+  customerEmail: string,
+  total: number,
+  itemCount: number
+) {
+  const adminEmail = await getAdminEmail()
+  if (!adminEmail) return { success: false, error: 'Pas d\'email admin configuré' }
+
+  const content = `
+    <div class="content">
+      <h2>🛒 Nouvelle commande !</h2>
+
+      <div class="highlight-box">
+        <p style="margin: 0;">
+          <strong>Commande :</strong> #${orderNumber}<br>
+          <strong>Client :</strong> ${customerName} (${customerEmail})<br>
+          <strong>Articles :</strong> ${itemCount}<br>
+          <strong>Total :</strong> ${total.toFixed(2)} €
+        </p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/admin/orders" class="button">Voir la commande</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666;">
+        Email automatique — Faith Shop Admin
+      </p>
+    </div>
+  `
+
+  return sendEmail(adminEmail, `Nouvelle commande #${orderNumber} — ${total.toFixed(2)} €`, emailLayout(content))
+}
+
+/**
+ * Email admin : mise à jour de suivi d'un colis
+ */
+export async function sendAdminTrackingUpdateEmail(
+  orderNumber: string,
+  customerName: string,
+  trackingNumber: string,
+  carrier: string,
+  newStatus: string,
+  eventDescription: string
+) {
+  const adminEmail = await getAdminEmail()
+  if (!adminEmail) return { success: false, error: 'Pas d\'email admin configuré' }
+
+  const statusLabels: Record<string, string> = {
+    'PICKED_UP': '📦 Pris en charge',
+    'IN_TRANSIT': '🚚 En transit',
+    'OUT_FOR_DELIVERY': '🏠 En cours de livraison',
+    'DELIVERED': '✅ Livré',
+    'RETURNED': '↩️ Retourné'
+  }
+
+  const statusLabel = statusLabels[newStatus] || newStatus
+
+  const content = `
+    <div class="content">
+      <h2>${statusLabel}</h2>
+
+      <div class="highlight-box">
+        <p style="margin: 0;">
+          <strong>Commande :</strong> #${orderNumber}<br>
+          <strong>Client :</strong> ${customerName}<br>
+          <strong>Transporteur :</strong> ${carrier}<br>
+          <strong>N° suivi :</strong> ${trackingNumber}<br>
+          <strong>Événement :</strong> ${eventDescription}
+        </p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${SITE_URL}/admin/orders" class="button">Voir les commandes</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666;">
+        Email automatique — Faith Shop Admin
+      </p>
+    </div>
+  `
+
+  return sendEmail(adminEmail, `${statusLabel} — Commande #${orderNumber}`, emailLayout(content))
+}
+
+/**
+ * Email admin : résumé quotidien des livraisons (optionnel, pour le cron)
+ */
+export async function sendAdminTrackingSummaryEmail(
+  updates: Array<{ orderNumber: string; customerName: string; status: string; carrier: string }>
+) {
+  const adminEmail = await getAdminEmail()
+  if (!adminEmail || updates.length === 0) return { success: false }
+
+  const delivered = updates.filter(u => u.status === 'DELIVERED').length
+  const inTransit = updates.filter(u => u.status === 'IN_TRANSIT' || u.status === 'OUT_FOR_DELIVERY').length
+
+  const rows = updates.map(u => {
+    const statusLabels: Record<string, string> = {
+      'PICKED_UP': 'Pris en charge',
+      'IN_TRANSIT': 'En transit',
+      'OUT_FOR_DELIVERY': 'En livraison',
+      'DELIVERED': 'Livré',
+      'RETURNED': 'Retourné'
+    }
+    return `<tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">#${u.orderNumber}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${u.customerName}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${u.carrier}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${statusLabels[u.status] || u.status}</td>
+    </tr>`
+  }).join('')
+
+  const content = `
+    <div class="content">
+      <h2>📊 Résumé tracking</h2>
+
+      <p>${updates.length} mise(s) à jour${delivered > 0 ? ` — dont <strong>${delivered} livré(s)</strong>` : ''}${inTransit > 0 ? `, ${inTransit} en transit` : ''}</p>
+
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="background: #f8f8f8;">
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Commande</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Client</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Transporteur</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="${SITE_URL}/admin/orders" class="button">Dashboard</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666;">
+        Email automatique — Faith Shop Admin
+      </p>
+    </div>
+  `
+
+  return sendEmail(adminEmail, `📊 Tracking : ${updates.length} mise(s) à jour — ${delivered} livré(s)`, emailLayout(content))
 }

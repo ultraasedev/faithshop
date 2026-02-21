@@ -7,6 +7,8 @@ export const dynamic = 'force-dynamic'
 export default async function Home() {
   let configMap: Record<string, string> = {}
   let productsToShow: any[] = []
+  let instagramUrl: string | undefined
+  let instagramPosts: Array<{ id: string; image: string; url: string }> = []
 
   try {
     // Fetch site configuration
@@ -15,6 +17,30 @@ export default async function Home() {
       acc[config.key] = config.value
       return acc
     }, {} as Record<string, string>)
+
+    // Fetch footer social links to find Instagram
+    const socialConfig = await prisma.siteConfig.findUnique({
+      where: { key: 'footer_social_links' }
+    })
+    if (socialConfig) {
+      try {
+        const socialLinks: Array<{ platform: string; url: string }> = JSON.parse(socialConfig.value)
+        const instaLink = socialLinks.find(l => l.platform === 'instagram')
+        if (instaLink?.url) {
+          instagramUrl = instaLink.url
+        }
+      } catch {}
+    }
+
+    // Parse Instagram posts from homepage config
+    if (configMap['home_instagram_posts']) {
+      try {
+        const parsed = JSON.parse(configMap['home_instagram_posts'])
+        if (Array.isArray(parsed)) {
+          instagramPosts = parsed.filter((p: any) => p.image)
+        }
+      } catch {}
+    }
 
     // Fetch featured products
     const featuredProducts = await prisma.product.findMany({
@@ -49,6 +75,8 @@ export default async function Home() {
       heroCtaLink={configMap['home_hero_cta_link']}
       heroSlides={configMap['home_hero_slides']}
       featuredProducts={productsToShow}
+      instagramUrl={instagramUrl}
+      instagramPosts={instagramPosts}
     />
   )
 }

@@ -195,6 +195,21 @@ async function handlePaymentSuccess(event: Stripe.Event) {
       } catch (emailError) {
         console.error('[Webhook] Erreur envoi email:', emailError)
       }
+
+      // Notifier l'admin de la nouvelle commande
+      try {
+        const { sendAdminNewOrderEmail } = await import('@/lib/email')
+        await sendAdminNewOrderEmail(
+          order.orderNumber,
+          order.guestName || 'Client',
+          order.guestEmail || customerEmail || '',
+          order.total,
+          items.length
+        )
+        console.log('[Webhook] Email admin nouvelle commande envoyé')
+      } catch (emailError) {
+        console.error('[Webhook] Erreur envoi email admin:', emailError)
+      }
     } catch (error) {
       console.error('[Webhook] Erreur lors de la création de la commande:', error)
       throw error
