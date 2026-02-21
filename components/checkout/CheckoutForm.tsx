@@ -85,6 +85,7 @@ export default function CheckoutForm() {
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/checkout/success`,
+        receipt_email: customerInfo.email,
         payment_method_data: {
           billing_details: {
             name: `${customerInfo.firstName} ${customerInfo.lastName}`,

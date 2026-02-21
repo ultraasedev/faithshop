@@ -93,53 +93,31 @@ export function ThemeProvider({
     }
   }, [theme, mounted])
 
-  // Apply dynamic colors
+  // Apply dynamic colors only for admin-customized themes
   useEffect(() => {
     const root = document.documentElement
-    
-    let activeConfig: ThemeConfig | undefined
+    const cssVars = ['--background', '--foreground', '--primary', '--primary-foreground', '--muted', '--muted-foreground', '--border']
 
     if (themes.length > 0) {
-      activeConfig = themes.find(t => t.name === resolvedTheme) || themes.find(t => t.isDefault)
-    } else {
-      // Fallback defaults if no themes provided
-      if (resolvedTheme === 'dark') {
-        activeConfig = {
-          name: 'dark',
-          isDefault: false,
-          primaryColor: '#ffffff',
-          secondaryColor: '#000000',
-          accentColor: '#a3a3a3',
-          backgroundColor: '#0a0a0a',
-          textColor: '#ffffff',
-          mutedColor: '#a3a3a3',
-          borderColor: '#262626'
-        }
-      } else {
-        activeConfig = {
-          name: 'light',
-          isDefault: true,
-          primaryColor: '#000000',
-          secondaryColor: '#ffffff',
-          accentColor: '#666666',
-          backgroundColor: '#ffffff',
-          textColor: '#000000',
-          mutedColor: '#6b7280',
-          borderColor: '#e5e7eb'
-        }
-      }
-    }
-    
-    if (activeConfig) {
-      root.style.setProperty('--background', activeConfig.backgroundColor)
-      root.style.setProperty('--foreground', activeConfig.textColor)
-      root.style.setProperty('--primary', activeConfig.primaryColor)
-      root.style.setProperty('--primary-foreground', activeConfig.secondaryColor)
-      root.style.setProperty('--muted', activeConfig.mutedColor)
-      root.style.setProperty('--muted-foreground', activeConfig.accentColor)
-      root.style.setProperty('--border', activeConfig.borderColor)
-    }
+      const activeConfig = themes.find(t => t.name === resolvedTheme) || themes.find(t => t.isDefault)
 
+      if (activeConfig && activeConfig.backgroundColor) {
+        // Admin has configured custom theme colors - apply as inline styles
+        root.style.setProperty('--background', activeConfig.backgroundColor)
+        root.style.setProperty('--foreground', activeConfig.textColor)
+        root.style.setProperty('--primary', activeConfig.primaryColor)
+        root.style.setProperty('--primary-foreground', activeConfig.secondaryColor)
+        root.style.setProperty('--muted', activeConfig.mutedColor)
+        root.style.setProperty('--muted-foreground', activeConfig.accentColor)
+        root.style.setProperty('--border', activeConfig.borderColor)
+      } else {
+        // No matching admin theme - clear inline styles so CSS :root/.dark takes over
+        cssVars.forEach(v => root.style.removeProperty(v))
+      }
+    } else {
+      // No admin themes configured - clear any stale inline styles, let CSS handle it
+      cssVars.forEach(v => root.style.removeProperty(v))
+    }
   }, [themes, resolvedTheme])
 
   const handleSetTheme = (newTheme: Theme) => {

@@ -51,43 +51,76 @@ export async function POST(req: Request) {
 
 async function handlePaymentSuccess(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent
-    
+
+    console.log(`[Webhook] payment_intent.succeeded: ${paymentIntent.id}`)
+
+    // Vérifier si une commande existe déjà pour ce PaymentIntent (idempotence)
+    const existingOrder = await prisma.order.findFirst({
+      where: { stripePaymentIntentId: paymentIntent.id }
+    })
+    if (existingOrder) {
+      console.log(`[Webhook] Commande déjà créée pour ${paymentIntent.id}: ${existingOrder.orderNumber}`)
+      return
+    }
+
     // Récupérer les métadonnées
-    const items = JSON.parse(paymentIntent.metadata.items || '[]')
+    let items: any[] = []
+    try {
+      items = JSON.parse(paymentIntent.metadata.items || '[]')
+    } catch (parseError) {
+      console.error(`[Webhook] Erreur parsing items metadata:`, parseError)
+      throw new Error('Invalid items metadata')
+    }
+
+    if (items.length === 0) {
+      console.error(`[Webhook] Aucun item dans les metadata du PaymentIntent ${paymentIntent.id}`)
+      throw new Error('No items in payment metadata')
+    }
+
     const shippingDetails = paymentIntent.shipping
-    
+
+    // Récupérer l'email client - depuis receipt_email ou billing_details
+    let customerEmail = paymentIntent.receipt_email || ''
+    let customerName = shippingDetails?.name || ''
+
+    if (!customerEmail && paymentIntent.latest_charge) {
+      try {
+        const charge = await stripe.charges.retrieve(paymentIntent.latest_charge as string)
+        customerEmail = charge.billing_details?.email || ''
+        if (!customerName) customerName = charge.billing_details?.name || ''
+      } catch (chargeError) {
+        console.error('[Webhook] Erreur récupération charge:', chargeError)
+      }
+    }
+
     // Créer la commande
     try {
-      // Générer un numéro de commande unique
       const orderNumber = `CMD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-      
-      // Calculer le total (en centimes vers euros)
       const total = paymentIntent.amount / 100
-      
+
       // GESTION STOCK: Réserver le stock avant de créer la commande
       const stockUpdates = [];
       for (const item of items) {
         const product = await prisma.product.findUnique({
           where: { id: item.id },
-          select: { stock: true }
+          select: { stock: true, name: true }
         });
 
         if (!product || product.stock < item.quantity) {
-          console.error(`Stock insuffisant pour ${item.name}`);
-          return new NextResponse('Insufficient stock', { status: 400 });
+          console.error(`[Webhook] Stock insuffisant pour ${item.name} (demandé: ${item.quantity}, dispo: ${product?.stock ?? 0})`);
+          // On crée quand même la commande pour ne pas perdre la vente - le stock sera géré manuellement
+        } else {
+          stockUpdates.push(
+            prisma.product.update({
+              where: { id: item.id },
+              data: { stock: { decrement: item.quantity } }
+            })
+          );
         }
-
-        stockUpdates.push(
-          prisma.product.update({
-            where: { id: item.id },
-            data: { stock: { decrement: item.quantity } }
-          })
-        );
       }
 
       // Transaction pour créer commande + mettre à jour stock
       const [order] = await prisma.$transaction([
-        // Créer la commande
         prisma.order.create({
           data: {
             orderNumber,
@@ -98,18 +131,18 @@ async function handlePaymentSuccess(event: Stripe.Event) {
             status: 'PAID',
             paymentStatus: 'COMPLETED',
             stripePaymentIntentId: paymentIntent.id,
-            guestName: shippingDetails?.name || 'Client',
-            guestEmail: paymentIntent.receipt_email || `guest-${Date.now()}@example.com`,
+            guestName: customerName || 'Client',
+            guestEmail: customerEmail || `guest-${Date.now()}@faith-shop.fr`,
             shippingAddress: [
               shippingDetails?.address?.line1,
               shippingDetails?.address?.line2,
               shippingDetails?.address?.postal_code,
               shippingDetails?.address?.city,
               shippingDetails?.address?.country
-            ].filter(Boolean).join(', '),
+            ].filter(Boolean).join(', ') || 'Non renseignée',
             shippingCity: shippingDetails?.address?.city || '',
             shippingZip: shippingDetails?.address?.postal_code || '',
-            shippingCountry: shippingDetails?.address?.country || '',
+            shippingCountry: shippingDetails?.address?.country || 'FR',
             items: {
               create: items.map((item: any) => ({
                 productId: item.id,
@@ -123,7 +156,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
             }
           }
         }),
-        // Mettre à jour le stock
         ...stockUpdates
       ])
 
@@ -132,15 +164,17 @@ async function handlePaymentSuccess(event: Stripe.Event) {
         data: {
           orderId: order.id,
           status: 'PENDING',
-          carrier: 'Standard', // À définir selon la logique métier
+          carrier: 'Standard',
         }
       })
+
+      console.log(`[Webhook] Commande créée avec succès: ${order.orderNumber} (${order.id})`)
 
       // Envoyer l'email de confirmation
       try {
         const { sendOrderConfirmationEmail } = await import('@/lib/email')
         await sendOrderConfirmationEmail(
-          order.guestEmail || paymentIntent.receipt_email || '',
+          order.guestEmail || customerEmail || '',
           order.guestName || 'Client',
           order.orderNumber,
           {
@@ -157,15 +191,12 @@ async function handlePaymentSuccess(event: Stripe.Event) {
             shippingAddress: order.shippingAddress
           }
         )
-        console.log('Email de confirmation envoyé')
+        console.log('[Webhook] Email de confirmation envoyé')
       } catch (emailError) {
-        console.error('Erreur envoi email:', emailError)
-        // Ne pas échouer la commande pour un problème d'email
+        console.error('[Webhook] Erreur envoi email:', emailError)
       }
-
-      console.log(`Commande créée avec succès: ${order.id}`)
     } catch (error) {
-      console.error('Erreur lors de la création de la commande:', error)
+      console.error('[Webhook] Erreur lors de la création de la commande:', error)
       throw error
     }
 }

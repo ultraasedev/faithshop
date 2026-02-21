@@ -2,14 +2,13 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/'
 
@@ -60,8 +59,8 @@ export default function LoginForm() {
         }
       }
 
-      router.push(redirectUrl)
-      router.refresh()
+      // Hard navigation to ensure cookies are fully synced before server checks
+      window.location.href = redirectUrl
     } catch (err) {
       console.error('Login error:', err)
       setError('Une erreur est survenue lors de la connexion')

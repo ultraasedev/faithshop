@@ -113,7 +113,7 @@ export default async function RootLayout({
   const fbId = fb ? JSON.parse(fb.config).pixelId : null
 
   return (
-    <html lang="fr" className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="fr" suppressHydrationWarning className={`${inter.variable} ${playfair.variable}`}>
       <head>
         {/* Prevent theme flash - must be first */}
         <script
@@ -122,8 +122,11 @@ export default async function RootLayout({
               (function() {
                 try {
                   var theme = localStorage.getItem('theme');
-                  if (theme === 'dark' || (!theme && ${defaultDarkMode})) {
+                  if (theme === 'dark' || (!theme && ${defaultDarkMode}) ||
+                      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
                   }
                 } catch (e) {}
               })();
