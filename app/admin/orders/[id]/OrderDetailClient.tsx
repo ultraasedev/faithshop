@@ -62,7 +62,7 @@ const orderStatuses = [
   { value: 'SHIPPED', label: 'Expédiée', icon: Truck, color: 'text-indigo-600' },
   { value: 'DELIVERED', label: 'Livrée', icon: CheckCircle, color: 'text-green-600' },
   { value: 'CANCELLED', label: 'Annulée', icon: XCircle, color: 'text-red-600' },
-  { value: 'REFUNDED', label: 'Remboursée', icon: RotateCcw, color: 'text-gray-600' },
+  { value: 'REFUNDED', label: 'Remboursée', icon: RotateCcw, color: 'text-gray-600 dark:text-gray-400' },
 ]
 
 const shippingCarriers = [

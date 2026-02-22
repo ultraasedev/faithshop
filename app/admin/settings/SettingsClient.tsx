@@ -738,7 +738,7 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
 
       {/* Save indicator */}
       {hasChanges && (
-        <div className="fixed bottom-6 right-6 bg-black text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+        <div className="fixed bottom-6 right-6 bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
           <span className="text-sm">Modifications non enregistrées</span>
           <Button size="sm" variant="secondary" onClick={handleSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enregistrer'}
@@ -821,7 +821,7 @@ function CarriersSettings({
                 <button
                   type="button"
                   onClick={() => togglePassword('laposteApiKey')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPasswords['laposteApiKey'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -892,7 +892,7 @@ function CarriersSettings({
                 <button
                   type="button"
                   onClick={() => togglePassword('colissimoPassword')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPasswords['colissimoPassword'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -938,7 +938,7 @@ function CarriersSettings({
                 <button
                   type="button"
                   onClick={() => togglePassword('mondialRelayKey')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                 >
                   {showPasswords['mondialRelayKey'] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>

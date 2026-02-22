@@ -339,7 +339,7 @@ export function MediaClient({ media: initialMedia, folders, stats }: MediaClient
                   "absolute top-2 left-2 h-5 w-5 rounded border-2 flex items-center justify-center transition-all",
                   selectedItems.includes(item.id)
                     ? "bg-blue-600 border-blue-600 text-white"
-                    : "bg-white/80 border-gray-300 opacity-0 group-hover:opacity-100"
+                    : "bg-white/80 dark:bg-gray-800/80 border-gray-300 dark:border-gray-600 opacity-0 group-hover:opacity-100"
                 )}
               >
                 {selectedItems.includes(item.id) && <Check className="h-3 w-3" />}

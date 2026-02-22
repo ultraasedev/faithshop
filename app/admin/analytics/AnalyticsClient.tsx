@@ -243,10 +243,10 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'var(--tooltip-bg, white)',
-                    border: '1px solid var(--tooltip-border, #e5e7eb)',
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
                     borderRadius: '8px',
-                    color: 'var(--tooltip-color, #111827)'
+                    color: 'hsl(var(--card-foreground))'
                   }}
                   formatter={(value: number, name: string) => [
                     name === 'revenue' ? `${value.toFixed(2)} €` : value,

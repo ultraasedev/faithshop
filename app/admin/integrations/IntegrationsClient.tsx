@@ -185,9 +185,9 @@ export function IntegrationsClient({ connections, stats, recentOrders }: Integra
       return <Badge variant="destructive">Désactivé</Badge>
     }
     if (connection.expiresAt && new Date(connection.expiresAt) < new Date()) {
-      return <Badge variant="warning" className="bg-yellow-500">Token expiré</Badge>
+      return <Badge variant="secondary" className="bg-yellow-500 text-white dark:bg-yellow-600">Token expiré</Badge>
     }
-    return <Badge variant="default" className="bg-green-500">Connecté</Badge>
+    return <Badge variant="default" className="bg-green-500 dark:bg-green-600">Connecté</Badge>
   }
 
   return (
@@ -309,7 +309,7 @@ export function IntegrationsClient({ connections, stats, recentOrders }: Integra
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
                     onClick={() => setShowDisconnectDialog('meta')}
                   >
                     <Unplug className="h-4 w-4" />
@@ -425,7 +425,7 @@ export function IntegrationsClient({ connections, stats, recentOrders }: Integra
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
                     onClick={() => setShowDisconnectDialog('tiktok_shop')}
                   >
                     <Unplug className="h-4 w-4" />
@@ -452,7 +452,7 @@ export function IntegrationsClient({ connections, stats, recentOrders }: Integra
                   </div>
                 </div>
                 <Button
-                  className="w-full bg-black hover:bg-gray-800"
+                  className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
                   onClick={() => handleConnect('tiktok')}
                   disabled={isLoading === 'tiktok'}
                 >
