@@ -5,9 +5,12 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import CheckoutForm from '@/components/checkout/CheckoutForm'
 import { useCart } from '@/lib/store/cart'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock, Clock } from 'lucide-react'
+import { Loader2, CreditCard, Info, ArrowLeft, ShoppingBag, ShieldCheck, Lock, Clock, Tag, Gift, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { toast } from 'sonner'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -18,9 +21,28 @@ interface ShippingConfig {
   processingTime: string
 }
 
+interface UserCheckoutInfo {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+}
+
+interface UserAddress {
+  address: string
+  addressLine2?: string
+  city: string
+  zipCode: string
+  country: string
+  phone?: string
+}
+
 export default function CheckoutPage() {
+  const { data: session } = useSession()
   const [clientSecret, setClientSecret] = useState('')
   const [mounted, setMounted] = useState(false)
+  const [userInfo, setUserInfo] = useState<UserCheckoutInfo | null>(null)
+  const [defaultAddress, setDefaultAddress] = useState<UserAddress | null>(null)
   const [shippingConfig, setShippingConfig] = useState<ShippingConfig>({
     freeShippingThreshold: 50,
     standardShippingPrice: 4.95,
@@ -29,6 +51,14 @@ export default function CheckoutPage() {
   })
   const items = useCart((state) => state.items)
   const getTotalPrice = useCart((state) => state.getTotalPrice)
+
+  // Discount & Gift Card
+  const [discountInput, setDiscountInput] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; amount: number; description: string } | null>(null)
+  const [giftCardInput, setGiftCardInput] = useState('')
+  const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number; balance: number } | null>(null)
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
+  const [isApplyingGiftCard, setIsApplyingGiftCard] = useState(false)
 
   // Fix hydration: wait for client mount
   useEffect(() => {
@@ -39,6 +69,42 @@ export default function CheckoutPage() {
       .then(data => setShippingConfig(data))
       .catch(err => console.error('Error fetching shipping config:', err))
   }, [])
+
+  // Pre-fill user info if logged in
+  useEffect(() => {
+    if (!session?.user) return
+    const user = session.user
+    const nameParts = (user.name || '').split(' ')
+    setUserInfo({
+      firstName: nameParts[0] || '',
+      lastName: nameParts.slice(1).join(' ') || '',
+      email: user.email || '',
+      phone: ''
+    })
+    // Fetch saved addresses
+    fetch('/api/account/addresses')
+      .then(res => res.json())
+      .then((addresses: any[]) => {
+        const defaultAddr = addresses.find((a: any) => a.isDefault) || addresses[0]
+        if (defaultAddr) {
+          setUserInfo(prev => prev ? {
+            ...prev,
+            firstName: defaultAddr.firstName || prev.firstName,
+            lastName: defaultAddr.lastName || prev.lastName,
+            phone: defaultAddr.phone || prev.phone,
+          } : prev)
+          setDefaultAddress({
+            address: defaultAddr.address,
+            addressLine2: defaultAddr.addressLine2,
+            city: defaultAddr.city,
+            zipCode: defaultAddr.zipCode,
+            country: defaultAddr.country,
+            phone: defaultAddr.phone,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [session])
 
   useEffect(() => {
     if (!mounted || items.length === 0) return
@@ -140,6 +206,131 @@ export default function CheckoutPage() {
   // Calculate total only after mount to avoid hydration mismatch
   const totalPrice = mounted ? getTotalPrice() : 0
 
+  // Discount / Gift card handlers
+  const applyDiscount = async () => {
+    if (!discountInput.trim() || !clientSecret) return
+    setIsApplyingDiscount(true)
+    try {
+      const res = await fetch('/api/checkout/validate-discount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: discountInput, cartTotal: totalPrice }),
+      })
+      const data = await res.json()
+      if (!data.valid) {
+        toast.error(data.error || 'Code promo invalide')
+        return
+      }
+
+      const piId = clientSecret.split('_secret_')[0]
+      const updateRes = await fetch('/api/checkout/update-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: piId,
+          items,
+          discountCode: data.code,
+          giftCardCode: appliedGiftCard?.code || null,
+        }),
+      })
+      const updateData = await updateRes.json()
+
+      if (updateData.success) {
+        setAppliedDiscount({ code: data.code, amount: updateData.discountAmount, description: updateData.discountDescription })
+        if (appliedGiftCard) {
+          setAppliedGiftCard(prev => prev ? { ...prev, amount: updateData.giftCardAmount } : null)
+        }
+        setDiscountInput('')
+        toast.success('Code promo appliqué !')
+      } else {
+        toast.error(updateData.error || 'Erreur lors de l\'application')
+      }
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setIsApplyingDiscount(false)
+    }
+  }
+
+  const removeDiscount = async () => {
+    if (!clientSecret) return
+    const piId = clientSecret.split('_secret_')[0]
+    await fetch('/api/checkout/update-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentIntentId: piId,
+        items,
+        discountCode: null,
+        giftCardCode: appliedGiftCard?.code || null,
+      }),
+    })
+    setAppliedDiscount(null)
+    toast.success('Code promo retiré')
+  }
+
+  const applyGiftCard = async () => {
+    if (!giftCardInput.trim() || !clientSecret) return
+    setIsApplyingGiftCard(true)
+    try {
+      const res = await fetch('/api/checkout/validate-giftcard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: giftCardInput }),
+      })
+      const data = await res.json()
+      if (!data.valid) {
+        toast.error(data.error || 'Carte cadeau invalide')
+        return
+      }
+
+      const piId = clientSecret.split('_secret_')[0]
+      const updateRes = await fetch('/api/checkout/update-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: piId,
+          items,
+          discountCode: appliedDiscount?.code || null,
+          giftCardCode: data.code,
+        }),
+      })
+      const updateData = await updateRes.json()
+
+      if (updateData.success) {
+        setAppliedGiftCard({ code: data.code, amount: updateData.giftCardAmount, balance: data.balance })
+        if (appliedDiscount) {
+          setAppliedDiscount(prev => prev ? { ...prev, amount: updateData.discountAmount } : null)
+        }
+        setGiftCardInput('')
+        toast.success('Carte cadeau appliquée !')
+      } else {
+        toast.error(updateData.error || 'Erreur lors de l\'application')
+      }
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setIsApplyingGiftCard(false)
+    }
+  }
+
+  const removeGiftCard = async () => {
+    if (!clientSecret) return
+    const piId = clientSecret.split('_secret_')[0]
+    await fetch('/api/checkout/update-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentIntentId: piId,
+        items,
+        discountCode: appliedDiscount?.code || null,
+        giftCardCode: null,
+      }),
+    })
+    setAppliedGiftCard(null)
+    toast.success('Carte cadeau retirée')
+  }
+
   const isDevMode = process.env.NODE_ENV === 'development'
 
   if (!mounted) {
@@ -225,6 +416,8 @@ export default function CheckoutPage() {
                     <CheckoutForm
                       shippingConfig={shippingConfig}
                       totalPrice={totalPrice}
+                      userInfo={userInfo}
+                      defaultAddress={defaultAddress}
                     />
                   </Elements>
                 ) : (
@@ -286,11 +479,86 @@ export default function CheckoutPage() {
                       Plus que {(shippingConfig.freeShippingThreshold - totalPrice).toFixed(2)} € pour la livraison gratuite !
                     </p>
                   )}
+
+                  {/* Code promo */}
+                  <div className="pt-2">
+                    {appliedDiscount ? (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-green-600 flex items-center gap-1">
+                          <Tag className="h-3 w-3" />
+                          {appliedDiscount.code} ({appliedDiscount.description})
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 font-medium">-{appliedDiscount.amount.toFixed(2)} €</span>
+                          <button onClick={removeDiscount} className="text-muted-foreground hover:text-foreground">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          value={discountInput}
+                          onChange={(e) => setDiscountInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && applyDiscount()}
+                          placeholder="Code promo"
+                          className="h-9 text-sm"
+                        />
+                        <Button
+                          onClick={applyDiscount}
+                          disabled={isApplyingDiscount || !discountInput.trim() || !clientSecret}
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          {isApplyingDiscount ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Appliquer'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Carte cadeau */}
+                  <div className="pt-1">
+                    {appliedGiftCard ? (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-green-600 flex items-center gap-1">
+                          <Gift className="h-3 w-3" />
+                          Carte •••{appliedGiftCard.code.slice(-4)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 font-medium">-{appliedGiftCard.amount.toFixed(2)} €</span>
+                          <button onClick={removeGiftCard} className="text-muted-foreground hover:text-foreground">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          value={giftCardInput}
+                          onChange={(e) => setGiftCardInput(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && applyGiftCard()}
+                          placeholder="Carte cadeau"
+                          className="h-9 text-sm"
+                        />
+                        <Button
+                          onClick={applyGiftCard}
+                          disabled={isApplyingGiftCard || !giftCardInput.trim() || !clientSecret}
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          {isApplyingGiftCard ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Appliquer'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex justify-between items-end pt-4 border-t border-gray-100 mt-4">
                     <span className="font-bold text-lg">Total</span>
                     <div className="text-right">
                       <span className="font-bold text-2xl">
-                        {(totalPrice + (totalPrice >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardShippingPrice)).toFixed(2)} €
+                        {(totalPrice + (totalPrice >= shippingConfig.freeShippingThreshold ? 0 : shippingConfig.standardShippingPrice) - (appliedDiscount?.amount || 0) - (appliedGiftCard?.amount || 0)).toFixed(2)} €
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">TVA incluse</p>
                     </div>

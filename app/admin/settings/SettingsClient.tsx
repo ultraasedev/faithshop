@@ -59,6 +59,7 @@ interface SiteConfig {
     ogImage: string
     googleAnalyticsId: string
     facebookPixelId: string
+    googleSiteVerification: string
   }
   shipping: {
     freeShippingThreshold: number
@@ -417,6 +418,15 @@ export function SettingsClient({ config: initialConfig }: SettingsClientProps) {
                     placeholder="XXXXXXXXXXXXXXXX"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Google Search Console — Code de vérification</Label>
+                <Input
+                  value={config.seo.googleSiteVerification}
+                  onChange={(e) => updateConfig('seo', 'googleSiteVerification', e.target.value)}
+                  placeholder="Collez le code de vérification Google (ex: abc123...)"
+                />
+                <p className="text-xs text-gray-500">Trouvable dans Google Search Console → Paramètres → Vérification de la propriété → Balise HTML</p>
               </div>
             </CardContent>
           </Card>

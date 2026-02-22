@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
       const product = await prisma.product.findUnique({
         where: { id: productId },
-        select: { id: true, name: true, price: true, stock: true, isActive: true }
+        select: { id: true, name: true, price: true, stock: true, isActive: true, productType: true }
       });
 
       console.log('🔍 Found product:', product ? JSON.stringify(product, null, 2) : 'NOT FOUND');
@@ -42,7 +42,8 @@ export async function POST(request: Request) {
         );
       }
 
-      if (product.stock < item.quantity) {
+      // Skip stock check for Print on Demand products
+      if (product.productType !== 'PRINT_ON_DEMAND' && product.stock < item.quantity) {
         return NextResponse.json(
           { error: `Stock insuffisant pour ${product.name}. Stock disponible: ${product.stock}` },
           { status: 400 }

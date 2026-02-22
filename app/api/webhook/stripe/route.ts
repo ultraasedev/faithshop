@@ -98,17 +98,29 @@ async function handlePaymentSuccess(event: Stripe.Event) {
       const orderNumber = `CMD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
       const total = paymentIntent.amount / 100
 
-      // GESTION STOCK: Réserver le stock avant de créer la commande
+      // GESTION STOCK: Réserver le stock avant de créer la commande (skip POD)
       const stockUpdates = [];
+      const stockCheckProducts: { id: string; name: string; stock: number; threshold: number }[] = [];
       for (const item of items) {
         const product = await prisma.product.findUnique({
           where: { id: item.id },
-          select: { stock: true, name: true }
+          select: { stock: true, name: true, productType: true, lowStockThreshold: true }
         });
 
-        if (!product || product.stock < item.quantity) {
-          console.error(`[Webhook] Stock insuffisant pour ${item.name} (demandé: ${item.quantity}, dispo: ${product?.stock ?? 0})`);
-          // On crée quand même la commande pour ne pas perdre la vente - le stock sera géré manuellement
+        if (!product) {
+          console.error(`[Webhook] Produit introuvable: ${item.name}`);
+          continue;
+        }
+
+        // Skip stock for Print on Demand products
+        if (product.productType === 'PRINT_ON_DEMAND') {
+          console.log(`[Webhook] POD product ${item.name} — pas de décrémentation stock`);
+          continue;
+        }
+
+        if (product.stock < item.quantity) {
+          console.error(`[Webhook] Stock insuffisant pour ${item.name} (demandé: ${item.quantity}, dispo: ${product.stock})`);
+          // On crée quand même la commande pour ne pas perdre la vente
         } else {
           stockUpdates.push(
             prisma.product.update({
@@ -116,8 +128,24 @@ async function handlePaymentSuccess(event: Stripe.Event) {
               data: { stock: { decrement: item.quantity } }
             })
           );
+          // Track for low stock alert
+          const newStock = product.stock - item.quantity;
+          if (newStock <= product.lowStockThreshold) {
+            stockCheckProducts.push({
+              id: item.id,
+              name: product.name,
+              stock: newStock,
+              threshold: product.lowStockThreshold
+            });
+          }
         }
       }
+
+      // Parse discount/gift card info from metadata
+      const discountCodeId = paymentIntent.metadata.discountCodeId || ''
+      const discountAmount = parseFloat(paymentIntent.metadata.discountAmount || '0')
+      const giftCardId = paymentIntent.metadata.giftCardId || ''
+      const giftCardAmount = parseFloat(paymentIntent.metadata.giftCardAmount || '0')
 
       // Transaction pour créer commande + mettre à jour stock
       const [order] = await prisma.$transaction([
@@ -125,12 +153,16 @@ async function handlePaymentSuccess(event: Stripe.Event) {
           data: {
             orderNumber,
             total,
-            subtotal: total,
+            subtotal: total + discountAmount + giftCardAmount,
+            discountAmount,
             taxAmount: 0,
             shippingCost: 0,
             status: 'PAID',
             paymentStatus: 'COMPLETED',
             stripePaymentIntentId: paymentIntent.id,
+            discountCodeId: discountCodeId || undefined,
+            giftCardId: giftCardId || undefined,
+            giftCardAmountUsed: giftCardAmount > 0 ? giftCardAmount : undefined,
             guestName: customerName || 'Client',
             guestEmail: customerEmail || `guest-${Date.now()}@faith-shop.fr`,
             shippingAddress: [
@@ -169,6 +201,59 @@ async function handlePaymentSuccess(event: Stripe.Event) {
       })
 
       console.log(`[Webhook] Commande créée avec succès: ${order.orderNumber} (${order.id})`)
+
+      // Increment discount code usage
+      if (discountCodeId) {
+        try {
+          await prisma.discountCode.update({
+            where: { id: discountCodeId },
+            data: { usageCount: { increment: 1 } }
+          })
+          console.log(`[Webhook] Code promo usage incrémenté: ${discountCodeId}`)
+        } catch (dcError) {
+          console.error('[Webhook] Erreur incrémentation code promo:', dcError)
+        }
+      }
+
+      // Deduct gift card balance
+      if (giftCardId && giftCardAmount > 0) {
+        try {
+          const gc = await prisma.giftCard.findUnique({ where: { id: giftCardId } })
+          if (gc) {
+            const newBalance = Math.max(Number(gc.balance) - giftCardAmount, 0)
+            await prisma.giftCard.update({
+              where: { id: giftCardId },
+              data: {
+                balance: newBalance,
+                status: newBalance <= 0 ? 'USED' : 'ACTIVE'
+              }
+            })
+            // Create gift card transaction
+            await prisma.giftCardTransaction.create({
+              data: {
+                giftCardId,
+                amount: -giftCardAmount,
+                balanceAfter: newBalance,
+                description: `Commande #${orderNumber}`
+              }
+            })
+            console.log(`[Webhook] Carte cadeau débitée: ${giftCardAmount}€ (nouveau solde: ${newBalance}€)`)
+          }
+        } catch (gcError) {
+          console.error('[Webhook] Erreur débit carte cadeau:', gcError)
+        }
+      }
+
+      // Low stock alerts
+      if (stockCheckProducts.length > 0) {
+        try {
+          const { sendAdminLowStockEmail } = await import('@/lib/email')
+          await sendAdminLowStockEmail(stockCheckProducts)
+          console.log(`[Webhook] Alerte stock bas envoyée pour ${stockCheckProducts.length} produit(s)`)
+        } catch (stockError) {
+          console.error('[Webhook] Erreur envoi alerte stock:', stockError)
+        }
+      }
 
       // Envoyer l'email de confirmation
       try {

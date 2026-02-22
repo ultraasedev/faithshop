@@ -6,7 +6,8 @@ import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck, ChevronLeft, ChevronRi
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, FormEvent } from 'react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface Slide {
@@ -388,13 +389,44 @@ export default function HomeClient({
           <p className="text-muted-foreground mb-8">
             Inscrivez-vous pour accéder à nos ventes privées et nouveautés en avant-première.
           </p>
-          <form className="flex flex-col gap-4">
+          <form className="flex flex-col gap-4" onSubmit={async (e: FormEvent) => {
+            e.preventDefault()
+            const form = e.target as HTMLFormElement
+            const emailInput = form.querySelector('input[type="email"]') as HTMLInputElement
+            const email = emailInput?.value?.trim()
+            if (!email) return
+
+            const btn = form.querySelector('button') as HTMLButtonElement
+            btn.disabled = true
+            btn.textContent = '...'
+
+            try {
+              const res = await fetch('/api/newsletter/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+              })
+              const data = await res.json()
+              if (res.ok) {
+                toast.success('Bienvenue dans le Cercle Privé !')
+                emailInput.value = ''
+              } else {
+                toast.error(data.error || 'Erreur lors de l\'inscription')
+              }
+            } catch {
+              toast.error('Erreur réseau')
+            } finally {
+              btn.disabled = false
+              btn.textContent = 'Rejoindre'
+            }
+          }}>
             <input
               type="email"
               placeholder="Votre adresse email"
+              required
               className="w-full bg-transparent border-b border-border px-0 py-3 text-center placeholder:text-muted-foreground/50 focus:border-foreground focus:outline-none transition-colors"
             />
-            <Button className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-none h-12 text-xs font-bold uppercase tracking-widest mt-4">
+            <Button type="submit" className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-none h-12 text-xs font-bold uppercase tracking-widest mt-4">
               Rejoindre
             </Button>
           </form>

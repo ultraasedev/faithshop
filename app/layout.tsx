@@ -49,6 +49,11 @@ export async function generateMetadata(): Promise<Metadata> {
       alternates: {
         canonical: "https://faith-shop.fr",
       },
+      ...(seoConfig.googleSiteVerification && {
+        verification: {
+          google: seoConfig.googleSiteVerification,
+        },
+      }),
     }
   } catch (error) {
     // Fallback metadata if database is not available

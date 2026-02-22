@@ -710,6 +710,15 @@ model GiftCardTransaction {
   createdAt DateTime @default(now())
 }
 
+// ==================== NEWSLETTER ====================
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 // ==================== SITE CONFIGURATION ====================
 
 model SiteConfig {

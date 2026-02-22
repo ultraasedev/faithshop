@@ -828,3 +828,82 @@ export async function sendAdminTrackingSummaryEmail(
 
   return sendEmail(adminEmail, `📊 Tracking : ${updates.length} mise(s) à jour — ${delivered} livré(s)`, emailLayout(content))
 }
+
+/**
+ * Email admin : alerte stock bas
+ */
+export async function sendAdminLowStockEmail(
+  products: Array<{ name: string; stock: number; threshold: number }>
+) {
+  const adminEmail = await getAdminEmail()
+  if (!adminEmail || products.length === 0) return { success: false }
+
+  const rows = products.map(p => `
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${p.name}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; color: ${p.stock === 0 ? '#dc2626' : '#f59e0b'}; font-weight: 600;">${p.stock}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${p.threshold}</td>
+    </tr>
+  `).join('')
+
+  const content = `
+    <div class="content">
+      <h2>⚠️ Alerte stock bas</h2>
+
+      <p>${products.length} produit(s) ont un stock bas ou épuisé après une commande :</p>
+
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #f8f8f8;">
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Produit</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Stock restant</th>
+            <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">Seuil alerte</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="${SITE_URL}/admin/products" class="button">Gérer les stocks</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666;">
+        Email automatique — Faith Shop Admin
+      </p>
+    </div>
+  `
+
+  return sendEmail(adminEmail, `⚠️ Stock bas — ${products.length} produit(s) à réapprovisionner`, emailLayout(content))
+}
+
+/**
+ * Email newsletter : bienvenue
+ */
+export async function sendNewsletterWelcomeEmail(to: string) {
+  const content = `
+    <div class="content">
+      <h2>Bienvenue dans le Cercle Privé ✨</h2>
+
+      <p>Merci de rejoindre notre communauté !</p>
+
+      <p>Vous recevrez en avant-première :</p>
+      <ul style="color: #444; line-height: 2;">
+        <li>Nos nouvelles collections</li>
+        <li>Les ventes privées et offres exclusives</li>
+        <li>Les coulisses de Faith Shop</li>
+      </ul>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="${SITE_URL}/shop" class="button">Découvrir la boutique</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666; margin-top: 30px;">
+        Si vous souhaitez vous désinscrire, répondez simplement à cet email.
+      </p>
+    </div>
+  `
+
+  return sendEmail(to, 'Bienvenue dans le Cercle Privé — Faith Shop', emailLayout(content))
+}

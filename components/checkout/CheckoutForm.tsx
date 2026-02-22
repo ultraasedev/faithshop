@@ -20,22 +20,48 @@ interface CheckoutFormProps {
     standardShippingPrice: number
   }
   totalPrice?: number
+  userInfo?: {
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+  } | null
+  defaultAddress?: {
+    address: string
+    addressLine2?: string
+    city: string
+    zipCode: string
+    country: string
+    phone?: string
+  } | null
 }
 
-export default function CheckoutForm({ shippingConfig, totalPrice = 0 }: CheckoutFormProps) {
+export default function CheckoutForm({ shippingConfig, totalPrice = 0, userInfo, defaultAddress }: CheckoutFormProps) {
   const stripe = useStripe()
   const elements = useElements()
 
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Informations client
+  // Informations client (pre-filled if logged in)
   const [customerInfo, setCustomerInfo] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: ''
+    firstName: userInfo?.firstName || '',
+    lastName: userInfo?.lastName || '',
+    email: userInfo?.email || '',
+    phone: userInfo?.phone || ''
   })
+
+  // Update customer info when userInfo props arrive
+  useEffect(() => {
+    if (userInfo) {
+      setCustomerInfo(prev => ({
+        firstName: prev.firstName || userInfo.firstName,
+        lastName: prev.lastName || userInfo.lastName,
+        email: prev.email || userInfo.email,
+        phone: prev.phone || userInfo.phone,
+      }))
+    }
+  }, [userInfo])
 
   // Delivery selection
   const [deliverySelection, setDeliverySelection] = useState<DeliverySelection>({
@@ -202,6 +228,17 @@ export default function CheckoutForm({ shippingConfig, totalPrice = 0 }: Checkou
           options={{
             mode: 'shipping',
             allowedCountries: ['FR', 'BE', 'CH', 'LU', 'ES', 'IT', 'DE', 'NL'],
+            defaultValues: defaultAddress ? {
+              name: `${customerInfo.firstName} ${customerInfo.lastName}`.trim(),
+              address: {
+                line1: defaultAddress.address,
+                line2: defaultAddress.addressLine2 || '',
+                city: defaultAddress.city,
+                postal_code: defaultAddress.zipCode,
+                country: defaultAddress.country === 'France' ? 'FR' : defaultAddress.country,
+              },
+              phone: defaultAddress.phone || '',
+            } : undefined,
             fields: {
               phone: 'always'
             },

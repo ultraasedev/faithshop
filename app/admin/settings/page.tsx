@@ -39,7 +39,8 @@ export default async function SettingsPage() {
       keywords: 'streetwear, vêtements, mode, qualité',
       ogImage: '',
       googleAnalyticsId: '',
-      facebookPixelId: ''
+      facebookPixelId: '',
+      googleSiteVerification: ''
     },
     shipping: {
       freeShippingThreshold: 50,

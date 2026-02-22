@@ -270,6 +270,7 @@ export async function getSeoConfig() {
     favicon: getConfigValue('general.favicon', '/favicon.jpeg'),
     googleAnalyticsId: getConfigValue('seo.googleAnalyticsId', ''),
     facebookPixelId: getConfigValue('seo.facebookPixelId', ''),
+    googleSiteVerification: getConfigValue('seo.googleSiteVerification', ''),
   }
 }
 
