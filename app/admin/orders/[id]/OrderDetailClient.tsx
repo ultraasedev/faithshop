@@ -68,8 +68,8 @@ const orderStatuses = [
 const shippingCarriers = [
   { value: 'colissimo', label: 'Colissimo', logo: '/logos/colissimo.svg', trackingUrl: 'https://www.laposte.fr/outils/suivre-vos-envois?code=' },
   { value: 'chronopost', label: 'Chronopost', logo: '/logos/chronopost.svg', trackingUrl: 'https://www.chronopost.fr/tracking-no-cms/suivi-page?liession=' },
-  { value: 'ups', label: 'UPS', logo: null, trackingUrl: 'https://www.ups.com/track?tracknum=' },
-  { value: 'dhl', label: 'DHL', logo: null, trackingUrl: 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=' },
+  { value: 'ups', label: 'UPS', logo: '/logos/ups.svg', trackingUrl: 'https://www.ups.com/track?tracknum=' },
+  { value: 'dhl', label: 'DHL', logo: '/logos/dhl.svg', trackingUrl: 'https://www.dhl.com/fr-fr/home/tracking.html?tracking-id=' },
   { value: 'mondialrelay', label: 'Mondial Relay', logo: '/logos/mondial-relay.svg', trackingUrl: 'https://www.mondialrelay.fr/suivi-de-colis/?numeroExpedition=' },
 ]
 
