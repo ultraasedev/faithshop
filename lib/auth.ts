@@ -6,6 +6,7 @@ import { compare } from "bcryptjs"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   adapter: PrismaAdapter(prisma) as any,
   session: {
     strategy: "jwt",
