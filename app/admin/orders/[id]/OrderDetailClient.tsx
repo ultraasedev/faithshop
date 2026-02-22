@@ -44,7 +44,9 @@ import {
   RotateCcw,
   Loader2,
   ExternalLink,
-  Copy
+  Copy,
+  ClipboardList,
+  Receipt
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -362,13 +364,27 @@ export function OrderDetailClient({ order }: OrderDetailClientProps) {
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" asChild>
             <Link href={`/admin/orders/${order.id}/invoice`} target="_blank">
               <FileText className="h-4 w-4 mr-2" />
               Facture
             </Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/admin/orders/${order.id}/order-confirmation`} target="_blank">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              Bon de commande
+            </Link>
+          </Button>
+          {(order.status === 'REFUNDED' || order.paymentStatus === 'REFUNDED' || order.paymentStatus === 'PARTIALLY_REFUNDED') && (
+            <Button variant="outline" asChild>
+              <Link href={`/admin/orders/${order.id}/refund-invoice`} target="_blank">
+                <Receipt className="h-4 w-4 mr-2" />
+                Avoir
+              </Link>
+            </Button>
+          )}
           {canRefund && (
             <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
               <DialogTrigger asChild>
