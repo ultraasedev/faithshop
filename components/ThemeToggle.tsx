@@ -51,8 +51,14 @@ export function ThemeToggle() {
   }, [theme, mounted])
 
   const setTheme = useCallback((newTheme: Theme) => {
+    // Enable smooth transition
+    document.documentElement.classList.add('theme-transition')
     setThemeState(newTheme)
     localStorage.setItem('theme', newTheme)
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition')
+    }, 350)
   }, [])
 
   if (!mounted) {
