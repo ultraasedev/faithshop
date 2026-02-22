@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
     const session = await auth()
 
     if (!session?.user || !['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
-      console.log('Video upload auth failed:', { hasUser: !!session?.user, role: session?.user?.role })
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 
@@ -35,13 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json() as HandleUploadBody
-    console.log('Video upload request type:', body.type)
 
     const jsonResponse = await handleUpload({
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        console.log('Generating token for:', pathname)
         // Validate file extension
         const extension = pathname.split('.').pop()?.toLowerCase()
         const validExtensions = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'ogg']
@@ -59,8 +56,8 @@ export async function POST(request: NextRequest) {
           }),
         }
       },
-      onUploadCompleted: async ({ blob }) => {
-        console.log('Video upload completed:', blob.url)
+      onUploadCompleted: async () => {
+        // Upload completed
       },
     })
 

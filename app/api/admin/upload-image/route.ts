@@ -49,12 +49,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error: any) {
-    console.error('=== UPLOAD IMAGE ERROR ===')
-    console.error('Error name:', error?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error code:', error?.code)
-    console.error('Error stack:', error?.stack)
-    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    console.error('Upload image error:', error?.message || error)
 
     // Check for common Vercel Blob errors
     if (error.message?.includes('BLOB_READ_WRITE_TOKEN') || error.message?.includes('token')) {

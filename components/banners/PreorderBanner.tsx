@@ -24,7 +24,7 @@ function formatShippingDate(dateString: string): string {
       year: 'numeric'
     }).format(date)
   } catch {
-    return '16 janvier 2025'
+    return dateString
   }
 }
 
@@ -43,21 +43,19 @@ export default function PreorderBanner({
           const data = await res.json()
           setConfig(data)
         } else {
-          // Default config if API fails
           setConfig({
             enabled: false,
-            message: 'Expédition le 16 janvier 2025',
-            shippingDate: '2025-01-16',
-            showPages: ['product', 'checkout']
+            message: '',
+            shippingDate: '',
+            showPages: []
           })
         }
-      } catch (error) {
-        console.error('Erreur lors de la récupération de la config pré-commande:', error)
+      } catch {
         setConfig({
           enabled: false,
-          message: 'Expédition le 16 janvier 2025',
-          shippingDate: '2025-01-16',
-          showPages: ['product', 'checkout']
+          message: '',
+          shippingDate: '',
+          showPages: []
         })
       } finally {
         setLoading(false)

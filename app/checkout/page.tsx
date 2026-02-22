@@ -59,6 +59,7 @@ export default function CheckoutPage() {
   const [appliedGiftCard, setAppliedGiftCard] = useState<{ code: string; amount: number; balance: number } | null>(null)
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
   const [isApplyingGiftCard, setIsApplyingGiftCard] = useState(false)
+  const [preorderConfig, setPreorderConfig] = useState<{ enabled: boolean; message: string } | null>(null)
 
   // Fix hydration: wait for client mount
   useEffect(() => {
@@ -67,7 +68,12 @@ export default function CheckoutPage() {
     fetch('/api/shipping-config')
       .then(res => res.json())
       .then(data => setShippingConfig(data))
-      .catch(err => console.error('Error fetching shipping config:', err))
+      .catch(() => {})
+    // Fetch preorder config
+    fetch('/api/admin/preorder-config')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setPreorderConfig(data) })
+      .catch(() => {})
   }, [])
 
   // Pre-fill user info if logged in
@@ -254,19 +260,23 @@ export default function CheckoutPage() {
 
   const removeDiscount = async () => {
     if (!clientSecret) return
-    const piId = clientSecret.split('_secret_')[0]
-    await fetch('/api/checkout/update-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        paymentIntentId: piId,
-        items,
-        discountCode: null,
-        giftCardCode: appliedGiftCard?.code || null,
-      }),
-    })
-    setAppliedDiscount(null)
-    toast.success('Code promo retiré')
+    try {
+      const piId = clientSecret.split('_secret_')[0]
+      await fetch('/api/checkout/update-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: piId,
+          items,
+          discountCode: null,
+          giftCardCode: appliedGiftCard?.code || null,
+        }),
+      })
+      setAppliedDiscount(null)
+      toast.success('Code promo retiré')
+    } catch {
+      toast.error('Erreur lors du retrait du code promo')
+    }
   }
 
   const applyGiftCard = async () => {
@@ -316,19 +326,23 @@ export default function CheckoutPage() {
 
   const removeGiftCard = async () => {
     if (!clientSecret) return
-    const piId = clientSecret.split('_secret_')[0]
-    await fetch('/api/checkout/update-payment-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        paymentIntentId: piId,
-        items,
-        discountCode: appliedDiscount?.code || null,
-        giftCardCode: null,
-      }),
-    })
-    setAppliedGiftCard(null)
-    toast.success('Carte cadeau retirée')
+    try {
+      const piId = clientSecret.split('_secret_')[0]
+      await fetch('/api/checkout/update-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentIntentId: piId,
+          items,
+          discountCode: appliedDiscount?.code || null,
+          giftCardCode: null,
+        }),
+      })
+      setAppliedGiftCard(null)
+      toast.success('Carte cadeau retirée')
+    } catch {
+      toast.error('Erreur lors du retrait de la carte cadeau')
+    }
   }
 
   const isDevMode = process.env.NODE_ENV === 'development'
@@ -385,17 +399,19 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Pre-order Notice */}
+                {/* Pre-order Notice - only shown when enabled via admin */}
+                {preorderConfig?.enabled && (
                 <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                   <div className="flex items-start gap-3">
                     <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
                     <div className="text-sm">
-                      <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">📦 Pré-commande</h3>
-                      <p className="text-amber-700 dark:text-amber-300 mb-2">Votre commande sera expédiée après le <strong>16 janvier 2025</strong>.</p>
+                      <h3 className="font-semibold text-amber-900 dark:text-amber-200 mb-1">Pré-commande</h3>
+                      <p className="text-amber-700 dark:text-amber-300 mb-2">{preorderConfig.message}</p>
                       <p className="text-amber-600 dark:text-amber-400 text-xs">Merci de votre patience ! Vous recevrez une notification dès l'expédition.</p>
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Test Card Info for Development */}
                 {isDevMode && (

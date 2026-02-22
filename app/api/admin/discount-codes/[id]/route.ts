@@ -28,7 +28,6 @@ export async function PATCH(
       try {
         // Note: Stripe ne permet pas de désactiver les coupons,
         // mais on peut les supprimer ou gérer côté application
-        console.log(`Code ${discountCode.code} ${data.isActive ? 'activé' : 'désactivé'}`)
       } catch (stripeError) {
         console.error('Erreur sync Stripe:', stripeError)
       }

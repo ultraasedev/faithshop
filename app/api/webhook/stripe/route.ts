@@ -39,7 +39,7 @@ export async function POST(req: Request) {
         break
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        // Unhandled event type - no action needed
     }
   } catch (error) {
     console.error('Error processing webhook:', error)
@@ -52,14 +52,11 @@ export async function POST(req: Request) {
 async function handlePaymentSuccess(event: Stripe.Event) {
     const paymentIntent = event.data.object as Stripe.PaymentIntent
 
-    console.log(`[Webhook] payment_intent.succeeded: ${paymentIntent.id}`)
-
     // Vérifier si une commande existe déjà pour ce PaymentIntent (idempotence)
     const existingOrder = await prisma.order.findFirst({
       where: { stripePaymentIntentId: paymentIntent.id }
     })
     if (existingOrder) {
-      console.log(`[Webhook] Commande déjà créée pour ${paymentIntent.id}: ${existingOrder.orderNumber}`)
       return
     }
 
@@ -114,7 +111,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
 
         // Skip stock for Print on Demand products
         if (product.productType === 'PRINT_ON_DEMAND') {
-          console.log(`[Webhook] POD product ${item.name} — pas de décrémentation stock`);
           continue;
         }
 
@@ -200,8 +196,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
         }
       })
 
-      console.log(`[Webhook] Commande créée avec succès: ${order.orderNumber} (${order.id})`)
-
       // Increment discount code usage
       if (discountCodeId) {
         try {
@@ -209,7 +203,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
             where: { id: discountCodeId },
             data: { usageCount: { increment: 1 } }
           })
-          console.log(`[Webhook] Code promo usage incrémenté: ${discountCodeId}`)
         } catch (dcError) {
           console.error('[Webhook] Erreur incrémentation code promo:', dcError)
         }
@@ -237,7 +230,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
                 description: `Commande #${orderNumber}`
               }
             })
-            console.log(`[Webhook] Carte cadeau débitée: ${giftCardAmount}€ (nouveau solde: ${newBalance}€)`)
           }
         } catch (gcError) {
           console.error('[Webhook] Erreur débit carte cadeau:', gcError)
@@ -249,7 +241,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
         try {
           const { sendAdminLowStockEmail } = await import('@/lib/email')
           await sendAdminLowStockEmail(stockCheckProducts)
-          console.log(`[Webhook] Alerte stock bas envoyée pour ${stockCheckProducts.length} produit(s)`)
         } catch (stockError) {
           console.error('[Webhook] Erreur envoi alerte stock:', stockError)
         }
@@ -276,7 +267,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
             shippingAddress: order.shippingAddress
           }
         )
-        console.log('[Webhook] Email de confirmation envoyé')
       } catch (emailError) {
         console.error('[Webhook] Erreur envoi email:', emailError)
       }
@@ -291,7 +281,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
           order.total,
           items.length
         )
-        console.log('[Webhook] Email admin nouvelle commande envoyé')
       } catch (emailError) {
         console.error('[Webhook] Erreur envoi email admin:', emailError)
       }
@@ -304,8 +293,6 @@ async function handlePaymentSuccess(event: Stripe.Event) {
 async function handleProductUpdated(event: Stripe.Event) {
   const stripeProduct = event.data.object as Stripe.Product
 
-  console.log(`Handling product update from Stripe: ${stripeProduct.id}`)
-
   try {
     // Trouver le produit local correspondant
     const localProduct = await prisma.product.findFirst({
@@ -313,7 +300,6 @@ async function handleProductUpdated(event: Stripe.Event) {
     })
 
     if (!localProduct) {
-      console.log(`Product not found locally: ${stripeProduct.id}`)
       return
     }
 
@@ -343,8 +329,6 @@ async function handleProductUpdated(event: Stripe.Event) {
       where: { id: localProduct.id },
       data: updateData
     })
-
-    console.log(`Product updated locally: ${localProduct.id}`)
   } catch (error) {
     console.error('Error updating product from Stripe:', error)
     throw error
@@ -354,8 +338,6 @@ async function handleProductUpdated(event: Stripe.Event) {
 async function handleProductDeleted(event: Stripe.Event) {
   const stripeProduct = event.data.object as Stripe.Product
 
-  console.log(`Handling product deletion from Stripe: ${stripeProduct.id}`)
-
   try {
     // Trouver le produit local correspondant
     const localProduct = await prisma.product.findFirst({
@@ -363,7 +345,6 @@ async function handleProductDeleted(event: Stripe.Event) {
     })
 
     if (!localProduct) {
-      console.log(`Product not found locally: ${stripeProduct.id}`)
       return
     }
 
@@ -375,8 +356,6 @@ async function handleProductDeleted(event: Stripe.Event) {
         stripeProductId: null // Dissocier de Stripe
       }
     })
-
-    console.log(`Product deactivated locally: ${localProduct.id}`)
   } catch (error) {
     console.error('Error handling product deletion from Stripe:', error)
     throw error
@@ -385,8 +364,6 @@ async function handleProductDeleted(event: Stripe.Event) {
 
 async function handlePriceUpdated(event: Stripe.Event) {
   const stripePrice = event.data.object as Stripe.Price
-
-  console.log(`Handling price update from Stripe: ${stripePrice.id}`)
 
   try {
     // Trouver le produit local par le product ID de Stripe
@@ -397,7 +374,6 @@ async function handlePriceUpdated(event: Stripe.Event) {
     })
 
     if (!localProduct) {
-      console.log(`Product not found locally for price: ${stripePrice.product}`)
       return
     }
 
@@ -409,8 +385,6 @@ async function handlePriceUpdated(event: Stripe.Event) {
         where: { id: localProduct.id },
         data: { price: newPrice }
       })
-
-      console.log(`Price updated locally: ${localProduct.id} -> ${newPrice}€`)
     }
   } catch (error) {
     console.error('Error updating price from Stripe:', error)

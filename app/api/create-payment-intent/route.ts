@@ -5,12 +5,9 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    console.log('📦 Payment Intent Request Body:', JSON.stringify(body, null, 2));
-
     const { items } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      console.log('❌ No items in cart:', { items, isArray: Array.isArray(items), length: items?.length });
       return NextResponse.json(
         { error: 'Aucun article dans le panier' },
         { status: 400 }
@@ -22,20 +19,14 @@ export async function POST(request: Request) {
     const validatedItems = [];
 
     for (const item of items) {
-      console.log('🔍 Processing item:', JSON.stringify(item, null, 2));
-
       const productId = item.productId || item.id;
-      console.log('🔍 Looking for product ID:', productId);
 
       const product = await prisma.product.findUnique({
         where: { id: productId },
         select: { id: true, name: true, price: true, stock: true, isActive: true, productType: true }
       });
 
-      console.log('🔍 Found product:', product ? JSON.stringify(product, null, 2) : 'NOT FOUND');
-
       if (!product || !product.isActive) {
-        console.log('❌ Product not found or inactive:', { productId, product });
         return NextResponse.json(
           { error: `Produit ${item.name || 'inconnu'} non disponible` },
           { status: 400 }
@@ -78,9 +69,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    console.error('Internal Error:', error);
+    console.error('Payment intent creation error:', error);
     return NextResponse.json(
-      { error: `Internal Server Error: ${error}` },
+      { error: 'Erreur lors de la création du paiement' },
       { status: 500 }
     );
   }

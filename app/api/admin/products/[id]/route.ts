@@ -157,12 +157,7 @@ export async function PUT(
     })
 
   } catch (error: any) {
-    console.error('=== PRODUCT UPDATE ERROR ===')
-    console.error('Error name:', error?.name)
-    console.error('Error message:', error?.message)
-    console.error('Error code:', error?.code)
-    console.error('Prisma meta:', error?.meta)
-    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2))
+    console.error('Product update error:', error?.message || error)
 
     // Specific Prisma errors
     if (error.code === 'P2002') {

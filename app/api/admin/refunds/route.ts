@@ -14,8 +14,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { orderId, amount, reason, type } = body
 
-    console.log('Refund request:', { orderId, amount, reason, type })
-
     if (!orderId) {
       return NextResponse.json({ error: 'ID de commande requis' }, { status: 400 })
     }
@@ -36,13 +34,6 @@ export async function POST(request: NextRequest) {
     if (!order) {
       return NextResponse.json({ error: 'Commande introuvable' }, { status: 404 })
     }
-
-    console.log('Order found:', {
-      orderNumber: order.orderNumber,
-      total: order.total,
-      paymentStatus: order.paymentStatus,
-      hasStripeId: !!order.stripePaymentIntentId
-    })
 
     // For store credit, we don't need Stripe
     if (type !== 'STORE_CREDIT') {
@@ -299,6 +290,6 @@ async function sendRefundConfirmationEmail(order: any, refund: any) {
     </div>
   `
 
-  // Utiliser la fonction d'email existante ou implémenter selon votre système
-  console.log('Email de remboursement à envoyer:', { customerEmail, content: emailContent })
+  // TODO: Implement email sending via sendEmail()
+  // await sendEmail(customerEmail, 'Remboursement traité - Faith Shop', emailContent)
 }

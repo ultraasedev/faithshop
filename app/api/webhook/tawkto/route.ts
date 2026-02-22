@@ -11,8 +11,6 @@ export async function POST(request: NextRequest) {
     // Tawk.to sends different event types
     const { event, chatId, visitor, message, property } = body
 
-    console.log('Tawk.to webhook received:', event, chatId)
-
     // Generate a unique ticket number for new chats
     const generateTicketNumber = () => {
       const timestamp = Date.now().toString(36).toUpperCase()

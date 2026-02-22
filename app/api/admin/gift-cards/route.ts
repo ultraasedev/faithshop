@@ -177,12 +177,6 @@ async function sendGiftCardEmail(giftCard: any) {
     </div>
   `
 
-  console.log('Email gift card à envoyer:', {
-    to: giftCard.recipientEmail,
-    subject: `Votre avoir Faith Shop de ${giftCard.amount}€`,
-    content: emailContent
-  })
-
-  // Ici vous pourriez utiliser votre service d'email
-  // await sendEmail(giftCard.recipientEmail, subject, emailContent)
+  // TODO: Implement email sending via sendEmail()
+  // await sendEmail(giftCard.recipientEmail, `Votre avoir Faith Shop de ${giftCard.amount}€`, emailContent)
 }

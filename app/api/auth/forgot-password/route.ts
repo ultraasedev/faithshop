@@ -65,11 +65,6 @@ export async function POST(request: Request) {
       emailResult = { success: false, error: emailError }
     }
 
-    // Log en développement
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Lien de réinitialisation:', resetUrl)
-    }
-
     return NextResponse.json(
       {
         message: 'Si cet email existe, un lien de réinitialisation a été envoyé',
