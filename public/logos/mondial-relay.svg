@@ -1,9 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <!-- Mondial Relay - Burgundy/red branding -->
-  <rect width="200" height="60" rx="8" fill="#8B1A32"/>
-  <circle cx="26" cy="30" r="10" fill="#fff"/>
-  <circle cx="26" cy="27" r="4" fill="#8B1A32"/>
-  <path d="M20 35c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="#8B1A32"/>
-  <text x="44" y="29" font-family="Arial, sans-serif" font-weight="bold" font-size="13" fill="#FFFFFF">Mondial</text>
-  <text x="44" y="43" font-family="Arial, sans-serif" font-weight="bold" font-size="13" fill="#FFFFFF">Relay</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 70" fill="none">
+  <!-- Mondial Relay - Official brand color: burgundy #8B1A4A -->
+  <rect width="240" height="70" rx="6" fill="#8B1A4A"/>
+  <!-- Location pin with person -->
+  <g transform="translate(16, 8)">
+    <path d="M18 0C10.82 0 5 5.82 5 13c0 9.75 13 24 13 24s13-14.25 13-24C31 5.82 25.18 0 18 0z" fill="#FFFFFF"/>
+    <circle cx="18" cy="10" r="3.5" fill="#8B1A4A"/>
+    <path d="M13 19c0-2.76 2.24-5 5-5s5 2.24 5 5" fill="#8B1A4A"/>
+  </g>
+  <!-- Text -->
+  <text x="56" y="33" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" letter-spacing="0.5">Mondial</text>
+  <text x="56" y="55" font-family="Arial,Helvetica,sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" letter-spacing="0.5">Relay</text>
 </svg>
