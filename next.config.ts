@@ -6,7 +6,19 @@ const nextConfig: NextConfig = {
     // your project has TypeScript errors.
     ignoreBuildErrors: true,
   },
+  headers: async () => [
+    {
+      // Empêcher le cache CDN sur toutes les pages dynamiques
+      source: '/((?!_next/static|_next/image|favicon).*)',
+      headers: [
+        { key: 'Cache-Control', value: 'no-store, must-revalidate' },
+        { key: 'CDN-Cache-Control', value: 'no-store' },
+        { key: 'Vercel-CDN-Cache-Control', value: 'no-store' },
+      ],
+    },
+  ],
   images: {
+    minimumCacheTTL: 60,
     qualities: [100, 75],
     remotePatterns: [
       {
