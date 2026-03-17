@@ -28,7 +28,8 @@ import {
   TicketCheck,
   RotateCcw,
   Share2,
-  PanelBottom
+  PanelBottom,
+  CreditCard
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -63,6 +64,7 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
       title: 'Commerce',
       items: [
         { name: 'Commandes', href: '/admin/orders', icon: ShoppingCart },
+        { name: 'Transactions', href: '/admin/transactions', icon: CreditCard },
         { name: 'Produits', href: '/admin/products', icon: Package },
         { name: 'Collections', href: '/admin/collections', icon: Layers },
         { name: 'Clients', href: '/admin/customers', icon: Users },
