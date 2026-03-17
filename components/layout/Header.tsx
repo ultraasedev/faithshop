@@ -39,8 +39,8 @@ export default function Header() {
 
   // Cart Store
   const items = useCart((state) => state.items)
-  const totalItems = useCart((state) => state.getTotalItems())
-  const totalPrice = useCart((state) => state.getTotalPrice())
+  const totalItems = useMemo(() => items.reduce((sum, item) => sum + item.quantity, 0), [items])
+  const totalPrice = useMemo(() => items.reduce((sum, item) => sum + item.price * item.quantity, 0), [items])
 
   // Calcul des frais de livraison en temps réel
   const shippingInfo = useMemo(() => {
