@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -75,11 +75,27 @@ const statusFilters = [
   { value: 'REFUNDED', label: 'Remboursées', icon: RotateCcw },
 ]
 
+const AUTO_REFRESH_INTERVAL = 30_000 // 30 secondes
+
 export function OrdersClient({ orders, stats }: OrdersClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialStatus = searchParams.get('status') || 'all'
   const [filter, setFilter] = useState<string>(initialStatus)
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true)
+  const [lastRefresh, setLastRefresh] = useState(new Date())
+
+  const refresh = useCallback(() => {
+    router.refresh()
+    setLastRefresh(new Date())
+  }, [router])
+
+  // Auto-refresh toutes les 30 secondes
+  useEffect(() => {
+    if (!isAutoRefresh) return
+    const interval = setInterval(refresh, AUTO_REFRESH_INTERVAL)
+    return () => clearInterval(interval)
+  }, [isAutoRefresh, refresh])
 
   const filteredOrders = filter === 'all'
     ? orders
@@ -182,10 +198,24 @@ export function OrdersClient({ orders, stats }: OrdersClientProps) {
             {stats.todayOrders} commande{stats.todayOrders > 1 ? 's' : ''} aujourd'hui • {stats.monthlyRevenue.toLocaleString('fr-FR')} € ce mois
           </p>
         </div>
-        <Button variant="outline" onClick={() => router.refresh()} className="gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400">
+            MAJ {lastRefresh.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+          <Button
+            variant={isAutoRefresh ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsAutoRefresh(!isAutoRefresh)}
+            className="gap-1 text-xs"
+          >
+            <RefreshCw className={cn("h-3 w-3", isAutoRefresh && "animate-spin")} />
+            Auto
+          </Button>
+          <Button variant="outline" onClick={refresh} className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}

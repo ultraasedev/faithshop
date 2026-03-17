@@ -14,8 +14,8 @@ function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const clearCart = useCart((state) => state.clearCart)
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
-  
+  const [status, setStatus] = useState<'loading' | 'success' | 'processing' | 'error'>('loading')
+
   const paymentIntent = searchParams.get('payment_intent')
   const redirectStatus = searchParams.get('redirect_status')
 
@@ -28,16 +28,55 @@ function SuccessContent() {
     if (redirectStatus === 'succeeded') {
       setStatus('success')
       clearCart()
+    } else if (redirectStatus === 'processing') {
+      // Paiement en cours de traitement (virement, SEPA, etc.)
+      setStatus('processing')
+      clearCart()
     } else {
       setStatus('error')
     }
-  }, [paymentIntent, redirectStatus, clearCart])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentIntent, redirectStatus])
 
   if (status === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
         <p className="text-lg text-muted-foreground">Vérification de votre commande...</p>
+      </div>
+    )
+  }
+
+  if (status === 'processing') {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center max-w-lg mx-auto">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        >
+          <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center mb-8">
+            <Loader2 className="h-12 w-12 text-blue-600 animate-spin" />
+          </div>
+        </motion.div>
+        <h1 className="text-4xl font-serif font-bold mb-4">Paiement en cours de traitement</h1>
+        <p className="text-muted-foreground text-lg mb-8">
+          Votre paiement est en cours de validation. Vous recevrez un email de confirmation dès qu&apos;il sera accepté. Cela peut prendre quelques minutes.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild size="lg" className="rounded-full">
+            <Link href="/shop">
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Continuer mes achats
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="rounded-full">
+            <Link href="/account/orders">
+              Voir ma commande
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
     )
   }
@@ -50,7 +89,7 @@ function SuccessContent() {
         </div>
         <h1 className="text-3xl font-serif font-bold mb-4">Une erreur est survenue</h1>
         <p className="text-muted-foreground mb-8">
-          Nous n'avons pas pu confirmer votre paiement. Si vous avez été débité, veuillez contacter notre support.
+          Nous n&apos;avons pas pu confirmer votre paiement. Si vous avez été débité, veuillez contacter notre support.
         </p>
         <Button asChild>
           <Link href="/contact">Contacter le support</Link>

@@ -343,9 +343,9 @@ export default function HomeClient({
               </p>
 
               {/* Real Instagram posts grid */}
-              {instagramPosts.length > 0 && (
+              {instagramPosts.filter(p => p.image).length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 mb-10">
-                  {instagramPosts.map((post) => (
+                  {instagramPosts.filter(p => p.image).map((post) => (
                     <a
                       key={post.id}
                       href={post.url || instagramUrl}
@@ -353,11 +353,12 @@ export default function HomeClient({
                       rel="noopener noreferrer"
                       className="group relative aspect-square overflow-hidden bg-secondary"
                     >
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={post.image}
                         alt=""
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                         <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" viewBox="0 0 24 24" fill="currentColor">
