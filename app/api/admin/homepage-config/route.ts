@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    revalidatePath('/')
+    revalidatePath('/', 'layout')
+    revalidatePath('/', 'page')
     revalidatePath('/admin/pages/home')
 
     return NextResponse.json({ success: true })
