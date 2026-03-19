@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect } from 'react'
 import Link from 'next/link'
 
 interface SlideData {
@@ -19,63 +19,77 @@ interface HeroSliderProps {
 }
 
 export default function HeroSlider({ slides }: HeroSliderProps) {
-  const [current, setCurrent] = useState(0)
-  const [containerEl, setContainerEl] = useState<HTMLElement | null>(null)
-
-  // Callback ref — guaranteed to capture the DOM node
-  const containerCallback = useCallback((node: HTMLElement | null) => {
-    setContainerEl(node)
-  }, [])
-
-  // Apply slide styles whenever current or containerEl changes
   useEffect(() => {
-    if (!containerEl) return
+    const container = document.getElementById('hero-slider')
+    if (!container || slides.length <= 1) return
 
-    const slideDivs = containerEl.querySelectorAll<HTMLDivElement>('[data-slide]')
-    const dotBtns = containerEl.querySelectorAll<HTMLButtonElement>('[data-dot]')
+    let current = 0
+    let timer: ReturnType<typeof setInterval> | null = null
 
-    slideDivs.forEach((div, i) => {
-      if (i === current) {
-        div.style.opacity = '1'
-        div.style.zIndex = '10'
-        div.style.pointerEvents = 'auto'
-      } else {
-        div.style.opacity = '0'
-        div.style.zIndex = '0'
-        div.style.pointerEvents = 'none'
-      }
-    })
+    function goTo(index: number) {
+      const slideDivs = container!.querySelectorAll<HTMLDivElement>('[data-slide]')
+      const dotBtns = container!.querySelectorAll<HTMLButtonElement>('[data-dot]')
+
+      slideDivs.forEach((div, i) => {
+        div.style.opacity = i === index ? '1' : '0'
+        div.style.zIndex = i === index ? '10' : '0'
+        div.style.pointerEvents = i === index ? 'auto' : 'none'
+      })
+
+      dotBtns.forEach((btn, i) => {
+        btn.style.backgroundColor = i === index ? 'white' : 'rgba(255,255,255,0.4)'
+        btn.style.width = i === index ? '48px' : '32px'
+      })
+
+      current = index
+    }
+
+    function nextSlide() {
+      goTo((current + 1) % slides.length)
+    }
+
+    function resetTimer() {
+      if (timer) clearInterval(timer)
+      timer = setInterval(nextSlide, 6000)
+    }
+
+    // Attach click handlers via DOM
+    const dotBtns = container.querySelectorAll<HTMLButtonElement>('[data-dot]')
+    const prevBtn = container.querySelector<HTMLButtonElement>('[data-nav="prev"]')
+    const nextBtn = container.querySelector<HTMLButtonElement>('[data-nav="next"]')
 
     dotBtns.forEach((btn, i) => {
-      if (i === current) {
-        btn.style.backgroundColor = 'white'
-        btn.style.width = '48px'
-      } else {
-        btn.style.backgroundColor = 'rgba(255,255,255,0.4)'
-        btn.style.width = '32px'
-      }
+      btn.addEventListener('click', () => {
+        goTo(i)
+        resetTimer()
+      })
     })
-  }, [current, containerEl])
 
-  // Auto-play
-  useEffect(() => {
-    if (slides.length <= 1) return
-    const timer = setInterval(() => {
-      setCurrent(prev => (prev + 1) % slides.length)
-    }, 6000)
-    return () => clearInterval(timer)
-  }, [slides.length])
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        goTo(current === 0 ? slides.length - 1 : current - 1)
+        resetTimer()
+      })
+    }
 
-  const goTo = (index: number) => {
-    setCurrent(index)
-  }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        nextSlide()
+        resetTimer()
+      })
+    }
 
-  const next = () => setCurrent(prev => (prev + 1) % slides.length)
-  const prev = () => setCurrent(prev => prev === 0 ? slides.length - 1 : prev - 1)
+    // Start auto-play
+    timer = setInterval(nextSlide, 6000)
+
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [slides])
 
   return (
     <section
-      ref={containerCallback}
+      id="hero-slider"
       style={{ position: 'relative', height: '95vh', width: '100%', overflow: 'hidden', backgroundColor: 'black' }}
     >
       {slides.map((slide, index) => (
@@ -91,7 +105,6 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
             transition: 'opacity 1s ease-in-out',
           }}
         >
-          {/* Background image */}
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             {slide.isVideo ? (
               <video
@@ -113,7 +126,6 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
             )}
           </div>
 
-          {/* Content overlay */}
           <div style={{
             position: 'absolute',
             inset: 0,
@@ -179,10 +191,8 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
         </div>
       ))}
 
-      {/* Navigation - only if multiple slides */}
       {slides.length > 1 && (
         <>
-          {/* Dots */}
           <div style={{
             position: 'absolute',
             bottom: '32px',
@@ -198,7 +208,6 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
                 key={index}
                 type="button"
                 data-dot={index}
-                onClick={() => goTo(index)}
                 aria-label={`Aller à la slide ${index + 1}`}
                 style={{
                   height: '8px',
@@ -213,10 +222,9 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
             ))}
           </div>
 
-          {/* Prev */}
           <button
             type="button"
-            onClick={prev}
+            data-nav="prev"
             aria-label="Slide précédente"
             style={{
               position: 'absolute',
@@ -239,10 +247,9 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
 
-          {/* Next */}
           <button
             type="button"
-            onClick={next}
+            data-nav="next"
             aria-label="Slide suivante"
             style={{
               position: 'absolute',
