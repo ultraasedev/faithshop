@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import Link from 'next/link'
 
 interface SlideData {
@@ -18,24 +18,24 @@ interface HeroSliderProps {
   slides: SlideData[]
 }
 
-/**
- * Hero slider that uses refs + direct DOM manipulation instead of React state.
- * This avoids hydration/state-update issues in Next.js production builds.
- */
 export default function HeroSlider({ slides }: HeroSliderProps) {
-  const currentRef = useRef(0)
-  const containerRef = useRef<HTMLElement>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [current, setCurrent] = useState(0)
+  const [containerEl, setContainerEl] = useState<HTMLElement | null>(null)
 
-  const goTo = useCallback((index: number) => {
-    const container = containerRef.current
-    if (!container) return
+  // Callback ref — guaranteed to capture the DOM node
+  const containerCallback = useCallback((node: HTMLElement | null) => {
+    setContainerEl(node)
+  }, [])
 
-    const slideDivs = container.querySelectorAll<HTMLDivElement>('[data-slide]')
-    const dotBtns = container.querySelectorAll<HTMLButtonElement>('[data-dot]')
+  // Apply slide styles whenever current or containerEl changes
+  useEffect(() => {
+    if (!containerEl) return
+
+    const slideDivs = containerEl.querySelectorAll<HTMLDivElement>('[data-slide]')
+    const dotBtns = containerEl.querySelectorAll<HTMLButtonElement>('[data-dot]')
 
     slideDivs.forEach((div, i) => {
-      if (i === index) {
+      if (i === current) {
         div.style.opacity = '1'
         div.style.zIndex = '10'
         div.style.pointerEvents = 'auto'
@@ -47,7 +47,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
     })
 
     dotBtns.forEach((btn, i) => {
-      if (i === index) {
+      if (i === current) {
         btn.style.backgroundColor = 'white'
         btn.style.width = '48px'
       } else {
@@ -55,39 +55,27 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
         btn.style.width = '32px'
       }
     })
-
-    currentRef.current = index
-  }, [])
-
-  const next = useCallback(() => {
-    goTo((currentRef.current + 1) % slides.length)
-  }, [goTo, slides.length])
-
-  const prev = useCallback(() => {
-    goTo(currentRef.current === 0 ? slides.length - 1 : currentRef.current - 1)
-  }, [goTo, slides.length])
+  }, [current, containerEl])
 
   // Auto-play
   useEffect(() => {
     if (slides.length <= 1) return
-    timerRef.current = setInterval(next, 6000)
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [next, slides.length])
+    const timer = setInterval(() => {
+      setCurrent(prev => (prev + 1) % slides.length)
+    }, 6000)
+    return () => clearInterval(timer)
+  }, [slides.length])
 
-  // Reset timer on manual navigation
-  const handleNav = useCallback((fn: () => void) => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    fn()
-    if (slides.length > 1) {
-      timerRef.current = setInterval(next, 6000)
-    }
-  }, [next, slides.length])
+  const goTo = (index: number) => {
+    setCurrent(index)
+  }
+
+  const next = () => setCurrent(prev => (prev + 1) % slides.length)
+  const prev = () => setCurrent(prev => prev === 0 ? slides.length - 1 : prev - 1)
 
   return (
     <section
-      ref={containerRef}
+      ref={containerCallback}
       style={{ position: 'relative', height: '95vh', width: '100%', overflow: 'hidden', backgroundColor: 'black' }}
     >
       {slides.map((slide, index) => (
@@ -210,7 +198,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
                 key={index}
                 type="button"
                 data-dot={index}
-                onClick={() => handleNav(() => goTo(index))}
+                onClick={() => goTo(index)}
                 aria-label={`Aller à la slide ${index + 1}`}
                 style={{
                   height: '8px',
@@ -228,7 +216,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
           {/* Prev */}
           <button
             type="button"
-            onClick={() => handleNav(prev)}
+            onClick={prev}
             aria-label="Slide précédente"
             style={{
               position: 'absolute',
@@ -254,7 +242,7 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
           {/* Next */}
           <button
             type="button"
-            onClick={() => handleNav(next)}
+            onClick={next}
             aria-label="Slide suivante"
             style={{
               position: 'absolute',
