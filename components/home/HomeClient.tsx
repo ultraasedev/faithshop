@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck, ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react'
+import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
+import HeroSlider from '@/components/home/HeroSlider'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect, useRef, useMemo, useReducer, FormEvent } from 'react'
+import { useMemo, FormEvent } from 'react'
 import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 
 interface Slide {
   id: string
@@ -37,20 +37,6 @@ interface HomeClientProps {
   instagramPosts?: InstaPost[]
 }
 
-// Slide reducer for reliable state updates in production builds
-function slideReducer(state: { current: number; total: number }, action: { type: 'next' | 'prev' | 'goto'; index?: number }) {
-  switch (action.type) {
-    case 'next':
-      return { ...state, current: (state.current + 1) % state.total }
-    case 'prev':
-      return { ...state, current: state.current === 0 ? state.total - 1 : state.current - 1 }
-    case 'goto':
-      return { ...state, current: action.index ?? 0 }
-    default:
-      return state
-  }
-}
-
 export default function HomeClient({
   heroTitle,
   heroSubtitle,
@@ -62,10 +48,6 @@ export default function HomeClient({
   instagramUrl,
   instagramPosts = []
 }: HomeClientProps) {
-  const [isMuted, setIsMuted] = useState(true)
-  const [isPlaying, setIsPlaying] = useState(true)
-  const videoRef = useRef<HTMLVideoElement>(null)
-
   // Parse slides from JSON or use legacy single slide
   const slides = useMemo(() => {
     let parsedSlides: Slide[] = []
@@ -81,7 +63,6 @@ export default function HomeClient({
       }
     }
 
-    // Legacy single slide format if no slides parsed
     if (parsedSlides.length === 0) {
       parsedSlides = [{
         id: '1',
@@ -101,159 +82,16 @@ export default function HomeClient({
       description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
       cta: slide.ctaText || 'Découvrir',
       link: slide.ctaLink || '/shop',
-      isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm')
+      isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm') || false
     }))
   }, [heroSlides, heroImage, heroTitle, heroSubtitle, heroCtaText, heroCtaLink])
-
-  const [slideState, dispatch] = useReducer(slideReducer, { current: 0, total: slides.length })
-  const currentSlide = slideState.current
-
-  // Auto-play du carrousel
-  useEffect(() => {
-    if (slides.length <= 1) return
-    const timer = setInterval(() => {
-      dispatch({ type: 'next' })
-    }, 6000)
-    return () => clearInterval(timer)
-  }, [slides.length])
-
-  const togglePlay = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
-      }
-      setIsPlaying(!isPlaying)
-    }
-  }
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
-    }
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-white">
       <Header />
-      
-      {/* Hero Section */}
-      <section className="relative h-[85vh] md:h-[95vh] w-full overflow-hidden bg-black">
-        {slides.map((slide, index) => (
-          <div
-            key={slide.id}
-            className="absolute inset-0"
-            style={{
-              opacity: index === currentSlide ? 1 : 0,
-              zIndex: index === currentSlide ? 10 : 0,
-              transition: 'opacity 1s ease-in-out',
-              pointerEvents: index === currentSlide ? 'auto' : 'none',
-            }}
-          >
-            {/* Background Media - pointer-events-none to allow nav button clicks */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                transform: index === currentSlide && !slide.isVideo ? 'scale(1.05)' : 'scale(1)',
-                transition: 'transform 6s linear',
-              }}
-            >
-              {slide.isVideo ? (
-                <video
-                  ref={videoRef}
-                  src={slide.image}
-                  className="w-full h-full object-cover brightness-[0.6]"
-                  autoPlay
-                  loop
-                  muted={isMuted}
-                  playsInline
-                />
-              ) : (
-                <Image
-                  src={slide.image}
-                  alt={slide.title}
-                  fill
-                  quality={100}
-                  unoptimized
-                  className="object-cover object-top brightness-[0.85]"
-                  priority={index === 0}
-                />
-              )}
-            </div>
-            
-            {/* Video Controls (if video) */}
-            {slide.isVideo && (
-              <div className="absolute bottom-8 right-8 z-30 flex gap-4">
-                <button onClick={togglePlay} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors">
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                </button>
-                <button onClick={toggleMute} className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm transition-colors">
-                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
-              </div>
-            )}
-            
-            {/* Content Overlay - pointer-events-none to allow clicks on nav buttons */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 pb-12 pt-20 pointer-events-none">
-              <div className="max-w-4xl mx-auto space-y-6">
-                <span className="inline-block text-white/80 text-xs md:text-sm font-bold uppercase tracking-[0.2em] animate-fade-in-up">
-                  {slide.subtitle}
-                </span>
-                <h1 className="font-serif text-4xl sm:text-5xl md:text-7xl lg:text-8xl text-white leading-[1.1] animate-fade-in-up delay-100">
-                  {slide.title}
-                </h1>
-                <p className="text-base sm:text-lg md:text-xl text-white/90 max-w-xl mx-auto font-light leading-relaxed animate-fade-in-up delay-200 hidden sm:block">
-                  {slide.description}
-                </p>
-                <div className="pt-8 flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up delay-300 w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:w-auto min-w-[180px] bg-white text-black hover:bg-white/90 border-none rounded-none h-12 md:h-14 text-xs md:text-sm uppercase tracking-widest font-bold" asChild>
-                    <Link href={slide.link}>
-                      {slide.cta}
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
 
-        {/* Carousel Controls (only if multiple slides) */}
-        {slides.length > 1 && (
-          <>
-            <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => dispatch({ type: 'goto', index })}
-                  className={cn(
-                    "h-2 rounded-full transition-all duration-300 cursor-pointer",
-                    index === currentSlide ? "bg-white w-12" : "bg-white/40 w-8 hover:bg-white/60"
-                  )}
-                  aria-label={`Aller à la slide ${index + 1}`}
-                />
-              ))}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => dispatch({ type: 'prev' })}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <button
-              type="button"
-              onClick={() => dispatch({ type: 'next' })}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
-            >
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </>
-        )}
-      </section>
+      {/* Hero Slider - isolated component using DOM refs, no React state */}
+      <HeroSlider slides={slides} />
 
 
       {/* Marquee / Trust Bar */}
