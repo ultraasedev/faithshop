@@ -6,7 +6,7 @@ import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck, ChevronLeft, ChevronRi
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
-import { useState, useEffect, useRef, useMemo, FormEvent } from 'react'
+import { useState, useEffect, useRef, useMemo, useReducer, FormEvent } from 'react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -37,6 +37,20 @@ interface HomeClientProps {
   instagramPosts?: InstaPost[]
 }
 
+// Slide reducer for reliable state updates in production builds
+function slideReducer(state: { current: number; total: number }, action: { type: 'next' | 'prev' | 'goto'; index?: number }) {
+  switch (action.type) {
+    case 'next':
+      return { ...state, current: (state.current + 1) % state.total }
+    case 'prev':
+      return { ...state, current: state.current === 0 ? state.total - 1 : state.current - 1 }
+    case 'goto':
+      return { ...state, current: action.index ?? 0 }
+    default:
+      return state
+  }
+}
+
 export default function HomeClient({
   heroTitle,
   heroSubtitle,
@@ -48,12 +62,11 @@ export default function HomeClient({
   instagramUrl,
   instagramPosts = []
 }: HomeClientProps) {
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(true)
+  const [isPlaying, setIsPlaying] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  // Parse slides from JSON or use legacy single slide - memoized to avoid recalculation
+  // Parse slides from JSON or use legacy single slide
   const slides = useMemo(() => {
     let parsedSlides: Slide[] = []
 
@@ -92,24 +105,17 @@ export default function HomeClient({
     }))
   }, [heroSlides, heroImage, heroTitle, heroSubtitle, heroCtaText, heroCtaLink])
 
-  const slidesCount = slides.length
+  const [slideState, dispatch] = useReducer(slideReducer, { current: 0, total: slides.length })
+  const currentSlide = slideState.current
 
-  // Auto-play du carrousel (désactivé s'il n'y a qu'un slide)
+  // Auto-play du carrousel
   useEffect(() => {
-    if (slidesCount <= 1) return
+    if (slides.length <= 1) return
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slidesCount)
+      dispatch({ type: 'next' })
     }, 6000)
     return () => clearInterval(timer)
-  }, [slidesCount])
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slidesCount)
-  }
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => prev === 0 ? slidesCount - 1 : prev - 1)
-  }
+  }, [slides.length])
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -138,16 +144,22 @@ export default function HomeClient({
         {slides.map((slide, index) => (
           <div
             key={slide.id}
-            className={cn(
-              "absolute inset-0 transition-opacity duration-1000 ease-in-out",
-              index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
-            )}
+            className="absolute inset-0"
+            style={{
+              opacity: index === currentSlide ? 1 : 0,
+              zIndex: index === currentSlide ? 10 : 0,
+              transition: 'opacity 1s ease-in-out',
+              pointerEvents: index === currentSlide ? 'auto' : 'none',
+            }}
           >
             {/* Background Media - pointer-events-none to allow nav button clicks */}
-            <div className={cn(
-              "absolute inset-0 transition-transform duration-6000 ease-linear pointer-events-none",
-              index === currentSlide && !slide.isVideo ? "scale-105" : "scale-100"
-            )}>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                transform: index === currentSlide && !slide.isVideo ? 'scale(1.05)' : 'scale(1)',
+                transition: 'transform 6s linear',
+              }}
+            >
               {slide.isVideo ? (
                 <video
                   ref={videoRef}
@@ -208,14 +220,14 @@ export default function HomeClient({
         ))}
 
         {/* Carousel Controls (only if multiple slides) */}
-        {slidesCount > 1 && (
+        {slides.length > 1 && (
           <>
             <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
               {slides.map((_, index) => (
                 <button
                   key={index}
                   type="button"
-                  onClick={() => setCurrentSlide(index)}
+                  onClick={() => dispatch({ type: 'goto', index })}
                   className={cn(
                     "h-2 rounded-full transition-all duration-300 cursor-pointer",
                     index === currentSlide ? "bg-white w-12" : "bg-white/40 w-8 hover:bg-white/60"
@@ -227,14 +239,14 @@ export default function HomeClient({
 
             <button
               type="button"
-              onClick={prevSlide}
+              onClick={() => dispatch({ type: 'prev' })}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
               <ChevronLeft className="h-6 w-6" />
             </button>
             <button
               type="button"
-              onClick={nextSlide}
+              onClick={() => dispatch({ type: 'next' })}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-white/30 bg-black/20 text-white hover:bg-white/20 transition-colors cursor-pointer"
             >
               <ChevronRight className="h-6 w-6" />

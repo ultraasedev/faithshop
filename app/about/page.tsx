@@ -53,17 +53,14 @@ export default async function AboutPage() {
         {/* Hero Section */}
         <section className="relative h-[70vh] min-h-[500px] flex items-center justify-center overflow-hidden">
           <div className="absolute inset-0">
-            {values.hero_image ? (
-              <Image
-                src={values.hero_image}
-                alt="À propos"
-                fill
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-900" />
-            )}
+            <Image
+              src={values.hero_image || '/hero-bg.png'}
+              alt="À propos"
+              fill
+              className="object-cover"
+              priority
+              unoptimized={values.hero_image?.includes('blob.vercel-storage.com')}
+            />
             <div className="absolute inset-0 bg-black/50" />
           </div>
           <div className="relative text-center text-white px-4">
