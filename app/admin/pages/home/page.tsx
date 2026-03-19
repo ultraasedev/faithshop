@@ -195,6 +195,35 @@ export default function HomepageEditorPage() {
     setInstaPosts(instaPosts.map(p => p.id === id ? { ...p, [field]: value } : p))
   }
 
+  // Auto-fetch image from Instagram URL
+  const handleInstaUrlPaste = async (postId: string, url: string) => {
+    updateInstaPost(postId, 'url', url)
+
+    // If it's an Instagram post/reel URL and no image yet, auto-fetch
+    if (url.match(/instagram\.com\/(p|reel|tv)\//) && !instaPosts.find(p => p.id === postId)?.image) {
+      setUploadingInstaId(postId)
+      try {
+        const res = await fetch('/api/admin/instagram-fetch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        })
+        if (res.ok) {
+          const data = await res.json()
+          updateInstaPost(postId, 'image', data.imageUrl)
+          toast.success('Image Instagram récupérée automatiquement')
+        } else {
+          const error = await res.json()
+          toast.error(error.error || 'Impossible de récupérer l\'image, uploadez-la manuellement')
+        }
+      } catch {
+        toast.error('Erreur réseau, uploadez l\'image manuellement')
+      } finally {
+        setUploadingInstaId(null)
+      }
+    }
+  }
+
   const handleInstaImageUpload = async (postId: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -475,9 +504,8 @@ export default function HomepageEditorPage() {
               Section Instagram
             </CardTitle>
             <CardDescription>
-              <strong>Important :</strong> Les liens Instagram ne peuvent pas servir d'image (les URLs expirent).
-              Vous devez <strong>uploader une capture d'écran</strong> ou <strong>enregistrer l'image du post</strong> puis l'uploader via le bouton.
-              Le champ "Lien" sert à rediriger vers le post original sur Instagram.
+              Collez le lien d'un post Instagram et l'image se récupère automatiquement.
+              Si ça ne marche pas, uploadez l'image manuellement via le bouton.
               La section ne s'affiche que si Instagram est configuré dans Footer &gt; Réseaux sociaux.
             </CardDescription>
           </div>
@@ -563,11 +591,11 @@ export default function HomepageEditorPage() {
                         </label>
                       </div>
 
-                      {/* Post URL */}
+                      {/* Post URL - auto-fetches image when pasting Instagram link */}
                       <Input
                         value={post.url}
-                        onChange={(e) => updateInstaPost(post.id, 'url', e.target.value)}
-                        placeholder="https://www.instagram.com/p/... (lien vers le post)"
+                        onChange={(e) => handleInstaUrlPaste(post.id, e.target.value)}
+                        placeholder="https://www.instagram.com/p/... (collez le lien, l'image se charge auto)"
                         className="h-8 text-sm"
                       />
                     </div>
