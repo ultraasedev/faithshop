@@ -5,19 +5,9 @@ import Image from 'next/image'
 import { ArrowRight, Star, Truck, RefreshCw, ShieldCheck } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
-import HeroSlider from '@/components/home/HeroSlider'
 import { Button } from '@/components/ui/button'
-import { useMemo, FormEvent } from 'react'
+import { FormEvent } from 'react'
 import { toast } from 'sonner'
-
-interface Slide {
-  id: string
-  image: string
-  title: string
-  subtitle: string
-  ctaText: string
-  ctaLink: string
-}
 
 interface InstaPost {
   id: string
@@ -26,72 +16,19 @@ interface InstaPost {
 }
 
 interface HomeClientProps {
-  heroTitle?: string
-  heroSubtitle?: string
-  heroImage?: string
-  heroCtaText?: string
-  heroCtaLink?: string
-  heroSlides?: string // JSON string of Slide[]
   featuredProducts: any[]
   instagramUrl?: string
   instagramPosts?: InstaPost[]
 }
 
 export default function HomeClient({
-  heroTitle,
-  heroSubtitle,
-  heroImage,
-  heroCtaText,
-  heroCtaLink,
-  heroSlides,
   featuredProducts,
   instagramUrl,
   instagramPosts = []
 }: HomeClientProps) {
-  // Parse slides from JSON or use legacy single slide
-  const slides = useMemo(() => {
-    let parsedSlides: Slide[] = []
-
-    if (heroSlides) {
-      try {
-        const parsed = JSON.parse(heroSlides)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          parsedSlides = parsed
-        }
-      } catch (e) {
-        console.error('Failed to parse heroSlides:', e)
-      }
-    }
-
-    if (parsedSlides.length === 0) {
-      parsedSlides = [{
-        id: '1',
-        image: heroImage || '/hero-bg.png',
-        title: heroTitle || "L'Élégance de la Foi",
-        subtitle: heroSubtitle || 'Collection Hiver 2025',
-        ctaText: heroCtaText || 'Découvrir',
-        ctaLink: heroCtaLink || '/shop'
-      }]
-    }
-
-    return parsedSlides.map(slide => ({
-      id: slide.id,
-      image: slide.image || '/hero-bg.png',
-      subtitle: slide.subtitle || 'Collection Hiver 2025',
-      title: slide.title || "L'Élégance de la Foi",
-      description: "Une expression intemporelle de spiritualité à travers des pièces d'exception.",
-      cta: slide.ctaText || 'Découvrir',
-      link: slide.ctaLink || '/shop',
-      isVideo: slide.image?.endsWith('.mp4') || slide.image?.endsWith('.webm') || false
-    }))
-  }, [heroSlides, heroImage, heroTitle, heroSubtitle, heroCtaText, heroCtaLink])
-
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-white">
       <Header />
-
-      {/* Hero Slider - isolated component using DOM refs, no React state */}
-      <HeroSlider slides={slides} />
 
 
       {/* Marquee / Trust Bar */}
