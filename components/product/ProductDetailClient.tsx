@@ -546,16 +546,6 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                 </div>
               </div>
 
-              {/* Pre-order banner */}
-              <div className="mt-6 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg p-4 shadow-lg">
-                <div className="flex items-center gap-3 text-white">
-                  <Truck className="w-6 h-6 flex-shrink-0" />
-                  <div>
-                    <p className="font-bold text-sm uppercase tracking-wide">Pré-commande</p>
-                    <p className="text-white/90">Les expéditions commenceront à partir du <span className="font-bold">16 janvier 2025</span></p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 

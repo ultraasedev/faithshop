@@ -127,6 +127,10 @@ export function ProductForm({ product, collections }: ProductFormProps) {
   const [videoUploadProgress, setVideoUploadProgress] = useState(0)
   const [compressVideo, setCompressVideo] = useState(true)
 
+  // Sizes & Colors (simple mode - used when no variants)
+  const [sizesInput, setSizesInput] = useState((product?.sizes || []).join(', '))
+  const [colorsInput, setColorsInput] = useState((product?.colors || []).join(', '))
+
   // Variants
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false)
   const [variantAttributes, setVariantAttributes] = useState<VariantAttribute[]>(
@@ -535,6 +539,22 @@ export function ProductForm({ product, collections }: ProductFormProps) {
     setSaving(true)
 
     try {
+      // Parse sizes/colors from comma-separated input, or extract from variants
+      let sizes: string[] = []
+      let colors: string[] = []
+
+      if (hasVariants && variantAttributes.length > 0) {
+        // Auto-extract from variant attributes
+        const sizeAttr = variantAttributes.find(a => a.name.toLowerCase().includes('taille') || a.name.toLowerCase() === 'size')
+        const colorAttr = variantAttributes.find(a => a.name.toLowerCase().includes('couleur') || a.name.toLowerCase() === 'color')
+        sizes = sizeAttr?.values || []
+        colors = colorAttr?.values || []
+      } else {
+        // Use manual input
+        sizes = sizesInput.split(',').map((s: string) => s.trim()).filter(Boolean)
+        colors = colorsInput.split(',').map((s: string) => s.trim()).filter(Boolean)
+      }
+
       const productData = {
         name,
         description,
@@ -549,6 +569,8 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         lowStockThreshold: parseInt(lowStockThreshold),
         images,
         videos,
+        sizes,
+        colors,
         hasVariants,
         variantAttributes: hasVariants ? variantAttributes : [],
         variants: hasVariants ? variants.map(v => ({
@@ -729,6 +751,36 @@ export function ProductForm({ product, collections }: ProductFormProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Tailles & Couleurs (mode simple - sans variantes) */}
+          {!hasVariants && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Tailles & Couleurs</CardTitle>
+                <CardDescription>Séparez par des virgules. Ex: S, M, L, XL, XXL</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sizes">Tailles disponibles</Label>
+                  <Input
+                    id="sizes"
+                    value={sizesInput}
+                    onChange={(e) => setSizesInput(e.target.value)}
+                    placeholder="S, M, L, XL, XXL"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="colors">Couleurs disponibles</Label>
+                  <Input
+                    id="colors"
+                    value={colorsInput}
+                    onChange={(e) => setColorsInput(e.target.value)}
+                    placeholder="Noir, Blanc, Gris"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {!hasVariants && (
             <Card>

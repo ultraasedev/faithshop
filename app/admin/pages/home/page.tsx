@@ -475,7 +475,9 @@ export default function HomepageEditorPage() {
               Section Instagram
             </CardTitle>
             <CardDescription>
-              Ajoutez vos plus beaux posts/reels. Uploadez une capture ou l'image du post + le lien vers le post original.
+              <strong>Important :</strong> Les liens Instagram ne peuvent pas servir d'image (les URLs expirent).
+              Vous devez <strong>uploader une capture d'écran</strong> ou <strong>enregistrer l'image du post</strong> puis l'uploader via le bouton.
+              Le champ "Lien" sert à rediriger vers le post original sur Instagram.
               La section ne s'affiche que si Instagram est configuré dans Footer &gt; Réseaux sociaux.
             </CardDescription>
           </div>
