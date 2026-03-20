@@ -102,10 +102,13 @@ export function TransactionsClient({ transactions, stats }: TransactionsClientPr
   const [filter, setFilter] = useState<string>('all')
   const [isAutoRefresh, setIsAutoRefresh] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const refresh = useCallback(() => {
+    setIsRefreshing(true)
     router.refresh()
     setLastRefresh(new Date())
+    setTimeout(() => setIsRefreshing(false), 1000)
   }, [router])
 
   useEffect(() => {
@@ -266,8 +269,8 @@ export function TransactionsClient({ transactions, stats }: TransactionsClientPr
             <RefreshCw className={cn("h-3 w-3", isAutoRefresh && "animate-spin")} />
             Auto
           </Button>
-          <Button variant="outline" onClick={refresh} className="gap-2">
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="outline" onClick={refresh} disabled={isRefreshing} className="gap-2">
+            <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             Actualiser
           </Button>
         </div>
