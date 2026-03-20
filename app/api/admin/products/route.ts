@@ -114,6 +114,8 @@ export async function POST(request: NextRequest) {
         lowStockThreshold,
         hasVariants,
         tags,
+        sizes: body.sizes || [],
+        colors: body.colors || [],
         metaTitle,
         metaDescription,
         slug,

@@ -65,7 +65,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
       reviews: true,
       videos: {
         orderBy: { sortOrder: 'asc' }
-      }
+      },
+      variants: true
     }
   })
 
@@ -95,7 +96,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
       text: review.comment || '',
       author: review.authorName || 'Anonyme',
       date: review.createdAt ? new Date(review.createdAt).toLocaleDateString('fr-FR') : ''
-    }))
+    })),
+    variants: (product.variants || []).map(v => ({
+      id: v.id,
+      title: v.title,
+      attributes: v.attributes as Record<string, string>,
+      stock: v.stock,
+      price: v.price.toNumber(),
+    })),
+    stock: product.stock,
+    hasVariants: product.hasVariants
   }
 
   return (

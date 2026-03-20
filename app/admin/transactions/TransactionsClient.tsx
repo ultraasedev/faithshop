@@ -100,7 +100,7 @@ const AUTO_REFRESH_INTERVAL = 30_000
 export function TransactionsClient({ transactions, stats }: TransactionsClientProps) {
   const router = useRouter()
   const [filter, setFilter] = useState<string>('all')
-  const [isAutoRefresh, setIsAutoRefresh] = useState(false)
+  const [isAutoRefresh, setIsAutoRefresh] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
   const refresh = useCallback(() => {

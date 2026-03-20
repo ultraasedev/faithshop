@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { Loader2, Save, Image as ImageIcon, Upload, Plus, Trash2, ChevronLeft, ChevronRight, GripVertical, Instagram } from 'lucide-react'
 
@@ -17,6 +18,11 @@ interface Slide {
   subtitle: string
   ctaText: string
   ctaLink: string
+}
+
+interface Product {
+  id: string
+  name: string
 }
 
 interface InstaPost {
@@ -34,6 +40,18 @@ const createEmptySlide = (): Slide => ({
   ctaLink: '/shop'
 })
 
+const PAGES = [
+  { label: 'Accueil', value: '/' },
+  { label: 'Boutique', value: '/shop' },
+  { label: 'Nouveautés', value: '/new' },
+  { label: 'À Propos', value: '/about' },
+  { label: 'Contact', value: '/contact' },
+  { label: 'Livraison', value: '/livraison' },
+  { label: 'CGV', value: '/cgv' },
+  { label: 'Mentions légales', value: '/legal' },
+  { label: 'Confidentialité', value: '/privacy' },
+]
+
 export default function HomepageEditorPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -43,10 +61,25 @@ export default function HomepageEditorPage() {
   const [previewIndex, setPreviewIndex] = useState(0)
   const [instaPosts, setInstaPosts] = useState<InstaPost[]>([])
   const [uploadingInstaId, setUploadingInstaId] = useState<string | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
 
   useEffect(() => {
     fetchConfig()
+    fetchProducts()
   }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/admin/products')
+      if (res.ok) {
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : data.products ?? []
+        setProducts(list.map((p: any) => ({ id: p.id, name: p.name })))
+      }
+    } catch (error) {
+      console.error('Failed to fetch products:', error)
+    }
+  }
 
   const fetchConfig = async () => {
     try {
@@ -471,23 +504,59 @@ export default function HomepageEditorPage() {
                 </div>
 
                 {/* CTA */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label>Bouton</Label>
+                <div className="space-y-2">
+                  <Label>Bouton</Label>
+                  <div className="grid grid-cols-2 gap-2">
                     <Input
                       value={slide.ctaText}
                       onChange={(e) => updateSlide(slide.id, 'ctaText', e.target.value)}
                       placeholder="Découvrir"
                     />
+                    <Select
+                      value={
+                        PAGES.some(p => p.value === slide.ctaLink)
+                          ? slide.ctaLink
+                          : products.some(p => `/products/${p.id}` === slide.ctaLink)
+                            ? slide.ctaLink
+                            : '_custom'
+                      }
+                      onValueChange={(val) => {
+                        if (val !== '_custom') {
+                          updateSlide(slide.id, 'ctaLink', val)
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Lien personnalisé" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_custom">Lien personnalisé</SelectItem>
+                        <SelectGroup>
+                          <SelectLabel>Pages</SelectLabel>
+                          {PAGES.map(page => (
+                            <SelectItem key={page.value} value={page.value}>
+                              {page.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        {products.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Produits</SelectLabel>
+                            {products.map(product => (
+                              <SelectItem key={product.id} value={`/products/${product.id}`}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Lien</Label>
-                    <Input
-                      value={slide.ctaLink}
-                      onChange={(e) => updateSlide(slide.id, 'ctaLink', e.target.value)}
-                      placeholder="/shop"
-                    />
-                  </div>
+                  <Input
+                    value={slide.ctaLink}
+                    onChange={(e) => updateSlide(slide.id, 'ctaLink', e.target.value)}
+                    placeholder="/shop"
+                  />
                 </div>
               </div>
             </div>

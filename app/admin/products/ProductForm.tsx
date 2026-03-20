@@ -551,8 +551,8 @@ export function ProductForm({ product, collections }: ProductFormProps) {
         colors = colorAttr?.values || []
       } else {
         // Use manual input
-        sizes = sizesInput.split(',').map((s: string) => s.trim()).filter(Boolean)
-        colors = colorsInput.split(',').map((s: string) => s.trim()).filter(Boolean)
+        sizes = sizesInput.split(/[,;]/).map((s: string) => s.trim()).filter(Boolean)
+        colors = colorsInput.split(/[,;]/).map((s: string) => s.trim()).filter(Boolean)
       }
 
       const productData = {
@@ -1256,13 +1256,13 @@ export function ProductForm({ product, collections }: ProductFormProps) {
                           </Button>
                         </div>
                         <div>
-                          <Label>Valeurs (séparées par des virgules)</Label>
+                          <Label>Valeurs (séparées par des virgules ou points-virgules)</Label>
                           <Input
                             value={attr.values.join(', ')}
                             onChange={(e) => updateVariantAttribute(attr.id, {
-                              values: e.target.value.split(',').map(v => v.trim()).filter(Boolean)
+                              values: e.target.value.split(/[,;]/).map(v => v.trim()).filter(Boolean)
                             })}
-                            placeholder="Ex: S, M, L, XL"
+                            placeholder="Ex: S, M, L, XL ou XS;S;M;L;XL"
                           />
                         </div>
                       </div>

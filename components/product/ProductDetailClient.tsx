@@ -16,6 +16,14 @@ interface ProductVideo {
   title?: string | null
 }
 
+interface ProductVariant {
+  id: string
+  title: string
+  attributes: Record<string, string>
+  stock: number
+  price: number
+}
+
 interface Product {
   id: string
   name: string
@@ -32,6 +40,9 @@ interface Product {
     author: string
     date: string
   }>
+  variants?: ProductVariant[]
+  stock?: number
+  hasVariants?: boolean
 }
 
 interface ProductDetailClientProps {
@@ -500,20 +511,35 @@ export default function ProductDetailClient({ product }: ProductDetailClientProp
                       </button>
                     </div>
                     <div className="grid grid-cols-6 gap-3">
-                      {product.sizes.map((size) => (
-                        <button
-                          key={size}
-                          type="button"
-                          onClick={() => setSelectedSize(size)}
-                          className={`h-14 flex items-center justify-center border text-sm transition-all duration-200 ${
-                            selectedSize === size
-                              ? 'border-foreground bg-foreground text-background shadow-md'
-                              : 'border-border hover:border-foreground'
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                      {product.sizes.map((size) => {
+                        const sizeVariant = product.variants?.find(v => {
+                          const attrs = v.attributes || {}
+                          return Object.values(attrs).some(val =>
+                            val.toLowerCase() === size.toLowerCase()
+                          )
+                        })
+                        const isOutOfStock = product.hasVariants && sizeVariant && sizeVariant.stock <= 0
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => !isOutOfStock && setSelectedSize(size)}
+                            disabled={!!isOutOfStock}
+                            className={`h-14 flex flex-col items-center justify-center border text-sm transition-all duration-200 relative ${
+                              isOutOfStock
+                                ? 'border-border/50 text-muted-foreground/40 cursor-not-allowed line-through'
+                                : selectedSize === size
+                                  ? 'border-foreground bg-foreground text-background shadow-md'
+                                  : 'border-border hover:border-foreground'
+                            }`}
+                          >
+                            {size}
+                            {isOutOfStock && (
+                              <span className="text-[10px] no-underline" style={{ textDecoration: 'none' }}>Épuisé</span>
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

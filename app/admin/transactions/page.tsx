@@ -2,8 +2,12 @@ import { Suspense } from 'react'
 import { prisma } from '@/lib/prisma'
 import { TransactionsClient } from './TransactionsClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { unstable_noStore as noStore } from 'next/cache'
+
+export const dynamic = 'force-dynamic'
 
 async function getTransactions() {
+  noStore()
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
     select: {

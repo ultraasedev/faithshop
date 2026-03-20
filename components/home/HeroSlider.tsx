@@ -58,23 +58,38 @@ export default function HeroSlider({ slides }: HeroSliderProps) {
     timer = setInterval(nextSlide, 6000);
   }
 
-  var dots = container.querySelectorAll('[data-dot]');
-  for (var d = 0; d < dots.length; d++) {
-    (function(idx) {
-      dots[idx].addEventListener('click', function() { goTo(idx); resetTimer(); });
-    })(d);
-  }
+  // Use event delegation on container - survives React re-renders
+  container.addEventListener('click', function(e) {
+    var dot = e.target.closest('[data-dot]');
+    if (dot) {
+      var idx = parseInt(dot.getAttribute('data-dot'), 10);
+      if (!isNaN(idx)) { goTo(idx); resetTimer(); }
+      return;
+    }
+    var nav = e.target.closest('[data-nav]');
+    if (nav) {
+      var dir = nav.getAttribute('data-nav');
+      if (dir === 'prev') {
+        goTo(current === 0 ? slideCount - 1 : current - 1);
+      } else {
+        nextSlide();
+      }
+      resetTimer();
+    }
+  });
 
-  var prevBtn = container.querySelector('[data-nav="prev"]');
-  var nextBtn = container.querySelector('[data-nav="next"]');
-  if (prevBtn) prevBtn.addEventListener('click', function() {
-    goTo(current === 0 ? slideCount - 1 : current - 1);
-    resetTimer();
-  });
-  if (nextBtn) nextBtn.addEventListener('click', function() {
-    nextSlide();
-    resetTimer();
-  });
+  // Touch swipe support for mobile
+  var touchStartX = 0;
+  container.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  container.addEventListener('touchend', function(e) {
+    var diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) { nextSlide(); } else { goTo(current === 0 ? slideCount - 1 : current - 1); }
+      resetTimer();
+    }
+  }, { passive: true });
 
   timer = setInterval(nextSlide, 6000);
 })();
