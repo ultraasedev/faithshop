@@ -31,9 +31,9 @@ export async function GET() {
 
     return NextResponse.json({
       enabled: configMap.preorder_enabled ?? false,
-      message: configMap.preorder_message ?? 'Expédition le 16 janvier 2025',
-      shippingDate: configMap.preorder_shipping_date ?? '2025-01-16',
-      showPages: configMap.preorder_show_pages ?? ['product', 'checkout']
+      message: configMap.preorder_message ?? '',
+      shippingDate: configMap.preorder_shipping_date ?? '',
+      showPages: configMap.preorder_show_pages ?? []
     })
 
   } catch (error) {

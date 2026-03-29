@@ -20,6 +20,8 @@ import {
   Euro,
   Copy,
   ExternalLink,
+  Download,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -103,6 +105,26 @@ export function TransactionsClient({ transactions, stats }: TransactionsClientPr
   const [isAutoRefresh, setIsAutoRefresh] = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+
+  const syncStripe = useCallback(async () => {
+    setIsSyncing(true)
+    try {
+      const res = await fetch('/api/admin/sync-stripe', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message)
+        router.refresh()
+        setLastRefresh(new Date())
+      } else {
+        toast.error(data.error || 'Erreur de synchronisation')
+      }
+    } catch {
+      toast.error('Erreur réseau')
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [router])
 
   const refresh = useCallback(() => {
     setIsRefreshing(true)
@@ -272,6 +294,10 @@ export function TransactionsClient({ transactions, stats }: TransactionsClientPr
           <Button variant="outline" onClick={refresh} disabled={isRefreshing} className="gap-2">
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
             Actualiser
+          </Button>
+          <Button onClick={syncStripe} disabled={isSyncing} className="gap-2">
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {isSyncing ? 'Sync...' : 'Importer Stripe'}
           </Button>
         </div>
       </div>

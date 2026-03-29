@@ -2,8 +2,8 @@ import { prisma } from '../lib/prisma'
 import { hash } from 'bcryptjs'
 
 async function main() {
-  const email = 'contact@faith-shop.com'
-  const password = 'password123'
+  const email = 'contact@playstart.fr'
+  const password = 'Admin123@'
   const hashedPassword = await hash(password, 10)
 
   try {
