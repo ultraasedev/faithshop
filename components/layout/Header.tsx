@@ -24,6 +24,7 @@ import { useSession } from 'next-auth/react'
 const navigation = [
   { name: 'Nouveautés', href: '/new' },
   { name: 'Collection', href: '/shop' },
+  { name: 'Blog', href: '/blog' },
   { name: 'L\'Atelier', href: '/about' },
 ]
 

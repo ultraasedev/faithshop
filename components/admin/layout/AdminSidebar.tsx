@@ -31,6 +31,7 @@ import {
   PanelBottom,
   CreditCard,
   Mail,
+  BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -86,6 +87,7 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
         { name: 'Footer', href: '/admin/footer', icon: PanelBottom },
         { name: 'Médiathèque', href: '/admin/media', icon: Image },
         { name: 'Menus', href: '/admin/menus', icon: Navigation },
+        { name: 'Blog', href: '/admin/blog', icon: BookOpen },
         { name: 'Newsletter', href: '/admin/newsletter', icon: Mail },
       ]
     },

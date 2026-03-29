@@ -773,6 +773,24 @@ model PageContent {
   updatedAt DateTime @updatedAt
 }
 
+// Blog
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?  // Short summary for cards
+  content     String   @db.Text // HTML content
+  coverImage  String?  // URL to cover image
+  author      String?
+  category    String?
+  tags        String[] // e.g. ["foi", "mode", "inspiration"]
+  isPublished Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // Médias/Images uploadées
 model Media {
   id       String  @id @default(cuid())
