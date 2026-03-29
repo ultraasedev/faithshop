@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       if (dc && dc.isActive
         && (!dc.startsAt || new Date() >= dc.startsAt)
         && (!dc.expiresAt || new Date() <= dc.expiresAt)
-        && (!dc.usageLimit || dc.usageCount < dc.usageLimit)
+        && (!dc.usageLimit || dc.currentUsage < dc.usageLimit)
         && (!dc.minPurchase || subtotal >= Number(dc.minPurchase))
       ) {
         discountCodeId = dc.id

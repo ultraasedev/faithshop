@@ -14,7 +14,7 @@ export async function GET() {
     const discountCodes = await prisma.discountCode.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        createdByAdmin: {
+        createdBy: {
           select: { name: true, email: true }
         },
         orders: {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
         firstTimeCustomer: data.firstTimeCustomer || false,
         combinableWithOthers: data.combinableWithOthers || false,
         isActive: true,
-        createdByAdminId: session.user.id
+        createdById: session.user.id
       }
     })
 

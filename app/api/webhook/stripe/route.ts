@@ -26,6 +26,10 @@ export async function POST(req: Request) {
         await handlePaymentSuccess(event)
         break
 
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event)
+        break
+
       case 'product.updated':
         await handleProductUpdated(event)
         break
@@ -201,7 +205,7 @@ async function handlePaymentSuccess(event: Stripe.Event) {
         try {
           await prisma.discountCode.update({
             where: { id: discountCodeId },
-            data: { usageCount: { increment: 1 } }
+            data: { currentUsage: { increment: 1 } }
           })
         } catch (dcError) {
           console.error('[Webhook] Erreur incrémentation code promo:', dcError)
@@ -288,6 +292,91 @@ async function handlePaymentSuccess(event: Stripe.Event) {
       console.error('[Webhook] Erreur lors de la création de la commande:', error)
       throw error
     }
+}
+
+async function handlePaymentFailed(event: Stripe.Event) {
+  const paymentIntent = event.data.object as Stripe.PaymentIntent
+
+  // Idempotency: don't create duplicate failed orders on webhook retries
+  const existingOrder = await prisma.order.findFirst({
+    where: { stripePaymentIntentId: paymentIntent.id }
+  })
+  if (existingOrder) {
+    return
+  }
+
+  // Parse items from metadata
+  let items: any[] = []
+  try {
+    items = JSON.parse(paymentIntent.metadata.items || '[]')
+  } catch (parseError) {
+    console.error(`[Webhook] Erreur parsing items metadata (failed payment):`, parseError)
+    // Still create the order record even without items for traceability
+  }
+
+  const shippingDetails = paymentIntent.shipping
+
+  // Extract customer info from receipt_email, shipping, or charge billing details
+  let customerEmail = paymentIntent.receipt_email || ''
+  let customerName = shippingDetails?.name || ''
+
+  if (!customerEmail && paymentIntent.latest_charge) {
+    try {
+      const charge = await stripe.charges.retrieve(paymentIntent.latest_charge as string)
+      customerEmail = charge.billing_details?.email || ''
+      if (!customerName) customerName = charge.billing_details?.name || ''
+    } catch (chargeError) {
+      console.error('[Webhook] Erreur récupération charge (failed payment):', chargeError)
+    }
+  }
+
+  try {
+    const orderNumber = `CMD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+    const total = paymentIntent.amount / 100
+
+    await prisma.order.create({
+      data: {
+        orderNumber,
+        total,
+        subtotal: total,
+        discountAmount: 0,
+        taxAmount: 0,
+        shippingCost: 0,
+        status: 'CANCELLED',
+        paymentStatus: 'FAILED',
+        paymentMethod: 'STRIPE',
+        stripePaymentIntentId: paymentIntent.id,
+        guestName: customerName || 'Client',
+        guestEmail: customerEmail || `guest-${Date.now()}@faith-shop.fr`,
+        shippingAddress: [
+          shippingDetails?.address?.line1,
+          shippingDetails?.address?.line2,
+          shippingDetails?.address?.postal_code,
+          shippingDetails?.address?.city,
+          shippingDetails?.address?.country
+        ].filter(Boolean).join(', ') || 'Non renseignée',
+        shippingCity: shippingDetails?.address?.city || '',
+        shippingZip: shippingDetails?.address?.postal_code || '',
+        shippingCountry: shippingDetails?.address?.country || 'FR',
+        items: items.length > 0 ? {
+          create: items.map((item: any) => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price: item.price,
+            productName: item.name,
+            productImage: item.image,
+            color: item.color,
+            size: item.size
+          }))
+        } : undefined
+      }
+    })
+
+    console.log(`[Webhook] Failed payment order created: ${orderNumber} (PI: ${paymentIntent.id})`)
+  } catch (error) {
+    console.error('[Webhook] Erreur création commande échouée:', error)
+    throw error
+  }
 }
 
 async function handleProductUpdated(event: Stripe.Event) {

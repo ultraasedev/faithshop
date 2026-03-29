@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ valid: false, error: 'Ce code promo a expiré' })
     }
 
-    if (discountCode.usageLimit && discountCode.usageCount >= discountCode.usageLimit) {
+    if (discountCode.usageLimit && discountCode.currentUsage >= discountCode.usageLimit) {
       return NextResponse.json({ valid: false, error: 'Ce code promo a atteint sa limite d\'utilisation' })
     }
 

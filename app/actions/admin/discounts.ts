@@ -332,8 +332,8 @@ export async function createGiftCard(data: {
   const giftCard = await prisma.giftCard.create({
     data: {
       code,
-      initialAmount: data.amount,
-      currentBalance: data.amount,
+      amount: data.amount,
+      balance: data.amount,
       recipientEmail: data.recipientEmail,
       recipientName: data.recipientName,
       purchaserEmail: data.purchaserEmail,
@@ -378,14 +378,14 @@ export async function validateGiftCard(code: string) {
     return { valid: false, error: 'Cette carte cadeau a expiré' }
   }
 
-  if (Number(giftCard.currentBalance) <= 0) {
+  if (Number(giftCard.balance) <= 0) {
     return { valid: false, error: 'Cette carte cadeau est épuisée' }
   }
 
   return {
     valid: true,
     giftCard,
-    availableBalance: giftCard.currentBalance,
+    availableBalance: giftCard.balance,
   }
 }
 
@@ -395,16 +395,16 @@ export async function useGiftCard(giftCardId: string, amount: number, orderId?: 
     where: { id: giftCardId },
   })
 
-  if (!giftCard || Number(giftCard.currentBalance) < amount) {
+  if (!giftCard || Number(giftCard.balance) < amount) {
     throw new Error('Solde insuffisant sur la carte cadeau')
   }
 
-  const newBalance = Number(giftCard.currentBalance) - amount
+  const newBalance = Number(giftCard.balance) - amount
 
   const updated = await prisma.giftCard.update({
     where: { id: giftCardId },
     data: {
-      currentBalance: newBalance,
+      balance: newBalance,
       status: newBalance <= 0 ? 'USED' : 'ACTIVE',
     },
   })
@@ -433,12 +433,12 @@ export async function rechargeGiftCard(giftCardId: string, amount: number) {
     throw new Error('Carte cadeau non trouvée')
   }
 
-  const newBalance = Number(giftCard.currentBalance) + amount
+  const newBalance = Number(giftCard.balance) + amount
 
   const updated = await prisma.giftCard.update({
     where: { id: giftCardId },
     data: {
-      currentBalance: newBalance,
+      balance: newBalance,
       status: 'ACTIVE',
     },
   })

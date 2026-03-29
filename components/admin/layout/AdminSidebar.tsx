@@ -29,7 +29,8 @@ import {
   RotateCcw,
   Share2,
   PanelBottom,
-  CreditCard
+  CreditCard,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -85,6 +86,7 @@ const getNavigationItems = (isSuperAdmin: boolean): NavSection[] => {
         { name: 'Footer', href: '/admin/footer', icon: PanelBottom },
         { name: 'Médiathèque', href: '/admin/media', icon: Image },
         { name: 'Menus', href: '/admin/menus', icon: Navigation },
+        { name: 'Newsletter', href: '/admin/newsletter', icon: Mail },
       ]
     },
     {
