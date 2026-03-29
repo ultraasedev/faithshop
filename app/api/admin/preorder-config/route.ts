@@ -29,8 +29,11 @@ export async function GET() {
       return acc
     }, {} as Record<string, any>)
 
+    // Force boolean conversion - config.value might be string "true"/"false"
+    const enabled = configMap.preorder_enabled === true || configMap.preorder_enabled === 'true'
+
     return NextResponse.json({
-      enabled: configMap.preorder_enabled ?? false,
+      enabled,
       message: configMap.preorder_message ?? '',
       shippingDate: configMap.preorder_shipping_date ?? '',
       showPages: configMap.preorder_show_pages ?? []
