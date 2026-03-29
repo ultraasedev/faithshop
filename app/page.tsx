@@ -113,6 +113,21 @@ export default async function Home() {
     console.error('Failed to fetch homepage data:', error)
   }
 
+  // Fetch latest blog posts
+  let blogPosts: Array<{ id: string; title: string; slug: string; excerpt: string | null; coverImage: string | null; category: string | null; publishedAt: string | null }> = []
+  try {
+    const posts = await prisma.blogPost.findMany({
+      where: { isPublished: true },
+      orderBy: { publishedAt: 'desc' },
+      take: 6,
+      select: { id: true, title: true, slug: true, excerpt: true, coverImage: true, category: true, publishedAt: true },
+    })
+    blogPosts = posts.map(p => ({
+      ...p,
+      publishedAt: p.publishedAt?.toISOString() || null,
+    }))
+  } catch {}
+
   // Parse slides server-side (no client JS needed)
   const slides = parseSlides(configMap)
 
@@ -124,6 +139,7 @@ export default async function Home() {
         featuredProducts={productsToShow}
         instagramUrl={instagramUrl}
         instagramPosts={instagramPosts}
+        blogPosts={blogPosts}
       />
     </>
   )

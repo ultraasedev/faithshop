@@ -15,16 +15,28 @@ interface InstaPost {
   url: string
 }
 
+interface BlogPost {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  coverImage: string | null
+  category: string | null
+  publishedAt: string | null
+}
+
 interface HomeClientProps {
   featuredProducts: any[]
   instagramUrl?: string
   instagramPosts?: InstaPost[]
+  blogPosts?: BlogPost[]
 }
 
 export default function HomeClient({
   featuredProducts,
   instagramUrl,
-  instagramPosts = []
+  instagramPosts = [],
+  blogPosts = [],
 }: HomeClientProps) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary selection:text-white">
@@ -96,6 +108,117 @@ export default function HomeClient({
           </div>
         </div>
       </section>
+
+      {/* Blog Section - Auto-sliding carousel */}
+      {blogPosts.length > 0 && (
+        <section className="py-24 border-t border-border bg-background">
+          <div className="mx-auto max-w-[1600px] px-6 lg:px-12">
+            <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+              <div>
+                <h2 className="font-serif text-4xl md:text-5xl mb-4">Journal</h2>
+                <p className="text-muted-foreground max-w-md">
+                  Inspirations, témoignages et actualités de la communauté Faith Shop.
+                </p>
+              </div>
+              <Link href="/blog" className="group flex items-center gap-2 text-sm font-bold uppercase tracking-widest border-b border-foreground pb-1 hover:opacity-70 transition-opacity">
+                Tous les articles <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            <div id="blog-carousel" className="relative overflow-hidden">
+              <div className="flex gap-6 transition-transform duration-500 ease-out" style={{ width: `${blogPosts.length * 380}px` }}>
+                {blogPosts.map((post) => (
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug}`}
+                    className="group block w-[350px] shrink-0"
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-secondary rounded-lg mb-4">
+                      {post.coverImage && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={post.coverImage}
+                          alt={post.title}
+                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                        />
+                      )}
+                      {post.category && (
+                        <span className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur text-black text-[10px] font-bold uppercase tracking-widest">
+                          {post.category}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-serif text-xl mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                      {post.title}
+                    </h3>
+                    {post.excerpt && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.excerpt}</p>
+                    )}
+                    {post.publishedAt && (
+                      <time className="text-xs text-muted-foreground">
+                        {new Date(post.publishedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </time>
+                    )}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Navigation arrows */}
+              {blogPosts.length > 3 && (
+                <>
+                  <button
+                    data-blog-nav="prev"
+                    className="absolute left-0 top-1/3 -translate-y-1/2 p-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+                    aria-label="Articles précédents"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                  </button>
+                  <button
+                    data-blog-nav="next"
+                    className="absolute right-0 top-1/3 -translate-y-1/2 p-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur rounded-full shadow-lg hover:scale-110 transition-transform z-10"
+                    aria-label="Articles suivants"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          {/* Inline script for blog carousel auto-slide — no React hydration needed */}
+          <script dangerouslySetInnerHTML={{ __html: `
+(function() {
+  var c = document.getElementById('blog-carousel');
+  if (!c) return;
+  var track = c.querySelector('div');
+  if (!track) return;
+  var cards = track.children;
+  if (cards.length <= 3) return;
+  var cardW = 350 + 24;
+  var maxScroll = (cards.length - 3) * cardW;
+  var pos = 0;
+  var timer;
+
+  function slide(p) {
+    pos = Math.max(0, Math.min(p, maxScroll));
+    track.style.transform = 'translateX(-' + pos + 'px)';
+  }
+
+  function autoSlide() {
+    pos += cardW;
+    if (pos > maxScroll) pos = 0;
+    slide(pos);
+  }
+
+  var prev = c.querySelector('[data-blog-nav="prev"]');
+  var next = c.querySelector('[data-blog-nav="next"]');
+  if (prev) prev.addEventListener('click', function() { clearInterval(timer); slide(pos - cardW); timer = setInterval(autoSlide, 5000); });
+  if (next) next.addEventListener('click', function() { clearInterval(timer); slide(pos + cardW); timer = setInterval(autoSlide, 5000); });
+
+  timer = setInterval(autoSlide, 5000);
+})();
+          `}} />
+        </section>
+      )}
 
       {/* Story Section - Immersive */}
       <section className="py-24 bg-secondary/20 border-t border-border">
