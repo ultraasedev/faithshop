@@ -89,7 +89,7 @@ describe('POST /api/checkout/validate-discount', () => {
       code: 'LIMIT',
       isActive: true,
       usageLimit: 5,
-      usageCount: 5,
+      currentUsage: 5,
       type: 'PERCENTAGE',
       value: 10,
     })

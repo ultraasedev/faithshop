@@ -99,7 +99,7 @@ describe('POST /api/checkout/update-payment-intent', () => {
       maxDiscount: null,
       minPurchase: null,
       usageLimit: null,
-      usageCount: 0,
+      currentUsage: 0,
       startsAt: null,
       expiresAt: null,
     })
@@ -149,7 +149,7 @@ describe('POST /api/checkout/update-payment-intent', () => {
       maxDiscount: null,
       minPurchase: null,
       usageLimit: null,
-      usageCount: 0,
+      currentUsage: 0,
       startsAt: null,
       expiresAt: null,
     })
@@ -215,7 +215,7 @@ describe('POST /api/checkout/update-payment-intent', () => {
       maxDiscount: null,
       minPurchase: null,
       usageLimit: null,
-      usageCount: 0,
+      currentUsage: 0,
       startsAt: null,
       expiresAt: null,
     })
