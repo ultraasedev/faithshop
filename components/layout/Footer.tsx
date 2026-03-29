@@ -5,6 +5,7 @@ const footerLinks = {
   shop: [
     { name: 'Nouveautés', href: '/new' },
     { name: 'Boutique', href: '/shop' },
+    { name: 'Faith Conseils', href: '/blog' },
   ],
   info: [
     { name: 'À Propos', href: '/about' },

@@ -115,9 +115,9 @@ export default function HomeClient({
           <div className="mx-auto max-w-[1600px] px-6 lg:px-12">
             <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
               <div>
-                <h2 className="font-serif text-4xl md:text-5xl mb-4">Journal</h2>
+                <h2 className="font-serif text-4xl md:text-5xl mb-4">Faith Conseils</h2>
                 <p className="text-muted-foreground max-w-md">
-                  Inspirations, témoignages et actualités de la communauté Faith Shop.
+                  Inspirations, témoignages et conseils de la communauté Faith Shop.
                 </p>
               </div>
               <Link href="/blog" className="group flex items-center gap-2 text-sm font-bold uppercase tracking-widest border-b border-foreground pb-1 hover:opacity-70 transition-opacity">
